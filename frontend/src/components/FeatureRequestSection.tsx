@@ -13,8 +13,8 @@ import {
   CheckmarkCircle02Icon,
   Cancel01Icon,
   Search01Icon,
+  MoreHorizontalIcon,
 } from "@hugeicons/core-free-icons"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import {
   FEATURE_REQUEST_PRIORITIES,
@@ -166,106 +181,66 @@ export function FeatureRequestSection({ projectId }: FeatureRequestSectionProps)
           </p>
         </div>
       ) : (
-        <div className="grid gap-3">
-          {requests.map((req) => (
-            <Card key={req.name} size="sm">
-              <CardHeader className="flex-row items-start justify-between gap-4">
-                <div className="space-y-1.5 min-w-0 flex-1">
-                  <CardTitle className="text-sm">{req.title}</CardTitle>
-                  <div className="flex items-center gap-2 flex-wrap">
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead className="hidden sm:table-cell">Requested By</TableHead>
+                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((req) => (
+                <TableRow key={req.name}>
+                  <TableCell>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate max-w-[300px]">
+                        {req.title}
+                      </p>
+                      {req.description && (
+                        <p className="text-xs text-muted-foreground truncate max-w-[300px] mt-0.5">
+                          {stripHtml(req.description)}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Badge
                       variant={statusVariant[req.status] ?? "outline"}
-                      className="text-[10px] h-4 px-1.5"
+                      className="text-[10px] h-5 px-1.5"
                     >
                       {req.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Badge
                       variant={priorityVariant[req.priority] ?? "outline"}
-                      className="text-[10px] h-4 px-1.5"
+                      className="text-[10px] h-5 px-1.5"
                     >
                       {req.priority}
                     </Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                      by {req.requested_by} &middot;{" "}
-                      {format(new Date(req.creation), "MMM d, yyyy")}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action buttons for team members */}
-                {req.status === "Open" && (
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Set Under Review"
-                      onClick={() => handleReview(req.name, "under_review")}
-                    >
-                      <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Approve"
-                      onClick={() => handleReview(req.name, "approve")}
-                    >
-                      <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-3.5 text-green-600" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Reject"
-                      onClick={() => handleReview(req.name, "reject")}
-                    >
-                      <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3.5 text-red-600" />
-                    </Button>
-                  </div>
-                )}
-                {req.status === "Under Review" && (
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Approve"
-                      onClick={() => handleReview(req.name, "approve")}
-                    >
-                      <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-3.5 text-green-600" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Reject"
-                      onClick={() => handleReview(req.name, "reject")}
-                    >
-                      <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3.5 text-red-600" />
-                    </Button>
-                  </div>
-                )}
-                {req.status === "Approved" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleConvert(req.name)}
-                  >
-                    <HugeiconsIcon icon={ArrowTurnForwardIcon} strokeWidth={2} data-icon="inline-start" />
-                    Convert to Task
-                  </Button>
-                )}
-                {req.status === "Converted" && req.converted_task && (
-                  <Badge variant="secondary" className="text-[10px] h-5 px-2">
-                    {req.converted_task}
-                  </Badge>
-                )}
-              </CardHeader>
-              {req.description && (
-                <CardContent>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {stripHtml(req.description)}
-                  </p>
-                </CardContent>
-              )}
-            </Card>
-          ))}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
+                    {req.requested_by}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
+                    {format(new Date(req.creation), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell>
+                    <RowActions
+                      req={req}
+                      onReview={handleReview}
+                      onConvert={handleConvert}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -275,6 +250,81 @@ export function FeatureRequestSection({ projectId }: FeatureRequestSectionProps)
         onSubmit={handleCreate}
       />
     </div>
+  )
+}
+
+function RowActions({
+  req,
+  onReview,
+  onConvert,
+}: {
+  req: HiveFeatureRequest
+  onReview: (name: string, action: string) => void
+  onConvert: (name: string) => void
+}) {
+  const hasActions =
+    req.status === "Open" ||
+    req.status === "Under Review" ||
+    req.status === "Approved"
+
+  if (!hasActions && !(req.status === "Converted" && req.converted_task)) {
+    return null
+  }
+
+  if (req.status === "Converted" && req.converted_task) {
+    return (
+      <Badge variant="secondary" className="text-[10px] h-5 px-2">
+        {req.converted_task}
+      </Badge>
+    )
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon-sm" />}
+      >
+        <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} className="size-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {req.status === "Open" && (
+          <>
+            <DropdownMenuItem onClick={() => onReview(req.name, "under_review")}>
+              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
+              Set Under Review
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onReview(req.name, "approve")}>
+              <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="text-green-600" />
+              Approve
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={() => onReview(req.name, "reject")}>
+              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+              Reject
+            </DropdownMenuItem>
+          </>
+        )}
+        {req.status === "Under Review" && (
+          <>
+            <DropdownMenuItem onClick={() => onReview(req.name, "approve")}>
+              <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="text-green-600" />
+              Approve
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={() => onReview(req.name, "reject")}>
+              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+              Reject
+            </DropdownMenuItem>
+          </>
+        )}
+        {req.status === "Approved" && (
+          <DropdownMenuItem onClick={() => onConvert(req.name)}>
+            <HugeiconsIcon icon={ArrowTurnForwardIcon} strokeWidth={2} />
+            Convert to Task
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

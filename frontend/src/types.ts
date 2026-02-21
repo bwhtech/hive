@@ -18,6 +18,23 @@ export interface HiveTask {
   assigned_to: string
   is_client_task: 0 | 1
   description: string
+  due_date: string | null
+  start_date: string | null
+  pr_link: string | null
+  uat_status: "Pending" | "Approved" | "Rejected"
+  uat_approved_by: string | null
+  uat_date: string | null
+  creation: string
+  modified: string
+}
+
+export interface HiveMilestone {
+  name: string
+  title: string
+  project: string
+  status: "Upcoming" | "In Progress" | "Completed"
+  target_date: string | null
+  description: string
   creation: string
   modified: string
 }
@@ -48,3 +65,4 @@ export interface HiveProjectMember {
 export const TASK_STATUSES = ["Backlog", "To Do", "In Progress", "Done"] as const
 export const TASK_PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const
 export const PROJECT_STATUSES = ["Open", "Completed", "On Hold"] as const
+export const MILESTONE_STATUSES = ["Upcoming", "In Progress", "Completed"] as const

@@ -1,16 +1,34 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router"
-import { useFrappeGetDoc, useFrappeGetDocList, useFrappeUpdateDoc, useFrappeCreateDoc } from "frappe-react-sdk"
+import {
+  useFrappeGetDoc,
+  useFrappeGetDocList,
+  useFrappeUpdateDoc,
+  useFrappeCreateDoc,
+  useFrappePostCall,
+} from "frappe-react-sdk"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft02Icon, Add01Icon } from "@hugeicons/core-free-icons"
+import {
+  ArrowLeft02Icon,
+  Add01Icon,
+  Task01Icon,
+  Target02Icon,
+  DashboardSquare01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import type { HiveProject, HiveTask } from "@/types"
+import type { HiveProject, HiveTask, HiveMilestone, HiveProjectMember } from "@/types"
 import { TASK_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
+import { TaskDetailSheet } from "@/components/TaskDetailSheet"
+import { MilestoneSection } from "@/components/MilestoneSection"
 
 const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
   Open: "default",
@@ -18,9 +36,30 @@ const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
   "On Hold": "outline",
 }
 
+const TASK_FIELDS = [
+  "name",
+  "title",
+  "project",
+  "status",
+  "priority",
+  "assigned_to",
+  "is_client_task",
+  "description",
+  "due_date",
+  "start_date",
+  "pr_link",
+  "uat_status",
+  "uat_approved_by",
+  "uat_date",
+  "creation",
+  "modified",
+] as const
+
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [createOpen, setCreateOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const { data: project, isLoading: projectLoading } = useFrappeGetDoc<HiveProject>(
     "Hive Project",
@@ -28,10 +67,14 @@ export function ProjectDetailPage() {
     id ? undefined : null,
   )
 
-  const { data: tasks, isLoading: tasksLoading, mutate: mutateTasks } = useFrappeGetDocList<HiveTask>(
+  const {
+    data: tasks,
+    isLoading: tasksLoading,
+    mutate: mutateTasks,
+  } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
     {
-      fields: ["name", "title", "project", "status", "priority", "assigned_to", "description", "creation", "modified"],
+      fields: TASK_FIELDS as unknown as (keyof HiveTask)[],
       filters: [["project", "=", id ?? ""]],
       orderBy: { field: "modified", order: "desc" },
       limit: 200,
@@ -39,8 +82,29 @@ export function ProjectDetailPage() {
     id ? undefined : null,
   )
 
+  const { data: milestones } = useFrappeGetDocList<HiveMilestone>(
+    "Hive Milestone",
+    {
+      fields: ["name", "title", "status", "target_date"],
+      filters: [["project", "=", id ?? ""]],
+      limit: 50,
+    },
+    id ? undefined : null,
+  )
+
   const { updateDoc } = useFrappeUpdateDoc()
   const { createDoc } = useFrappeCreateDoc()
+  const { call: callDashboard, result: dashboardResult } = useFrappePostCall(
+    "bwh_hive.bwh_hive.api.get_project_dashboard",
+  )
+
+  // Fetch dashboard stats when project loads
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (id) {
+      callDashboard({ project: id }).catch(() => {})
+    }
+  }, [id])
 
   const handleStatusChange = async (taskName: string, newStatus: string) => {
     try {
@@ -51,7 +115,15 @@ export function ProjectDetailPage() {
     }
   }
 
-  const handleCreateTask = async (values: { title: string; priority: string; status: string }) => {
+  const handleCreateTask = async (values: {
+    title: string
+    priority: string
+    status: string
+    due_date?: string | null
+    start_date?: string | null
+    pr_link?: string | null
+    is_client_task?: 0 | 1
+  }) => {
     try {
       await createDoc("Hive Task", {
         ...values,
@@ -62,6 +134,20 @@ export function ProjectDetailPage() {
       toast.success("Task created")
     } catch {
       toast.error("Failed to create task")
+    }
+  }
+
+  const handleTaskClick = (task: HiveTask) => {
+    setSelectedTask(task)
+    setSheetOpen(true)
+  }
+
+  const handleTaskUpdated = () => {
+    mutateTasks()
+    // Refresh the selected task from the list
+    if (selectedTask && tasks) {
+      const updated = tasks.find((t) => t.name === selectedTask.name)
+      if (updated) setSelectedTask(updated)
     }
   }
 
@@ -103,6 +189,18 @@ export function ProjectDetailPage() {
     }
   }
 
+  // Compute stats
+  const totalTasks = tasks?.length ?? 0
+  const doneTasks = tasksByStatus["Done"]?.length ?? 0
+  const inProgressTasks = tasksByStatus["In Progress"]?.length ?? 0
+  const blockedTasks = tasks?.filter((t) => t.status === "Blocked").length ?? 0
+  const activeMilestones = milestones?.filter((m) => m.status === "In Progress").length ?? 0
+
+  // Dashboard data from API (if loaded)
+  const dashboardData = dashboardResult?.message as
+    | { members?: { member: string; member_name: string; role: string }[] }
+    | undefined
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -132,23 +230,147 @@ export function ProjectDetailPage() {
         </Button>
       </div>
 
-      {/* Kanban */}
-      {tasksLoading ? (
-        <div className="grid grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="space-y-3">
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
+      {/* Tabs */}
+      <Tabs defaultValue="overview">
+        <TabsList variant="line">
+          <TabsTrigger value="overview">
+            <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="tasks">
+            <HugeiconsIcon icon={Task01Icon} strokeWidth={2} className="size-4" />
+            Tasks
+            <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1.5">
+              {totalTasks}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="milestones">
+            <HugeiconsIcon icon={Target02Icon} strokeWidth={2} className="size-4" />
+            Milestones
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview">
+          <div className="space-y-6 pt-2">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <StatCard label="Total Tasks" value={totalTasks} />
+              <StatCard label="In Progress" value={inProgressTasks} />
+              <StatCard label="Completed" value={doneTasks} />
+              <StatCard label="Blocked" value={blockedTasks} variant={blockedTasks > 0 ? "destructive" : undefined} />
             </div>
-          ))}
-        </div>
-      ) : (
-        <TaskKanban
-          tasksByStatus={tasksByStatus}
-          onStatusChange={handleStatusChange}
-        />
-      )}
+
+            {/* Active Milestones & Team */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Active Milestones */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <HugeiconsIcon icon={Target02Icon} strokeWidth={2} className="size-4" />
+                    Active Milestones
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {activeMilestones > 0 ? (
+                    <div className="space-y-2">
+                      {milestones
+                        ?.filter((m) => m.status !== "Completed")
+                        .slice(0, 5)
+                        .map((ms) => (
+                          <div key={ms.name} className="flex items-center justify-between text-sm">
+                            <span>{ms.title}</span>
+                            <Badge
+                              variant={ms.status === "In Progress" ? "default" : "outline"}
+                              className="text-[10px] h-4 px-1.5"
+                            >
+                              {ms.status}
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No active milestones</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Team */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-4" />
+                    Team
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {dashboardData?.members?.length ? (
+                    <div className="space-y-2">
+                      {dashboardData.members.map((m) => (
+                        <div key={m.member} className="flex items-center gap-2 text-sm">
+                          <Avatar size="sm">
+                            <AvatarFallback>
+                              {(m.member_name || m.member).slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="flex-1 truncate">{m.member_name || m.member}</span>
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                            {m.role}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No team members assigned</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Client Info */}
+            {project.client && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Client</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">{project.client}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Tasks Tab */}
+        <TabsContent value="tasks">
+          <div className="pt-2">
+            {tasksLoading ? (
+              <div className="grid grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <TaskKanban
+                tasksByStatus={tasksByStatus}
+                onStatusChange={handleStatusChange}
+                onTaskClick={handleTaskClick}
+              />
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Milestones Tab */}
+        <TabsContent value="milestones">
+          <div className="pt-2">
+            {id && <MilestoneSection projectId={id} />}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Create Task Dialog */}
       <CreateTaskDialog
@@ -156,6 +378,39 @@ export function ProjectDetailPage() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateTask}
       />
+
+      {/* Task Detail Sheet */}
+      <TaskDetailSheet
+        task={selectedTask}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onUpdated={handleTaskUpdated}
+      />
     </div>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  variant,
+}: {
+  label: string
+  value: number
+  variant?: "destructive"
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p
+          className={`text-2xl font-bold mt-1 ${
+            variant === "destructive" ? "text-destructive" : ""
+          }`}
+        >
+          {value}
+        </p>
+      </CardContent>
+    </Card>
   )
 }

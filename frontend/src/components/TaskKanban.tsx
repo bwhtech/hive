@@ -11,8 +11,12 @@ import {
 } from "@dnd-kit/core"
 import { useDroppable } from "@dnd-kit/core"
 import { useDraggable } from "@dnd-kit/core"
+import { format } from "date-fns"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Calendar03Icon, GitBranchIcon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { TASK_STATUSES, type HiveTask } from "@/types"
 
 const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -25,9 +29,10 @@ const priorityVariant: Record<string, "default" | "secondary" | "destructive" | 
 interface TaskKanbanProps {
   tasksByStatus: Record<string, HiveTask[]>
   onStatusChange: (taskName: string, newStatus: string) => void
+  onTaskClick?: (task: HiveTask) => void
 }
 
-export function TaskKanban({ tasksByStatus, onStatusChange }: TaskKanbanProps) {
+export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<HiveTask | null>(null)
 
   const sensors = useSensors(
@@ -49,7 +54,6 @@ export function TaskKanban({ tasksByStatus, onStatusChange }: TaskKanbanProps) {
     const taskName = String(active.id)
     const newStatus = String(over.id)
 
-    // Only fire if dropped on a column (not another card)
     if (TASK_STATUSES.includes(newStatus as typeof TASK_STATUSES[number])) {
       const task = findTask(taskName)
       if (task && task.status !== newStatus) {
@@ -83,6 +87,7 @@ export function TaskKanban({ tasksByStatus, onStatusChange }: TaskKanbanProps) {
             key={status}
             status={status}
             tasks={tasksByStatus[status] ?? []}
+            onTaskClick={onTaskClick}
           />
         ))}
       </div>
@@ -93,7 +98,15 @@ export function TaskKanban({ tasksByStatus, onStatusChange }: TaskKanbanProps) {
   )
 }
 
-function KanbanColumn({ status, tasks }: { status: string; tasks: HiveTask[] }) {
+function KanbanColumn({
+  status,
+  tasks,
+  onTaskClick,
+}: {
+  status: string
+  tasks: HiveTask[]
+  onTaskClick?: (task: HiveTask) => void
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
   return (
@@ -113,14 +126,20 @@ function KanbanColumn({ status, tasks }: { status: string; tasks: HiveTask[] }) 
       </div>
       <div className="flex flex-col gap-2 min-h-[60px]">
         {tasks.map((task) => (
-          <DraggableTaskCard key={task.name} task={task} />
+          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} />
         ))}
       </div>
     </div>
   )
 }
 
-function DraggableTaskCard({ task }: { task: HiveTask }) {
+function DraggableTaskCard({
+  task,
+  onTaskClick,
+}: {
+  task: HiveTask
+  onTaskClick?: (task: HiveTask) => void
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.name,
   })
@@ -136,6 +155,7 @@ function DraggableTaskCard({ task }: { task: HiveTask }) {
       {...listeners}
       {...attributes}
       className={isDragging ? "opacity-30" : ""}
+      onClick={() => onTaskClick?.(task)}
     >
       <TaskCard task={task} />
     </div>
@@ -143,17 +163,59 @@ function DraggableTaskCard({ task }: { task: HiveTask }) {
 }
 
 function TaskCard({ task, isDragOverlay }: { task: HiveTask; isDragOverlay?: boolean }) {
+  const initials = task.assigned_to
+    ? task.assigned_to
+        .split("@")[0]
+        .slice(0, 2)
+        .toUpperCase()
+    : null
+
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
+
   return (
     <Card
       size="sm"
       className={`cursor-grab active:cursor-grabbing ${isDragOverlay ? "rotate-2 shadow-lg" : ""}`}
     >
-      <CardHeader className="gap-1.5">
+      <CardHeader className="gap-2">
         <CardTitle className="text-sm leading-snug">{task.title}</CardTitle>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Badge variant={priorityVariant[task.priority] ?? "outline"} className="text-[10px] h-4 px-1.5">
             {task.priority}
           </Badge>
+          {task.pr_link && (
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5">
+              <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-2.5" />
+              PR
+            </Badge>
+          )}
+          {task.uat_status && task.uat_status !== "Pending" && (
+            <Badge
+              variant={task.uat_status === "Approved" ? "default" : "destructive"}
+              className="text-[10px] h-4 px-1.5"
+            >
+              UAT {task.uat_status}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center justify-between mt-0.5">
+          <div className="flex items-center gap-1.5">
+            {task.due_date && (
+              <span
+                className={`flex items-center gap-1 text-[11px] ${
+                  isOverdue ? "text-destructive font-medium" : "text-muted-foreground"
+                }`}
+              >
+                <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="size-3" />
+                {format(new Date(task.due_date), "MMM d")}
+              </span>
+            )}
+          </div>
+          {initials && (
+            <Avatar size="sm">
+              <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+            </Avatar>
+          )}
         </div>
       </CardHeader>
     </Card>

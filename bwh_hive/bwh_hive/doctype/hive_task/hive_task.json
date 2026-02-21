@@ -12,7 +12,14 @@
   "priority",
   "assigned_to",
   "is_client_task",
-  "description"
+  "start_date",
+  "due_date",
+  "pr_link",
+  "description",
+  "uat_section",
+  "uat_status",
+  "uat_approved_by",
+  "uat_date"
  ],
  "fields": [
   {
@@ -66,9 +73,51 @@
    "label": "Is Client Task"
   },
   {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "pr_link",
+   "fieldtype": "Data",
+   "label": "PR Link",
+   "options": "URL"
+  },
+  {
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"
+  },
+  {
+   "fieldname": "uat_section",
+   "fieldtype": "Section Break",
+   "label": "UAT"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "uat_status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "UAT Status",
+   "options": "Pending\nApproved\nRejected"
+  },
+  {
+   "fieldname": "uat_approved_by",
+   "fieldtype": "Link",
+   "label": "UAT Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uat_date",
+   "fieldtype": "Date",
+   "label": "UAT Date",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

@@ -1,12 +1,69 @@
-import { Routes, Route } from 'react-router'
-import Home from '@/pages/Home'
+import { lazy, Suspense } from "react"
+import { Routes, Route, Navigate } from "react-router"
+import { useFrappeAuth } from "frappe-react-sdk"
+import { UserProvider } from "@/context/UserContext"
+import { AppLayout } from "@/components/layout/AppLayout"
 
-function App() {
+const DashboardPage = lazy(() =>
+  import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
+)
+const ProjectsPage = lazy(() =>
+  import("@/pages/ProjectsPage").then((m) => ({ default: m.ProjectsPage })),
+)
+const TasksPage = lazy(() =>
+  import("@/pages/TasksPage").then((m) => ({ default: m.TasksPage })),
+)
+const TeamPage = lazy(() =>
+  import("@/pages/TeamPage").then((m) => ({ default: m.TeamPage })),
+)
+const SettingsPage = lazy(() =>
+  import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+)
+
+function PageSpinner() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-    </Routes>
+    <div className="flex h-full items-center justify-center">
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
   )
 }
 
-export default App
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { currentUser, isLoading } = useFrappeAuth()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!currentUser || currentUser === "Guest") {
+    window.location.href = "/login"
+    return null
+  }
+
+  return <UserProvider>{children}</UserProvider>
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Suspense fallback={<PageSpinner />}><DashboardPage /></Suspense>} />
+        <Route path="projects" element={<Suspense fallback={<PageSpinner />}><ProjectsPage /></Suspense>} />
+        <Route path="tasks" element={<Suspense fallback={<PageSpinner />}><TasksPage /></Suspense>} />
+        <Route path="team" element={<Suspense fallback={<PageSpinner />}><TeamPage /></Suspense>} />
+        <Route path="settings" element={<Suspense fallback={<PageSpinner />}><SettingsPage /></Suspense>} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}

@@ -19,6 +19,9 @@ const TeamPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
 )
+const ProjectDetailPage = lazy(() =>
+  import("@/pages/ProjectDetailPage").then((m) => ({ default: m.ProjectDetailPage })),
+)
 
 function PageSpinner() {
   return (
@@ -59,6 +62,7 @@ export default function App() {
       >
         <Route index element={<Suspense fallback={<PageSpinner />}><DashboardPage /></Suspense>} />
         <Route path="projects" element={<Suspense fallback={<PageSpinner />}><ProjectsPage /></Suspense>} />
+        <Route path="projects/:id" element={<Suspense fallback={<PageSpinner />}><ProjectDetailPage /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<PageSpinner />}><TasksPage /></Suspense>} />
         <Route path="team" element={<Suspense fallback={<PageSpinner />}><TeamPage /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<PageSpinner />}><SettingsPage /></Suspense>} />

@@ -39,6 +39,7 @@ repos:
         exclude: |
             (?x)^(
                 bwh_hive/public/dist/.*|
+                bwh_hive/public/frontend/.*|
                 .*node_modules.*|
                 .*boilerplate.*|
                 bwh_hive/templates/includes/.*|
@@ -56,6 +57,7 @@ repos:
         exclude: |
             (?x)^(
                 bwh_hive/public/dist/.*|
+                bwh_hive/public/frontend/.*|
                 cypress/.*|
                 .*node_modules.*|
                 .*boilerplate.*|

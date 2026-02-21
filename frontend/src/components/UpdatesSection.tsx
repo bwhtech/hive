@@ -12,8 +12,8 @@ import { SentIcon, News01Icon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import { TiptapEditor } from "@/components/TiptapEditor"
 import type { HiveProjectUpdate } from "@/types"
 
 const REACTION_EMOJIS = ["\ud83d\udc4d", "\u2764\ufe0f", "\ud83c\udf89", "\ud83d\ude80", "\ud83d\udc40", "\ud83d\ude4f"]
@@ -25,6 +25,7 @@ interface UpdatesSectionProps {
 export function UpdatesSection({ projectId }: UpdatesSectionProps) {
   const [content, setContent] = useState("")
   const [posting, setPosting] = useState(false)
+  const [editorKey, setEditorKey] = useState(0)
   const { currentUser } = useFrappeAuth()
 
   const { data: updates, mutate } = useFrappeGetDocList<HiveProjectUpdate>(
@@ -57,6 +58,7 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
         content: content.trim(),
       })
       setContent("")
+      setEditorKey((k) => k + 1)
       mutate()
       toast.success("Update posted")
     } catch {
@@ -80,25 +82,16 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handlePost()
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Compose */}
       <Card>
         <CardContent className="pt-4">
-          <Textarea
+          <TiptapEditor
+            key={editorKey}
+            onChange={setContent}
             placeholder="Share an update with the team..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={3}
-            className="resize-none"
+            onSubmit={handlePost}
           />
           <div className="flex items-center justify-between mt-3">
             <p className="text-[10px] text-muted-foreground">

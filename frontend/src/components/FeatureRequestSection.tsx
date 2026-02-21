@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -51,6 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
+import { TiptapEditor } from "@/components/TiptapEditor"
 import {
   FEATURE_REQUEST_PRIORITIES,
   type HiveFeatureRequest,
@@ -346,6 +346,7 @@ function CreateFeatureRequestDialog({
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [priority, setPriority] = useState("Nice to Have")
+  const [editorKey, setEditorKey] = useState(0)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -358,6 +359,7 @@ function CreateFeatureRequestDialog({
     setTitle("")
     setDescription("")
     setPriority("Nice to Have")
+    setEditorKey((k) => k + 1)
   }
 
   return (
@@ -396,13 +398,12 @@ function CreateFeatureRequestDialog({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="fr-description">Description</Label>
-            <Textarea
-              id="fr-description"
+            <Label>Description</Label>
+            <TiptapEditor
+              key={editorKey}
+              content={description}
+              onChange={(html) => setDescription(html)}
               placeholder="Describe the feature in detail..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
             />
           </div>
           <DialogFooter>

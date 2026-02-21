@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Select,
@@ -35,6 +34,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
+import { TiptapEditor } from "@/components/TiptapEditor"
 import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveMember } from "@/types"
 
 interface TaskDetailSheetProps {
@@ -338,13 +338,12 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
 
             {/* Description */}
             <div className="grid gap-2">
-              <Label htmlFor="task-description">Description</Label>
-              <Textarea
-                id="task-description"
+              <Label>Description</Label>
+              <TiptapEditor
+                key={task.name}
+                content={task.description || ""}
+                onChange={setDescription}
                 placeholder="Add a description..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
               />
             </div>
 

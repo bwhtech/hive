@@ -174,6 +174,55 @@ def get_task_assignees(project: str):
 	return result
 
 
+@frappe.whitelist(methods=["GET"])
+def search(query: str, project: str | None = None, limit: int = 10):
+	"""Search projects and tasks using SQL LIKE."""
+	query = (query or "").strip()
+	if not query:
+		return {"projects": [], "tasks": []}
+
+	limit = min(int(limit), 20)
+	like = f"%{query}%"
+
+	# Search projects by title
+	projects = frappe.get_all(
+		"Hive Project",
+		filters={"title": ["like", like]},
+		fields=["name", "title", "status"],
+		order_by="modified desc",
+		limit=limit,
+	)
+
+	# Search tasks by title, optionally scoped to a project
+	task_filters: dict = {"title": ["like", like]}
+	if project:
+		task_filters["project"] = project
+
+	tasks = frappe.get_all(
+		"Hive Task",
+		filters=task_filters,
+		fields=["name", "title", "project", "status", "priority"],
+		order_by="modified desc",
+		limit=limit,
+	)
+
+	# Enrich tasks with project titles
+	task_project_ids = list({t.project for t in tasks if t.project})
+	if task_project_ids:
+		proj_map = {
+			p.name: p.title
+			for p in frappe.get_all(
+				"Hive Project",
+				filters={"name": ["in", task_project_ids]},
+				fields=["name", "title"],
+			)
+		}
+		for t in tasks:
+			t["project_title"] = proj_map.get(t.project, t.project)
+
+	return {"projects": projects, "tasks": tasks}
+
+
 @frappe.whitelist()
 def get_project_dashboard(project: str):
 	"""Return aggregated stats for a project: task counts by status, milestone progress, team members."""

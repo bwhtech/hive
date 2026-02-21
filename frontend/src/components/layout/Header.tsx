@@ -1,12 +1,16 @@
 import { useFrappeGetCall } from "frappe-react-sdk"
 import { Link } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Notification03Icon } from "@hugeicons/core-free-icons"
+import { Notification03Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
-export function Header() {
+interface HeaderProps {
+  onOpenSearch: () => void
+}
+
+export function Header({ onOpenSearch }: HeaderProps) {
   const { data } = useFrappeGetCall<{ message: { unread_count: number } }>(
     "bwh_hive.bwh_hive.api.get_my_dashboard",
   )
@@ -18,6 +22,27 @@ export function Header() {
         <SidebarTrigger className="-ml-1" />
       </div>
       <div className="ml-auto flex items-center gap-2">
+        <Button
+          variant="ghost"
+          className="hidden h-8 gap-2 rounded-lg px-2 text-muted-foreground md:flex"
+          onClick={onOpenSearch}
+        >
+          <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-4" />
+          <span className="text-sm">Search...</span>
+          <kbd className="pointer-events-none rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            ⌘K
+          </kbd>
+        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={onOpenSearch} />
+            }
+          >
+            <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-5" />
+          </TooltipTrigger>
+          <TooltipContent>Search (⌘K)</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger
             render={

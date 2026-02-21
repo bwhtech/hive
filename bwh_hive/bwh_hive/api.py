@@ -1,4 +1,142 @@
+from datetime import timedelta
+
 import frappe
+from frappe.utils import getdate, nowdate
+
+
+@frappe.whitelist()
+def get_my_dashboard():
+	"""Return aggregated personal dashboard data: my tasks, my projects, unread updates."""
+	user = frappe.session.user
+
+	# My tasks grouped by project
+	my_tasks = frappe.get_all(
+		"Hive Task",
+		filters={"assigned_to": user, "status": ["not in", ["Done"]]},
+		fields=["name", "title", "project", "status", "priority", "due_date", "is_client_task"],
+		order_by="priority desc, modified desc",
+		limit=50,
+	)
+
+	# Get project titles for the tasks
+	project_ids = list({t.project for t in my_tasks if t.project})
+	project_map = {}
+	if project_ids:
+		projects = frappe.get_all(
+			"Hive Project",
+			filters={"name": ["in", project_ids]},
+			fields=["name", "title", "status", "project_type", "client"],
+		)
+		project_map = {p.name: p for p in projects}
+
+	# Group tasks by project
+	tasks_by_project: dict[str, list[dict]] = {}
+	for task in my_tasks:
+		pid = task.project
+		if pid not in tasks_by_project:
+			tasks_by_project[pid] = []
+		tasks_by_project[pid].append(task)
+
+	grouped_tasks = []
+	for pid, tasks in tasks_by_project.items():
+		proj = project_map.get(pid, {})
+		grouped_tasks.append(
+			{
+				"project": pid,
+				"project_title": proj.get("title", pid) if proj else pid,
+				"project_status": proj.get("status", "") if proj else "",
+				"tasks": tasks,
+			}
+		)
+
+	# My projects (where I'm a member or have tasks)
+	my_project_member_entries = frappe.get_all(
+		"Hive Project Member",
+		filters={"member": user},
+		fields=["parent"],
+	)
+	member_project_ids = {e.parent for e in my_project_member_entries}
+	all_my_project_ids = member_project_ids | set(project_ids)
+
+	my_projects = []
+	if all_my_project_ids:
+		my_projects = frappe.get_all(
+			"Hive Project",
+			filters={"name": ["in", list(all_my_project_ids)]},
+			fields=["name", "title", "status", "project_type", "client", "modified"],
+			order_by="modified desc",
+		)
+
+	# Unread updates count across my projects
+	unread_count = 0
+	if all_my_project_ids:
+		updates = frappe.get_all(
+			"Hive Project Update",
+			filters={"project": ["in", list(all_my_project_ids)]},
+			fields=["name", "_seen"],
+			limit=200,
+		)
+		for upd in updates:
+			seen = upd.get("_seen") or "[]"
+			if user not in seen:
+				unread_count += 1
+
+	# Recent updates from my projects
+	recent_updates = []
+	if all_my_project_ids:
+		recent_updates = frappe.get_all(
+			"Hive Project Update",
+			filters={"project": ["in", list(all_my_project_ids)]},
+			fields=["name", "project", "posted_by", "content", "creation", "_seen"],
+			order_by="creation desc",
+			limit=10,
+		)
+		for upd in recent_updates:
+			seen = upd.get("_seen") or "[]"
+			upd["is_unread"] = user not in seen
+			# Get project title
+			proj = project_map.get(upd.project)
+			upd["project_title"] = proj.get("title", upd.project) if proj else upd.project
+			# Get poster name
+			upd["posted_by_name"] = (
+				frappe.get_cached_value("User", upd.posted_by, "full_name") or upd.posted_by
+			)
+
+	return {
+		"tasks_by_project": grouped_tasks,
+		"my_projects": my_projects,
+		"unread_count": unread_count,
+		"recent_updates": recent_updates,
+	}
+
+
+@frappe.whitelist()
+def get_stale_members(threshold_days: int = 7):
+	"""Return team members who haven't posted a project update in threshold_days."""
+	cutoff = getdate(nowdate()) - timedelta(days=int(threshold_days))
+
+	team_members = frappe.get_all(
+		"Hive Member",
+		filters={"type": "Team", "is_active": 1},
+		fields=["name", "user", "member_name", "user_image"],
+	)
+
+	# Get the most recent update per user
+	stale_users = set()
+	for member in team_members:
+		latest = frappe.get_all(
+			"Hive Project Update",
+			filters={"posted_by": member.user},
+			fields=["creation"],
+			order_by="creation desc",
+			limit=1,
+		)
+		if not latest:
+			stale_users.add(member.user)
+		elif getdate(latest[0].creation) < cutoff:
+			stale_users.add(member.user)
+
+	return list(stale_users)
 
 
 @frappe.whitelist()

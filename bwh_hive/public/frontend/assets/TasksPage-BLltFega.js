@@ -1,1 +1,0 @@
-import{j as s}from"./index-CN0xwr-6.js";function a(){return s.jsxs("div",{children:[s.jsx("h1",{className:"text-2xl font-bold tracking-tight",children:"Tasks"}),s.jsx("p",{className:"mt-1 text-muted-foreground",children:"Track and manage your tasks."})]})}export{a as TasksPage};

@@ -1,0 +1,1 @@
+import{j as e}from"./index-D-ZttPpP.js";function r(){return e.jsxs("div",{children:[e.jsx("h1",{className:"text-2xl font-bold tracking-tight",children:"Team"}),e.jsx("p",{className:"mt-1 text-muted-foreground",children:"Manage your team members."})]})}export{r as TeamPage};

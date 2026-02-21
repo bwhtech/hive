@@ -230,18 +230,18 @@ def search(query: str, project: str | None = None, limit: int = 10):
 @frappe.whitelist()
 def get_project_dashboard(project: str):
 	"""Return aggregated stats for a project: task counts by status, milestone progress, team members."""
-	task_counts = frappe.get_all(
+	tasks = frappe.get_all(
 		"Hive Task",
 		filters={"project": project},
-		fields=["status", "count(name) as count"],
-		group_by="status",
+		fields=["status"],
+		limit=500,
 	)
 
-	status_map = {}
+	status_map: dict[str, int] = {}
 	total = 0
-	for row in task_counts:
-		status_map[row.status] = row.count
-		total += row.count
+	for row in tasks:
+		status_map[row.status] = status_map.get(row.status, 0) + 1
+		total += 1
 
 	milestones = frappe.get_all(
 		"Hive Milestone",

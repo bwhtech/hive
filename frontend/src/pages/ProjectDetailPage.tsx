@@ -15,6 +15,9 @@ import {
   Target02Icon,
   DashboardSquare01Icon,
   UserGroupIcon,
+  UserAdd01Icon,
+  CheckmarkCircle02Icon,
+  Cancel02Icon,
   Idea01Icon,
   News01Icon,
 } from "@hugeicons/core-free-icons"
@@ -23,9 +26,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { toast } from "sonner"
-import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee } from "@/types"
+import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveMember } from "@/types"
 import { TASK_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
@@ -105,6 +116,20 @@ export function ProjectDetailPage() {
     "bwh_hive.bwh_hive.api.get_task_assignees",
   )
 
+  // Fetch all active members for the team member picker
+  const { data: allMembers } = useFrappeGetDocList<HiveMember>(
+    "Hive Member",
+    {
+      fields: ["name", "user", "member_name", "user_image", "type", "is_active"],
+      filters: [["is_active", "=", 1]],
+      limit: 100,
+    },
+  )
+
+  const [teamMembers, setTeamMembers] = useState<
+    { member: string; member_name: string; role: string }[]
+  >([])
+
   // Fetch dashboard stats and assignees when project loads
   useEffect(() => {
     if (id) {
@@ -112,6 +137,18 @@ export function ProjectDetailPage() {
       callAssignees({ project: id }).catch(() => {})
     }
   }, [id, callDashboard, callAssignees])
+
+  // Sync team members from dashboard data
+  useEffect(() => {
+    const members = (
+      dashboardResult?.message as {
+        members?: { member: string; member_name: string; role: string }[]
+      }
+    )?.members
+    if (members) {
+      setTeamMembers(members)
+    }
+  }, [dashboardResult])
 
   const handleStatusChange = async (taskName: string, newStatus: string) => {
     try {
@@ -161,6 +198,46 @@ export function ProjectDetailPage() {
     }
   }
 
+  // -- Team member management --
+  const saveProjectMembers = async (
+    members: { member: string; member_name: string; role: string }[],
+  ) => {
+    try {
+      await updateDoc("Hive Project", id!, {
+        members: members.map((m) => ({ member: m.member, role: m.role })),
+      })
+      callDashboard({ project: id }).catch(() => {})
+    } catch {
+      toast.error("Failed to update team")
+    }
+  }
+
+  const toggleTeamMember = (member: HiveMember) => {
+    const exists = teamMembers.some((m) => m.member === member.name)
+    const next = exists
+      ? teamMembers.filter((m) => m.member !== member.name)
+      : [
+          ...teamMembers,
+          { member: member.name, member_name: member.member_name, role: "Member" },
+        ]
+    setTeamMembers(next)
+    saveProjectMembers(next)
+  }
+
+  const changeTeamMemberRole = (memberName: string, role: string) => {
+    const next = teamMembers.map((m) =>
+      m.member === memberName ? { ...m, role } : m,
+    )
+    setTeamMembers(next)
+    saveProjectMembers(next)
+  }
+
+  const removeTeamMember = (memberName: string) => {
+    const next = teamMembers.filter((m) => m.member !== memberName)
+    setTeamMembers(next)
+    saveProjectMembers(next)
+  }
+
   if (projectLoading) {
     return (
       <div className="space-y-6">
@@ -205,11 +282,6 @@ export function ProjectDetailPage() {
   const inProgressTasks = tasksByStatus["In Progress"]?.length ?? 0
   const blockedTasks = tasks?.filter((t) => t.status === "Blocked").length ?? 0
   const activeMilestones = milestones?.filter((m) => m.status === "In Progress").length ?? 0
-
-  // Dashboard data from API (if loaded)
-  const dashboardData = dashboardResult?.message as
-    | { members?: { member: string; member_name: string; role: string }[] }
-    | undefined
 
   // Assignees data
   const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
@@ -322,27 +394,132 @@ export function ProjectDetailPage() {
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-4" />
                     Team
+                    <Popover>
+                      <PopoverTrigger
+                        render={
+                          <Button variant="ghost" size="icon-sm" className="ml-auto" />
+                        }
+                      >
+                        <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-4" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2" align="end">
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {allMembers?.length ? (
+                            allMembers.map((m) => {
+                              const isAssigned = teamMembers.some(
+                                (tm) => tm.member === m.name,
+                              )
+                              return (
+                                <button
+                                  key={m.name}
+                                  type="button"
+                                  onClick={() => toggleTeamMember(m)}
+                                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
+                                    isAssigned ? "bg-muted" : ""
+                                  }`}
+                                >
+                                  <Avatar size="sm">
+                                    {m.user_image ? (
+                                      <AvatarImage
+                                        src={m.user_image}
+                                        alt={m.member_name}
+                                      />
+                                    ) : (
+                                      <AvatarFallback className="text-[10px]">
+                                        {(m.member_name || m.name)
+                                          .slice(0, 2)
+                                          .toUpperCase()}
+                                      </AvatarFallback>
+                                    )}
+                                  </Avatar>
+                                  <span className="flex-1 truncate text-left">
+                                    {m.member_name || m.name}
+                                  </span>
+                                  {isAssigned && (
+                                    <HugeiconsIcon
+                                      icon={CheckmarkCircle02Icon}
+                                      strokeWidth={2}
+                                      className="size-4 text-primary"
+                                    />
+                                  )}
+                                </button>
+                              )
+                            })
+                          ) : (
+                            <p className="text-xs text-muted-foreground px-2 py-1">
+                              No members found
+                            </p>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {dashboardData?.members?.length ? (
+                  {teamMembers.length ? (
                     <div className="space-y-2">
-                      {dashboardData.members.map((m) => (
-                        <div key={m.member} className="flex items-center gap-2 text-sm">
-                          <Avatar size="sm">
-                            <AvatarFallback>
-                              {(m.member_name || m.member).slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="flex-1 truncate">{m.member_name || m.member}</span>
-                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                            {m.role}
-                          </Badge>
-                        </div>
-                      ))}
+                      {teamMembers.map((m) => {
+                        const memberData = allMembers?.find(
+                          (am) => am.name === m.member,
+                        )
+                        return (
+                          <div
+                            key={m.member}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            <Avatar size="sm">
+                              {memberData?.user_image ? (
+                                <AvatarImage
+                                  src={memberData.user_image}
+                                  alt={m.member_name}
+                                />
+                              ) : (
+                                <AvatarFallback>
+                                  {(m.member_name || m.member)
+                                    .slice(0, 2)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              )}
+                            </Avatar>
+                            <span className="flex-1 truncate">
+                              {m.member_name || m.member}
+                            </span>
+                            <Select
+                              value={m.role}
+                              onValueChange={(role) =>
+                                changeTeamMemberRole(m.member, role)
+                              }
+                            >
+                              <SelectTrigger className="h-6 w-auto text-[10px] px-2 gap-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Member">Member</SelectItem>
+                                <SelectItem value="Champion">Champion</SelectItem>
+                                <SelectItem value="Stakeholder">
+                                  Stakeholder
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <button
+                              type="button"
+                              onClick={() => removeTeamMember(m.member)}
+                              className="text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <HugeiconsIcon
+                                icon={Cancel02Icon}
+                                strokeWidth={2}
+                                className="size-3.5"
+                              />
+                            </button>
+                          </div>
+                        )
+                      })}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No team members assigned</p>
+                    <p className="text-sm text-muted-foreground">
+                      No team members assigned
+                    </p>
                   )}
                 </CardContent>
               </Card>

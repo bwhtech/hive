@@ -40,10 +40,13 @@ const navItems = [
   { to: "/projects", label: "Projects", icon: Folder01Icon },
   { to: "/tasks", label: "Tasks", icon: TaskDaily01Icon },
   { to: "/team", label: "Team", icon: UserGroup03Icon },
-  { to: "/settings", label: "Settings", icon: Settings01Icon },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({
+  openSettings,
+}: {
+  openSettings: (tab?: string) => void
+}) {
   const { setOpenMobile } = useSidebar()
   const { logout } = useFrappeAuth()
   const { user } = useUser()
@@ -101,6 +104,23 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+              {/* Settings button — opens dialog, not a route */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Settings"
+                  onClick={() => {
+                    setOpenMobile(false)
+                    openSettings("profile")
+                  }}
+                >
+                  <HugeiconsIcon
+                    icon={Settings01Icon}
+                    strokeWidth={2}
+                    className="size-5"
+                  />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

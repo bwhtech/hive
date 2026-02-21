@@ -132,13 +132,11 @@ app_license = "agpl-3.0"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"User Invitation": {
+		"on_update": "bwh_hive.bwh_hive.utils.on_user_invitation_update",
+	}
+}
 
 # Scheduled Tasks
 # ---------------

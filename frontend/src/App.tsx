@@ -16,9 +16,6 @@ const TasksPage = lazy(() =>
 const TeamPage = lazy(() =>
   import("@/pages/TeamPage").then((m) => ({ default: m.TeamPage })),
 )
-const SettingsPage = lazy(() =>
-  import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
-)
 const ProjectDetailPage = lazy(() =>
   import("@/pages/ProjectDetailPage").then((m) => ({ default: m.ProjectDetailPage })),
 )
@@ -65,7 +62,6 @@ export default function App() {
         <Route path="projects/:id" element={<Suspense fallback={<PageSpinner />}><ProjectDetailPage /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<PageSpinner />}><TasksPage /></Suspense>} />
         <Route path="team" element={<Suspense fallback={<PageSpinner />}><TeamPage /></Suspense>} />
-        <Route path="settings" element={<Suspense fallback={<PageSpinner />}><SettingsPage /></Suspense>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

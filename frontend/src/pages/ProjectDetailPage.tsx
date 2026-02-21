@@ -120,6 +120,9 @@ export function ProjectDetailPage() {
               {project.project_type && (
                 <Badge variant="outline">{project.project_type}</Badge>
               )}
+              {project.client && (
+                <Badge variant="outline">{project.client}</Badge>
+              )}
             </div>
           </div>
         </div>

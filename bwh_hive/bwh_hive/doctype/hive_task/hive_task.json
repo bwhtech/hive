@@ -11,6 +11,7 @@
   "status",
   "priority",
   "assigned_to",
+  "is_client_task",
   "description"
  ],
  "fields": [
@@ -56,6 +57,13 @@
    "in_standard_filter": 1,
    "label": "Assigned To",
    "options": "User"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_client_task",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Is Client Task"
   },
   {
    "fieldname": "description",

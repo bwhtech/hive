@@ -15,7 +15,7 @@ const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
 
 export function ProjectsPage() {
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
-    fields: ["name", "title", "status", "project_type", "description", "creation", "modified"],
+    fields: ["name", "title", "status", "project_type", "client", "description", "creation", "modified"],
     orderBy: { field: "modified", order: "desc" },
     limit: 100,
   })
@@ -60,6 +60,9 @@ export function ProjectsPage() {
                     </Badge>
                     {project.project_type && (
                       <Badge variant="outline">{project.project_type}</Badge>
+                    )}
+                    {project.client && (
+                      <Badge variant="outline">{project.client}</Badge>
                     )}
                   </CardDescription>
                 </CardHeader>

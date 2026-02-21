@@ -9,7 +9,10 @@
   "title",
   "status",
   "project_type",
-  "description"
+  "client",
+  "description",
+  "members_section",
+  "members"
  ],
  "fields": [
   {
@@ -39,9 +42,28 @@
    "options": "Hive Project Type"
   },
   {
+   "fieldname": "client",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Client",
+   "options": "Hive Client"
+  },
+  {
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"
+  },
+  {
+   "fieldname": "members_section",
+   "fieldtype": "Section Break",
+   "label": "Team Members"
+  },
+  {
+   "fieldname": "members",
+   "fieldtype": "Table",
+   "label": "Members",
+   "options": "Hive Project Member"
   }
  ],
  "grid_page_length": 50,

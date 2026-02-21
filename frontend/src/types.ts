@@ -62,7 +62,38 @@ export interface HiveProjectMember {
   role: "Member" | "Champion" | "Stakeholder"
 }
 
+export interface HiveFeatureRequest {
+  name: string
+  title: string
+  project: string
+  requested_by: string
+  status: "Open" | "Under Review" | "Approved" | "Rejected" | "Converted"
+  priority: "Nice to Have" | "Important" | "Critical"
+  description: string
+  converted_task: string | null
+  creation: string
+  modified: string
+}
+
+export interface HiveUpdateReaction {
+  user: string
+  emoji: string
+}
+
+export interface HiveProjectUpdate {
+  name: string
+  project: string
+  posted_by: string
+  content: string
+  reactions: HiveUpdateReaction[]
+  _seen: string
+  creation: string
+  modified: string
+}
+
 export const TASK_STATUSES = ["Backlog", "To Do", "In Progress", "Done"] as const
 export const TASK_PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const
 export const PROJECT_STATUSES = ["Open", "Completed", "On Hold"] as const
 export const MILESTONE_STATUSES = ["Upcoming", "In Progress", "Completed"] as const
+export const FEATURE_REQUEST_STATUSES = ["Open", "Under Review", "Approved", "Rejected", "Converted"] as const
+export const FEATURE_REQUEST_PRIORITIES = ["Nice to Have", "Important", "Critical"] as const

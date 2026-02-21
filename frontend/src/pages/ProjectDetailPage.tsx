@@ -15,6 +15,8 @@ import {
   Target02Icon,
   DashboardSquare01Icon,
   UserGroupIcon,
+  Idea01Icon,
+  News01Icon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,6 +31,8 @@ import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
 import { MilestoneSection } from "@/components/MilestoneSection"
+import { FeatureRequestSection } from "@/components/FeatureRequestSection"
+import { UpdatesSection } from "@/components/UpdatesSection"
 
 const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
   Open: "default",
@@ -248,6 +252,14 @@ export function ProjectDetailPage() {
             <HugeiconsIcon icon={Target02Icon} strokeWidth={2} className="size-4" />
             Milestones
           </TabsTrigger>
+          <TabsTrigger value="updates">
+            <HugeiconsIcon icon={News01Icon} strokeWidth={2} className="size-4" />
+            Updates
+          </TabsTrigger>
+          <TabsTrigger value="requests">
+            <HugeiconsIcon icon={Idea01Icon} strokeWidth={2} className="size-4" />
+            Requests
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -368,6 +380,20 @@ export function ProjectDetailPage() {
         <TabsContent value="milestones">
           <div className="pt-2">
             {id && <MilestoneSection projectId={id} />}
+          </div>
+        </TabsContent>
+
+        {/* Updates Tab */}
+        <TabsContent value="updates">
+          <div className="pt-2">
+            {id && <UpdatesSection projectId={id} />}
+          </div>
+        </TabsContent>
+
+        {/* Feature Requests Tab */}
+        <TabsContent value="requests">
+          <div className="pt-2">
+            {id && <FeatureRequestSection projectId={id} />}
           </div>
         </TabsContent>
       </Tabs>

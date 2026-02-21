@@ -16,8 +16,8 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar03Icon, GitBranchIcon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { TASK_STATUSES, type HiveTask } from "@/types"
+import { Avatar, AvatarFallback, AvatarImage, AvatarGroup } from "@/components/ui/avatar"
+import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from "@/types"
 
 const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   Low: "outline",
@@ -30,9 +30,10 @@ interface TaskKanbanProps {
   tasksByStatus: Record<string, HiveTask[]>
   onStatusChange: (taskName: string, newStatus: string) => void
   onTaskClick?: (task: HiveTask) => void
+  assigneesByTask?: Record<string, HiveTaskAssignee[]>
 }
 
-export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick }: TaskKanbanProps) {
+export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigneesByTask }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<HiveTask | null>(null)
 
   const sensors = useSensors(
@@ -88,11 +89,12 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick }: TaskK
             status={status}
             tasks={tasksByStatus[status] ?? []}
             onTaskClick={onTaskClick}
+            assigneesByTask={assigneesByTask}
           />
         ))}
       </div>
       <DragOverlay dropAnimation={null}>
-        {activeTask ? <TaskCard task={activeTask} isDragOverlay /> : null}
+        {activeTask ? <TaskCard task={activeTask} isDragOverlay assignees={assigneesByTask?.[activeTask.name]} /> : null}
       </DragOverlay>
     </DndContext>
   )
@@ -102,10 +104,12 @@ function KanbanColumn({
   status,
   tasks,
   onTaskClick,
+  assigneesByTask,
 }: {
   status: string
   tasks: HiveTask[]
   onTaskClick?: (task: HiveTask) => void
+  assigneesByTask?: Record<string, HiveTaskAssignee[]>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -126,7 +130,7 @@ function KanbanColumn({
       </div>
       <div className="flex flex-col gap-2 min-h-[60px]">
         {tasks.map((task) => (
-          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} />
+          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} assignees={assigneesByTask?.[task.name]} />
         ))}
       </div>
     </div>
@@ -136,9 +140,11 @@ function KanbanColumn({
 function DraggableTaskCard({
   task,
   onTaskClick,
+  assignees,
 }: {
   task: HiveTask
   onTaskClick?: (task: HiveTask) => void
+  assignees?: HiveTaskAssignee[]
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.name,
@@ -157,20 +163,19 @@ function DraggableTaskCard({
       className={isDragging ? "opacity-0" : ""}
       onClick={() => onTaskClick?.(task)}
     >
-      <TaskCard task={task} />
+      <TaskCard task={task} assignees={assignees} />
     </div>
   )
 }
 
-function TaskCard({ task, isDragOverlay }: { task: HiveTask; isDragOverlay?: boolean }) {
-  const initials = task.assigned_to
-    ? task.assigned_to
-        .split("@")[0]
-        .slice(0, 2)
-        .toUpperCase()
-    : null
-
+function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[] }) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
+
+  // Use new assignees if available, fall back to legacy assigned_to
+  const hasAssignees = assignees && assignees.length > 0
+  const legacyInitials = !hasAssignees && task.assigned_to
+    ? task.assigned_to.split("@")[0].slice(0, 2).toUpperCase()
+    : null
 
   return (
     <Card
@@ -211,11 +216,25 @@ function TaskCard({ task, isDragOverlay }: { task: HiveTask; isDragOverlay?: boo
               </span>
             )}
           </div>
-          {initials && (
+          {hasAssignees ? (
+            <AvatarGroup>
+              {assignees.slice(0, 3).map((a) => (
+                <Avatar key={a.member} size="sm">
+                  {a.user_image ? (
+                    <AvatarImage src={a.user_image} alt={a.member_name} />
+                  ) : (
+                    <AvatarFallback className="text-[10px]">
+                      {(a.member_name || a.member).slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              ))}
+            </AvatarGroup>
+          ) : legacyInitials ? (
             <Avatar size="sm">
-              <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+              <AvatarFallback className="text-[10px]">{legacyInitials}</AvatarFallback>
             </Avatar>
-          )}
+          ) : null}
         </div>
       </CardHeader>
     </Card>

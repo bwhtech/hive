@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useFrappeUpdateDoc, useFrappePostCall } from "frappe-react-sdk"
+import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc } from "frappe-react-sdk"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -7,6 +7,8 @@ import {
   CheckmarkCircle02Icon,
   Cancel01Icon,
   Link04Icon,
+  UserAdd01Icon,
+  Cancel02Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Sheet,
@@ -22,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Select,
   SelectContent,
@@ -32,7 +35,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
-import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask } from "@/types"
+import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveMember } from "@/types"
 
 interface TaskDetailSheetProps {
   task: HiveTask | null
@@ -47,6 +50,12 @@ const uatVariant: Record<string, "default" | "secondary" | "destructive" | "outl
   Rejected: "destructive",
 }
 
+interface TaskAssigneeRow {
+  member: string
+  member_name?: string
+  user_image?: string
+}
+
 export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDetailSheetProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -55,11 +64,29 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   const [prLink, setPrLink] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
+  const [assignees, setAssignees] = useState<TaskAssigneeRow[]>([])
   const [saving, setSaving] = useState(false)
 
   const { updateDoc } = useFrappeUpdateDoc()
   const { call: approveUat, loading: approvingUat } = useFrappePostCall("frappe.client.run_doc_method")
   const { call: rejectUat, loading: rejectingUat } = useFrappePostCall("frappe.client.run_doc_method")
+
+  // Fetch full task doc (with child tables) when task changes
+  const { data: taskDoc } = useFrappeGetDoc<HiveTask & { assignees?: TaskAssigneeRow[] }>(
+    "Hive Task",
+    task?.name ?? "",
+    task?.name ? undefined : null,
+  )
+
+  // Fetch all active members for the picker
+  const { data: allMembers } = useFrappeGetDocList<HiveMember>(
+    "Hive Member",
+    {
+      fields: ["name", "user", "member_name", "user_image", "type", "is_active"],
+      filters: [["is_active", "=", 1]],
+      limit: 100,
+    },
+  )
 
   useEffect(() => {
     if (task) {
@@ -72,6 +99,19 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
     }
   }, [task])
+
+  // Sync assignees from fetched task doc
+  useEffect(() => {
+    if (taskDoc?.assignees) {
+      setAssignees(taskDoc.assignees.map((a) => ({
+        member: a.member,
+        member_name: a.member_name,
+        user_image: a.user_image,
+      })))
+    } else {
+      setAssignees([])
+    }
+  }, [taskDoc])
 
   if (!task) return null
 
@@ -86,6 +126,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         pr_link: prLink || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
+        assignees: assignees.map((a) => ({ member: a.member })),
       })
       toast.success("Task updated")
       onUpdated()
@@ -123,6 +164,22 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       toast.error("Failed to reject UAT")
     }
   }
+
+  const toggleAssignee = (member: HiveMember) => {
+    setAssignees((prev) => {
+      const exists = prev.some((a) => a.member === member.name)
+      if (exists) {
+        return prev.filter((a) => a.member !== member.name)
+      }
+      return [...prev, { member: member.name, member_name: member.member_name, user_image: member.user_image }]
+    })
+  }
+
+  const removeAssignee = (memberName: string) => {
+    setAssignees((prev) => prev.filter((a) => a.member !== memberName))
+  }
+
+  const assignedMemberNames = new Set(assignees.map((a) => a.member))
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -172,6 +229,79 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Assignees */}
+            <div className="grid gap-2">
+              <Label>Assignees</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {assignees.map((a) => (
+                  <div
+                    key={a.member}
+                    className="flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 text-sm"
+                  >
+                    <Avatar size="sm">
+                      {a.user_image ? (
+                        <AvatarImage src={a.user_image} alt={a.member_name} />
+                      ) : (
+                        <AvatarFallback className="text-[10px]">
+                          {(a.member_name || a.member).slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <span className="truncate max-w-[120px]">{a.member_name || a.member}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAssignee(a.member)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <HugeiconsIcon icon={Cancel02Icon} strokeWidth={2} className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" />
+                    }
+                  >
+                    <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
+                    Add
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="start">
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {allMembers?.length ? (
+                        allMembers.map((m) => (
+                          <button
+                            key={m.name}
+                            type="button"
+                            onClick={() => toggleAssignee(m)}
+                            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
+                              assignedMemberNames.has(m.name) ? "bg-muted" : ""
+                            }`}
+                          >
+                            <Avatar size="sm">
+                              {m.user_image ? (
+                                <AvatarImage src={m.user_image} alt={m.member_name} />
+                              ) : (
+                                <AvatarFallback className="text-[10px]">
+                                  {(m.member_name || m.name).slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              )}
+                            </Avatar>
+                            <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
+                            {assignedMemberNames.has(m.name) && (
+                              <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="text-xs text-muted-foreground px-2 py-1">No members found</p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 

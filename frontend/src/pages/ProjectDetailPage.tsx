@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import type { HiveProject, HiveTask, HiveMilestone, HiveProjectMember } from "@/types"
+import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee } from "@/types"
 import { TASK_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
@@ -101,14 +101,17 @@ export function ProjectDetailPage() {
   const { call: callDashboard, result: dashboardResult } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.get_project_dashboard",
   )
+  const { call: callAssignees, result: assigneesResult } = useFrappePostCall(
+    "bwh_hive.bwh_hive.api.get_task_assignees",
+  )
 
-  // Fetch dashboard stats when project loads
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Fetch dashboard stats and assignees when project loads
   useEffect(() => {
     if (id) {
       callDashboard({ project: id }).catch(() => {})
+      callAssignees({ project: id }).catch(() => {})
     }
-  }, [id])
+  }, [id, callDashboard, callAssignees])
 
   const handleStatusChange = async (taskName: string, newStatus: string) => {
     try {
@@ -127,6 +130,7 @@ export function ProjectDetailPage() {
     start_date?: string | null
     pr_link?: string | null
     is_client_task?: 0 | 1
+    assignees?: { member: string }[]
   }) => {
     try {
       await createDoc("Hive Task", {
@@ -134,6 +138,7 @@ export function ProjectDetailPage() {
         project: id,
       })
       mutateTasks()
+      callAssignees({ project: id }).catch(() => {})
       setCreateOpen(false)
       toast.success("Task created")
     } catch {
@@ -148,6 +153,7 @@ export function ProjectDetailPage() {
 
   const handleTaskUpdated = () => {
     mutateTasks()
+    callAssignees({ project: id }).catch(() => {})
     // Refresh the selected task from the list
     if (selectedTask && tasks) {
       const updated = tasks.find((t) => t.name === selectedTask.name)
@@ -204,6 +210,9 @@ export function ProjectDetailPage() {
   const dashboardData = dashboardResult?.message as
     | { members?: { member: string; member_name: string; role: string }[] }
     | undefined
+
+  // Assignees data
+  const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
 
   return (
     <div className="space-y-6">
@@ -371,6 +380,7 @@ export function ProjectDetailPage() {
                 tasksByStatus={tasksByStatus}
                 onStatusChange={handleStatusChange}
                 onTaskClick={handleTaskClick}
+                assigneesByTask={assigneesByTask}
               />
             )}
           </div>

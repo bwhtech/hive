@@ -75,6 +75,12 @@ export interface HiveFeatureRequest {
   modified: string
 }
 
+export interface HiveTaskAssignee {
+  member: string
+  member_name: string
+  user_image: string
+}
+
 export interface HiveUpdateReaction {
   user: string
   emoji: string

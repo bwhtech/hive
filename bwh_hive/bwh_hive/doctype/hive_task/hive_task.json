@@ -11,6 +11,7 @@
   "status",
   "priority",
   "assigned_to",
+  "assignees",
   "is_client_task",
   "start_date",
   "due_date",
@@ -63,7 +64,14 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Assigned To",
-   "options": "User"
+   "options": "User",
+   "hidden": 1
+  },
+  {
+   "fieldname": "assignees",
+   "fieldtype": "Table",
+   "label": "Assignees",
+   "options": "Hive Task Assignee"
   },
   {
    "default": "0",

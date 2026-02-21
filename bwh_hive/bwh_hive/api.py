@@ -140,6 +140,41 @@ def get_stale_members(threshold_days: int = 7):
 
 
 @frappe.whitelist()
+def get_task_assignees(project: str):
+	"""Return assignees for all tasks in a project, grouped by task name."""
+	assignees = frappe.get_all(
+		"Hive Task Assignee",
+		filters={"parenttype": "Hive Task", "parentfield": "assignees"},
+		fields=["parent", "member", "member_name", "user_image"],
+		limit=500,
+	)
+
+	# Filter to only tasks belonging to this project
+	project_tasks = {
+		t.name
+		for t in frappe.get_all(
+			"Hive Task",
+			filters={"project": project},
+			fields=["name"],
+			limit=500,
+		)
+	}
+
+	result: dict[str, list[dict]] = {}
+	for row in assignees:
+		if row.parent in project_tasks:
+			result.setdefault(row.parent, []).append(
+				{
+					"member": row.member,
+					"member_name": row.member_name,
+					"user_image": row.user_image,
+				}
+			)
+
+	return result
+
+
+@frappe.whitelist()
 def get_project_dashboard(project: str):
 	"""Return aggregated stats for a project: task counts by status, milestone progress, team members."""
 	task_counts = frappe.get_all(

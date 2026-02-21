@@ -91,7 +91,7 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick }: TaskK
           />
         ))}
       </div>
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {activeTask ? <TaskCard task={activeTask} isDragOverlay /> : null}
       </DragOverlay>
     </DndContext>
@@ -154,7 +154,7 @@ function DraggableTaskCard({
       style={style}
       {...listeners}
       {...attributes}
-      className={isDragging ? "opacity-30" : ""}
+      className={isDragging ? "opacity-0" : ""}
       onClick={() => onTaskClick?.(task)}
     >
       <TaskCard task={task} />

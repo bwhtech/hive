@@ -556,11 +556,9 @@ function TeamTab() {
                   </Avatar>
                   {isStale && (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute -right-0.5 -top-0.5 flex size-3.5">
+                      <TooltipTrigger render={<span className="absolute -right-0.5 -top-0.5 flex size-3.5" />}>
                           <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
                           <span className="relative inline-flex size-3.5 rounded-full bg-red-500" />
-                        </span>
                       </TooltipTrigger>
                       <TooltipContent>No updates in 7+ days</TooltipContent>
                     </Tooltip>

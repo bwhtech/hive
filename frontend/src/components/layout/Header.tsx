@@ -19,17 +19,17 @@ export function Header() {
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative" asChild>
-              <Link to="/">
-                <HugeiconsIcon icon={Notification03Icon} strokeWidth={2} className="size-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </Link>
-            </Button>
+          <TooltipTrigger
+            render={
+              <Button variant="ghost" size="icon" className="relative" render={<Link to="/" />} />
+            }
+          >
+            <HugeiconsIcon icon={Notification03Icon} strokeWidth={2} className="size-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </TooltipTrigger>
           <TooltipContent>
             {unreadCount > 0 ? `${unreadCount} unread updates` : "No unread updates"}

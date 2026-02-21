@@ -62,12 +62,12 @@ export function SettingsDialog({
                 </DialogDescription>
               </DialogHeader>
             </div>
-            <TabsList className="w-full rounded-none bg-transparent px-2 pb-2 md:flex-col md:items-stretch md:h-auto">
+            <TabsList className="w-full rounded-none bg-transparent px-2 pb-2 md:flex-col md:items-stretch md:h-auto overflow-x-auto md:overflow-visible [scrollbar-width:none]">
               {sections.map((section) => (
                 <TabsTrigger
                   key={section.id}
                   value={section.id}
-                  className="gap-2 justify-center md:justify-start"
+                  className="gap-2 justify-center md:justify-start shrink-0"
                 >
                   <HugeiconsIcon
                     icon={section.icon}

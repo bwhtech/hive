@@ -22,7 +22,7 @@ def get_context_for_dev():
 def get_boot():
 	return frappe._dict(
 		{
-			"frappe_version": frappe.version,
+			"frappe_version": frappe.__version__,
 			"site_name": frappe.local.site,
 			"read_only_mode": frappe.flags.read_only,
 			"system_timezone": get_system_timezone(),

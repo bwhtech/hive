@@ -1,0 +1,1 @@
+const o=["Backlog","To Do","In Progress","Done"],T=["Low","Medium","High","Urgent"],S=["Open","Completed","On Hold"],s=["Upcoming","In Progress","Completed"],e=["Nice to Have","Important","Critical"];export{e as F,s as M,S as P,o as T,T as a};

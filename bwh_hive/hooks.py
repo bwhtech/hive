@@ -120,13 +120,13 @@ app_license = "agpl-3.0"
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+permission_query_conditions = {
+	"Hive Project": "bwh_hive.bwh_hive.permissions.project_query",
+	"Hive Task": "bwh_hive.bwh_hive.permissions.task_query",
+	"Hive Feature Request": "bwh_hive.bwh_hive.permissions.feature_request_query",
+	"Hive Project Update": "bwh_hive.bwh_hive.permissions.project_update_query",
+	"Hive Milestone": "bwh_hive.bwh_hive.permissions.milestone_query",
+}
 
 # Document Events
 # ---------------

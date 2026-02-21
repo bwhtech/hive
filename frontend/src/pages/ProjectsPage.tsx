@@ -1,11 +1,20 @@
+import { useState, useMemo } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
 import { Link } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Folder01Icon } from "@hugeicons/core-free-icons"
+import { Folder01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { HiveProject } from "@/types"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { PROJECT_STATUSES, type HiveProject } from "@/types"
 
 const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
   Open: "default",
@@ -14,17 +23,63 @@ const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
 }
 
 export function ProjectsPage() {
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
     fields: ["name", "title", "status", "project_type", "client", "description", "creation", "modified"],
     orderBy: { field: "modified", order: "desc" },
     limit: 100,
   })
 
+  const filteredProjects = useMemo(() => {
+    if (!data) return []
+    return data.filter((project) => {
+      if (search) {
+        const q = search.toLowerCase()
+        const matchTitle = project.title.toLowerCase().includes(q)
+        const matchClient = (project.client ?? "").toLowerCase().includes(q)
+        const matchType = (project.project_type ?? "").toLowerCase().includes(q)
+        if (!matchTitle && !matchClient && !matchType) return false
+      }
+      if (statusFilter !== "all" && project.status !== statusFilter) return false
+      return true
+    })
+  }, [data, search, statusFilter])
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
         <p className="mt-1 text-muted-foreground">Manage your projects.</p>
+      </div>
+
+      {/* Search & Filter */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            strokeWidth={2}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+          />
+          <Input
+            placeholder="Search projects..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {PROJECT_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -41,42 +96,54 @@ export function ProjectsPage() {
             </Card>
           ))}
         </div>
-      ) : !data?.length ? (
+      ) : filteredProjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
           <HugeiconsIcon icon={Folder01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
-          <p className="mt-3 text-sm font-medium">No projects yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">Projects will appear here once created.</p>
+          <p className="mt-3 text-sm font-medium">
+            {search || statusFilter !== "all" ? "No projects match your filters" : "No projects yet"}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {search || statusFilter !== "all"
+              ? "Try adjusting your search or filters."
+              : "Projects will appear here once created."}
+          </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((project) => (
-            <Link key={project.name} to={`/projects/${project.name}`} className="block">
-              <Card className="transition-shadow hover:shadow-md">
-                <CardHeader>
-                  <CardTitle>{project.title}</CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <Badge variant={statusVariant[project.status] ?? "outline"}>
-                      {project.status}
-                    </Badge>
-                    {project.project_type && (
-                      <Badge variant="outline">{project.project_type}</Badge>
-                    )}
-                    {project.client && (
-                      <Badge variant="outline">{project.client}</Badge>
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                {project.description && (
-                  <CardContent>
-                    <p className="line-clamp-2 text-sm text-muted-foreground"
-                       dangerouslySetInnerHTML={{ __html: project.description }}
-                    />
-                  </CardContent>
-                )}
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <>
+          <p className="text-xs text-muted-foreground">
+            {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
+            {(search || statusFilter !== "all") && " matching filters"}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredProjects.map((project) => (
+              <Link key={project.name} to={`/projects/${project.name}`} className="block">
+                <Card className="transition-shadow hover:shadow-md">
+                  <CardHeader>
+                    <CardTitle>{project.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Badge variant={statusVariant[project.status] ?? "outline"}>
+                        {project.status}
+                      </Badge>
+                      {project.project_type && (
+                        <Badge variant="outline">{project.project_type}</Badge>
+                      )}
+                      {project.client && (
+                        <Badge variant="outline">{project.client}</Badge>
+                      )}
+                    </CardDescription>
+                  </CardHeader>
+                  {project.description && (
+                    <CardContent>
+                      <p className="line-clamp-2 text-sm text-muted-foreground"
+                         dangerouslySetInnerHTML={{ __html: project.description }}
+                      />
+                    </CardContent>
+                  )}
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

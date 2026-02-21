@@ -81,7 +81,7 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick }: TaskK
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
     >
-      <div className="grid grid-cols-4 gap-4">
+      <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
         {TASK_STATUSES.map((status) => (
           <KanbanColumn
             key={status}
@@ -112,7 +112,7 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col gap-2 rounded-xl border border-dashed p-3 transition-colors ${
+      className={`flex min-w-[220px] flex-col gap-2 rounded-xl border border-dashed p-3 transition-colors md:min-w-0 ${
         isOver ? "border-primary bg-primary/5" : "border-transparent bg-muted/40"
       }`}
     >

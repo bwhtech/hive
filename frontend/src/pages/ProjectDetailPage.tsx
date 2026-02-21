@@ -159,8 +159,8 @@ export function ProjectDetailPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-96" />
-        <div className="grid grid-cols-4 gap-4">
+        <Skeleton className="h-4 w-64 sm:w-96" />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-64" />
           ))}
@@ -357,9 +357,9 @@ export function ProjectDetailPage() {
         <TabsContent value="tasks">
           <div className="pt-2">
             {tasksLoading ? (
-              <div className="grid grid-cols-4 gap-4">
+              <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
+                  <div key={i} className="min-w-[220px] space-y-3 md:min-w-0">
                     <Skeleton className="h-6 w-20" />
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />

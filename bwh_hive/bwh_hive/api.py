@@ -140,8 +140,8 @@ def get_stale_members(threshold_days: int = 7):
 
 
 @frappe.whitelist()
-def get_task_assignees(project: str):
-	"""Return assignees for all tasks in a project, grouped by task name."""
+def get_task_assignees(project: str | None = None):
+	"""Return assignees for tasks grouped by task name. Optionally filter by project."""
 	assignees = frappe.get_all(
 		"Hive Task Assignee",
 		filters={"parenttype": "Hive Task", "parentfield": "assignees"},
@@ -149,27 +149,31 @@ def get_task_assignees(project: str):
 		limit=500,
 	)
 
-	# Filter to only tasks belonging to this project
-	project_tasks = {
-		t.name
-		for t in frappe.get_all(
-			"Hive Task",
-			filters={"project": project},
-			fields=["name"],
-			limit=500,
-		)
-	}
+	# If project specified, filter to only tasks belonging to that project
+	if project:
+		project_tasks = {
+			t.name
+			for t in frappe.get_all(
+				"Hive Task",
+				filters={"project": project},
+				fields=["name"],
+				limit=500,
+			)
+		}
+	else:
+		project_tasks = None
 
 	result: dict[str, list[dict]] = {}
 	for row in assignees:
-		if row.parent in project_tasks:
-			result.setdefault(row.parent, []).append(
-				{
-					"member": row.member,
-					"member_name": row.member_name,
-					"user_image": row.user_image,
-				}
-			)
+		if project_tasks is not None and row.parent not in project_tasks:
+			continue
+		result.setdefault(row.parent, []).append(
+			{
+				"member": row.member,
+				"member_name": row.member_name,
+				"user_image": row.user_image,
+			}
+		)
 
 	return result
 

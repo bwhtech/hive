@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react"
-import { useFrappeGetDocList } from "frappe-react-sdk"
+import { useState, useMemo, useEffect } from "react"
+import { useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk"
 import { Link } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -21,8 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject } from "@/types"
+import { Avatar, AvatarFallback, AvatarImage, AvatarGroup } from "@/components/ui/avatar"
+import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveTaskAssignee } from "@/types"
 
 const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   Low: "outline",
@@ -65,6 +65,16 @@ export function TasksPage() {
       limit: 100,
     },
   )
+
+  const { call: callAssignees, result: assigneesResult } = useFrappePostCall<{
+    message: Record<string, HiveTaskAssignee[]>
+  }>("bwh_hive.bwh_hive.api.get_task_assignees")
+
+  useEffect(() => {
+    callAssignees({})
+  }, [callAssignees])
+
+  const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
 
   const projectMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -199,7 +209,7 @@ export function TasksPage() {
           </p>
           <div className="space-y-1.5">
             {filteredTasks.map((task) => (
-              <TaskRow key={task.name} task={task} projectTitle={projectMap[task.project] ?? task.project} />
+              <TaskRow key={task.name} task={task} projectTitle={projectMap[task.project] ?? task.project} assignees={assigneesByTask[task.name]} />
             ))}
           </div>
         </div>
@@ -208,9 +218,10 @@ export function TasksPage() {
   )
 }
 
-function TaskRow({ task, projectTitle }: { task: HiveTask; projectTitle: string }) {
+function TaskRow({ task, projectTitle, assignees }: { task: HiveTask; projectTitle: string; assignees?: HiveTaskAssignee[] }) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
-  const initials = task.assigned_to
+  const hasAssignees = assignees && assignees.length > 0
+  const legacyInitials = !hasAssignees && task.assigned_to
     ? task.assigned_to.split("@")[0].slice(0, 2).toUpperCase()
     : null
 
@@ -241,11 +252,25 @@ function TaskRow({ task, projectTitle }: { task: HiveTask; projectTitle: string 
             <Badge variant="outline" className="text-[10px] h-5 px-1.5">
               {task.status}
             </Badge>
-            {initials && (
+            {hasAssignees ? (
+              <AvatarGroup>
+                {assignees.slice(0, 3).map((a) => (
+                  <Avatar key={a.member} size="sm">
+                    {a.user_image ? (
+                      <AvatarImage src={a.user_image} alt={a.member_name} />
+                    ) : (
+                      <AvatarFallback className="text-[10px]">
+                        {(a.member_name || a.member).slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                ))}
+              </AvatarGroup>
+            ) : legacyInitials ? (
               <Avatar size="sm">
-                <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                <AvatarFallback className="text-[10px]">{legacyInitials}</AvatarFallback>
               </Avatar>
-            )}
+            ) : null}
             <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4 text-muted-foreground" />
           </div>
         </CardHeader>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useSearchParams, Link } from "react-router"
 import {
   useFrappeAuth,
@@ -15,42 +15,19 @@ import {
   Task01Icon,
   Target02Icon,
   DashboardSquare01Icon,
-  UserGroupIcon,
-  UserAdd01Icon,
-  CheckmarkCircle02Icon,
-  Cancel02Icon,
   Idea01Icon,
   News01Icon,
   Link04Icon,
-  Delete02Icon,
   PencilEdit01Icon,
   ArrowUpRight01Icon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
-import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveMember, HiveProjectUpdate, HiveProjectLink } from "@/types"
+import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveProjectUpdate, HiveProjectLink } from "@/types"
 import { TASK_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
@@ -58,7 +35,8 @@ import { TaskDetailSheet } from "@/components/TaskDetailSheet"
 import { MilestoneSection } from "@/components/MilestoneSection"
 import { FeatureRequestSection } from "@/components/FeatureRequestSection"
 import { UpdatesSection } from "@/components/UpdatesSection"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { OverviewTab } from "@/components/project/OverviewTab"
+import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
@@ -170,46 +148,16 @@ export function ProjectDetailPage() {
 
   const { updateDoc } = useFrappeUpdateDoc()
   const { createDoc } = useFrappeCreateDoc()
-  const { call: callDashboard, result: dashboardResult } = useFrappePostCall(
-    "bwh_hive.bwh_hive.api.get_project_dashboard",
-  )
   const { call: callAssignees, result: assigneesResult } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.get_task_assignees",
   )
 
-  // Fetch all active members for the team member picker
-  const { data: allMembers } = useFrappeGetDocList<HiveMember>(
-    "Hive Member",
-    {
-      fields: ["name", "user", "member_name", "user_image", "type", "is_active"],
-      filters: [["is_active", "=", 1]],
-      limit: 100,
-    },
-  )
-
-  const [teamMembers, setTeamMembers] = useState<
-    { member: string; member_name: string; role: string }[]
-  >([])
-
-  // Fetch dashboard stats and assignees when project loads
+  // Fetch task assignees when project loads
   useEffect(() => {
     if (id) {
-      callDashboard({ project: id }).catch(() => {})
       callAssignees({ project: id }).catch(() => {})
     }
-  }, [id, callDashboard, callAssignees])
-
-  // Sync team members from dashboard data
-  useEffect(() => {
-    const members = (
-      dashboardResult?.message as {
-        members?: { member: string; member_name: string; role: string }[]
-      }
-    )?.members
-    if (members) {
-      setTeamMembers(members)
-    }
-  }, [dashboardResult])
+  }, [id, callAssignees])
 
   const handleStatusChange = async (taskName: string, newStatus: string) => {
     try {
@@ -258,46 +206,6 @@ export function ProjectDetailPage() {
       const updated = tasks.find((t) => t.name === selectedTask.name)
       if (updated) setSelectedTask(updated)
     }
-  }
-
-  // -- Team member management --
-  const saveProjectMembers = async (
-    members: { member: string; member_name: string; role: string }[],
-  ) => {
-    try {
-      await updateDoc("Hive Project", id!, {
-        members: members.map((m) => ({ member: m.member, role: m.role })),
-      })
-      callDashboard({ project: id }).catch(() => {})
-    } catch {
-      toast.error("Failed to update team")
-    }
-  }
-
-  const toggleTeamMember = (member: HiveMember) => {
-    const exists = teamMembers.some((m) => m.member === member.name)
-    const next = exists
-      ? teamMembers.filter((m) => m.member !== member.name)
-      : [
-          ...teamMembers,
-          { member: member.name, member_name: member.member_name, role: "Member" },
-        ]
-    setTeamMembers(next)
-    saveProjectMembers(next)
-  }
-
-  const changeTeamMemberRole = (memberName: string, role: string) => {
-    const next = teamMembers.map((m) =>
-      m.member === memberName ? { ...m, role } : m,
-    )
-    setTeamMembers(next)
-    saveProjectMembers(next)
-  }
-
-  const removeTeamMember = (memberName: string) => {
-    const next = teamMembers.filter((m) => m.member !== memberName)
-    setTeamMembers(next)
-    saveProjectMembers(next)
   }
 
   // -- Related links management --
@@ -372,7 +280,6 @@ export function ProjectDetailPage() {
   const doneTasks = tasksByStatus["Done"]?.length ?? 0
   const inProgressTasks = tasksByStatus["In Progress"]?.length ?? 0
   const blockedTasks = tasks?.filter((t) => t.status === "Blocked").length ?? 0
-  const activeMilestones = milestones?.filter((m) => m.status === "In Progress").length ?? 0
 
   // Assignees data
   const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
@@ -484,198 +391,12 @@ export function ProjectDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview">
-          <div className="space-y-6 pt-2">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <StatCard label="Total Tasks" value={totalTasks} />
-              <StatCard label="In Progress" value={inProgressTasks} />
-              <StatCard label="Completed" value={doneTasks} />
-              <StatCard label="Blocked" value={blockedTasks} variant={blockedTasks > 0 ? "destructive" : undefined} />
-            </div>
-
-            {/* Active Milestones & Team */}
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Active Milestones */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <HugeiconsIcon icon={Target02Icon} strokeWidth={2} className="size-4" />
-                    Active Milestones
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {activeMilestones > 0 ? (
-                    <div className="space-y-2">
-                      {milestones
-                        ?.filter((m) => m.status !== "Completed")
-                        .slice(0, 5)
-                        .map((ms) => (
-                          <div key={ms.name} className="flex items-center justify-between text-sm">
-                            <span>{ms.title}</span>
-                            <Badge
-                              variant={ms.status === "In Progress" ? "secondary" : "outline"}
-                              className="text-[10px] h-4 px-1.5"
-                            >
-                              {ms.status}
-                            </Badge>
-                          </div>
-                        ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No active milestones</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Team */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-4" />
-                    Team
-                    <Popover>
-                      <PopoverTrigger
-                        render={
-                          <Button variant="ghost" size="icon-sm" className="ml-auto" />
-                        }
-                      >
-                        <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-4" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-2" align="end">
-                        <div className="space-y-1 max-h-48 overflow-y-auto">
-                          {allMembers?.length ? (
-                            allMembers.map((m) => {
-                              const isAssigned = teamMembers.some(
-                                (tm) => tm.member === m.name,
-                              )
-                              return (
-                                <button
-                                  key={m.name}
-                                  type="button"
-                                  onClick={() => toggleTeamMember(m)}
-                                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
-                                    isAssigned ? "bg-muted" : ""
-                                  }`}
-                                >
-                                  <Avatar size="sm">
-                                    {m.user_image ? (
-                                      <AvatarImage
-                                        src={m.user_image}
-                                        alt={m.member_name}
-                                      />
-                                    ) : (
-                                      <AvatarFallback className="text-[10px]">
-                                        {(m.member_name || m.name)
-                                          .slice(0, 2)
-                                          .toUpperCase()}
-                                      </AvatarFallback>
-                                    )}
-                                  </Avatar>
-                                  <span className="flex-1 truncate text-left">
-                                    {m.member_name || m.name}
-                                  </span>
-                                  {isAssigned && (
-                                    <HugeiconsIcon
-                                      icon={CheckmarkCircle02Icon}
-                                      strokeWidth={2}
-                                      className="size-4 text-primary"
-                                    />
-                                  )}
-                                </button>
-                              )
-                            })
-                          ) : (
-                            <p className="text-xs text-muted-foreground px-2 py-1">
-                              No members found
-                            </p>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {teamMembers.length ? (
-                    <div className="space-y-2">
-                      {teamMembers.map((m) => {
-                        const memberData = allMembers?.find(
-                          (am) => am.name === m.member,
-                        )
-                        return (
-                          <div
-                            key={m.member}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            <Avatar size="sm">
-                              {memberData?.user_image ? (
-                                <AvatarImage
-                                  src={memberData.user_image}
-                                  alt={m.member_name}
-                                />
-                              ) : (
-                                <AvatarFallback>
-                                  {(m.member_name || m.member)
-                                    .slice(0, 2)
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                            <span className="flex-1 truncate">
-                              {m.member_name || m.member}
-                            </span>
-                            <Select
-                              value={m.role}
-                              onValueChange={(role) =>
-                                changeTeamMemberRole(m.member, role)
-                              }
-                            >
-                              <SelectTrigger className="h-6 w-auto text-[10px] px-2 gap-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Member">Member</SelectItem>
-                                <SelectItem value="Champion">Champion</SelectItem>
-                                <SelectItem value="Stakeholder">
-                                  Stakeholder
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <button
-                              type="button"
-                              onClick={() => removeTeamMember(m.member)}
-                              className="text-muted-foreground hover:text-destructive transition-colors"
-                            >
-                              <HugeiconsIcon
-                                icon={Cancel02Icon}
-                                strokeWidth={2}
-                                className="size-3.5"
-                              />
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No team members assigned
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Client Info */}
-            {project.client && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Client</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm">{project.client}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          <OverviewTab
+            projectId={id!}
+            project={project}
+            stats={{ totalTasks, inProgressTasks, doneTasks, blockedTasks }}
+            milestones={milestones}
+          />
         </TabsContent>
 
         {/* Tasks Tab */}
@@ -750,165 +471,5 @@ export function ProjectDetailPage() {
         onUpdate={updateLink}
       />
     </div>
-  )
-}
-
-function ManageLinksDialog({
-  open,
-  onOpenChange,
-  links,
-  onAdd,
-  onRemove,
-  onUpdate,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  links: HiveProjectLink[]
-  onAdd: (title: string, url: string) => void
-  onRemove: (idx: number) => void
-  onUpdate: (idx: number, title: string, url: string) => void
-}) {
-  const [newTitle, setNewTitle] = useState("")
-  const [newUrl, setNewUrl] = useState("")
-  const [editIdx, setEditIdx] = useState<number | null>(null)
-  const [editTitle, setEditTitle] = useState("")
-  const [editUrl, setEditUrl] = useState("")
-  const titleRef = useRef<HTMLInputElement>(null)
-
-  const handleAdd = () => {
-    const title = newTitle.trim()
-    const url = newUrl.trim()
-    if (!title || !url) return
-    onAdd(title, url)
-    setNewTitle("")
-    setNewUrl("")
-    titleRef.current?.focus()
-  }
-
-  const startEdit = (idx: number) => {
-    setEditIdx(idx)
-    setEditTitle(links[idx].title)
-    setEditUrl(links[idx].url)
-  }
-
-  const saveEdit = () => {
-    if (editIdx === null) return
-    const title = editTitle.trim()
-    const url = editUrl.trim()
-    if (!title || !url) return
-    onUpdate(editIdx, title, url)
-    setEditIdx(null)
-  }
-
-  const cancelEdit = () => setEditIdx(null)
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Related Links</DialogTitle>
-        </DialogHeader>
-
-        {/* Existing links */}
-        {links.length > 0 && (
-          <div className="space-y-2">
-            {links.map((link, i) => (
-              <div key={i}>
-                {editIdx === i ? (
-                  <div className="space-y-2 rounded-lg border p-3">
-                    <Input
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      placeholder="Title"
-                    />
-                    <Input
-                      value={editUrl}
-                      onChange={(e) => setEditUrl(e.target.value)}
-                      placeholder="https://..."
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={saveEdit}>Save</Button>
-                      <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                    <HugeiconsIcon icon={Link04Icon} strokeWidth={2} className="size-4 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium">{link.title}</span>
-                      <span className="text-muted-foreground ml-2 truncate text-xs">{link.url}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(i)}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(i)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-3.5" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Add new link */}
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground font-medium">Add a link</p>
-          <div className="flex gap-2">
-            <Input
-              ref={titleRef}
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Title"
-              className="flex-1"
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            />
-            <Input
-              value={newUrl}
-              onChange={(e) => setNewUrl(e.target.value)}
-              placeholder="https://..."
-              className="flex-1"
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            />
-            <Button onClick={handleAdd} disabled={!newTitle.trim() || !newUrl.trim()}>
-              Add
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function StatCard({
-  label,
-  value,
-  variant,
-}: {
-  label: string
-  value: number
-  variant?: "destructive"
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p
-          className={`text-2xl font-bold mt-1 ${
-            variant === "destructive" ? "text-destructive" : ""
-          }`}
-        >
-          {value}
-        </p>
-      </CardContent>
-    </Card>
   )
 }

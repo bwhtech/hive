@@ -9,6 +9,7 @@ import {
   UserGroup03Icon,
   Settings01Icon,
   Add01Icon,
+  FolderAddIcon,
 } from "@hugeicons/core-free-icons"
 import {
   CommandDialog,
@@ -26,6 +27,8 @@ interface CommandPaletteProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpenSettings: (tab?: string) => void
+  onCreateProject: () => void
+  onCreateTask: (projectId: string | null) => void
 }
 
 interface TaskResult {
@@ -47,6 +50,8 @@ export function CommandPalette({
   open,
   onOpenChange,
   onOpenSettings,
+  onCreateProject,
+  onCreateTask,
 }: CommandPaletteProps) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -173,31 +178,41 @@ export function CommandPalette({
             </>
           )}
 
-          {/* Contextual: Create task in current project */}
-          {currentProjectId && (
-            <>
-              <CommandGroup heading="Actions">
-                <CommandItem
-                  value="create task in project"
-                  keywords={["new", "add", "task"]}
-                  onSelect={() =>
-                    runCommand(() =>
-                      navigate(`/projects/${currentProjectId}?create_task=1`),
-                    )
-                  }
-                >
-                  <HugeiconsIcon
-                    icon={Add01Icon}
-                    strokeWidth={2}
-                    className="size-4"
-                  />
-                  <span>Create Task in This Project</span>
-                  <CommandShortcut>T</CommandShortcut>
-                </CommandItem>
-              </CommandGroup>
-              <CommandSeparator />
-            </>
-          )}
+          {/* Create commands — always visible, fuzzy on "new" / "create" */}
+          <CommandGroup heading="Create">
+            <CommandItem
+              value="new task"
+              keywords={["new", "create", "add", "task"]}
+              onSelect={() =>
+                runCommand(() => onCreateTask(currentProjectId))
+              }
+            >
+              <HugeiconsIcon
+                icon={Add01Icon}
+                strokeWidth={2}
+                className="size-4"
+              />
+              <span>
+                {currentProjectId
+                  ? "New Task in This Project"
+                  : "New Task"}
+              </span>
+              {currentProjectId && <CommandShortcut>T</CommandShortcut>}
+            </CommandItem>
+            <CommandItem
+              value="new project"
+              keywords={["new", "create", "add", "project"]}
+              onSelect={() => runCommand(() => onCreateProject())}
+            >
+              <HugeiconsIcon
+                icon={FolderAddIcon}
+                strokeWidth={2}
+                className="size-4"
+              />
+              <span>New Project</span>
+            </CommandItem>
+          </CommandGroup>
+          <CommandSeparator />
 
           {/* Navigation Commands */}
           <CommandGroup heading="Navigation">

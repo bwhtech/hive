@@ -1,19 +1,27 @@
 import { useCallback, useMemo, useState } from "react"
-import { Outlet, useNavigate } from "react-router"
+import { Outlet, useNavigate, useLocation } from "react-router"
+import { useFrappeCreateDoc } from "frappe-react-sdk"
+import { toast } from "sonner"
 import { AppSidebar } from "./Sidebar"
 import { Header } from "./Header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { SettingsDialog } from "@/components/SettingsDialog"
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette"
 import { ShortcutHelpDialog } from "@/components/ShortcutHelpDialog"
+import { CreateProjectDialog } from "@/components/CreateProjectDialog"
+import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
 
 export function AppLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState("profile")
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [createProjectOpen, setCreateProjectOpen] = useState(false)
+  const [globalCreateTaskOpen, setGlobalCreateTaskOpen] = useState(false)
   const commandPalette = useCommandPalette()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { createDoc } = useFrappeCreateDoc()
 
   const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), [])
   useHotkey("?", toggleShortcuts, { capture: true })
@@ -35,6 +43,48 @@ export function AppLayout() {
     setSettingsOpen(true)
   }
 
+  const handleCreateProject = useCallback(async (values: { title: string }) => {
+    try {
+      const doc = await createDoc("Hive Project", { title: values.title, status: "Open" })
+      setCreateProjectOpen(false)
+      toast.success("Project created")
+      navigate(`/projects/${doc.name}`)
+    } catch {
+      toast.error("Failed to create project")
+    }
+  }, [createDoc, navigate])
+
+  const handleCreateTask = useCallback(async (values: {
+    title: string; priority: string; status: string;
+    due_date?: string | null; start_date?: string | null;
+    is_internal?: 0 | 1; assignees?: { member: string }[];
+    project?: string;
+  }) => {
+    try {
+      await createDoc("Hive Task", values)
+      setGlobalCreateTaskOpen(false)
+      toast.success("Task created")
+      // If we're on the project page for this task, reload to show it
+      const projectMatch = location.pathname.match(/\/projects\/([^/]+)/)
+      const currentProject = projectMatch ? decodeURIComponent(projectMatch[1]) : null
+      if (values.project && values.project === currentProject) {
+        navigate(0) // refresh page
+      }
+    } catch {
+      toast.error("Failed to create task")
+    }
+  }, [createDoc, location.pathname, navigate])
+
+  const handleCmdkCreateTask = useCallback((projectId: string | null) => {
+    if (projectId) {
+      // In a project — use the project page's own dialog via query param
+      navigate(`/projects/${projectId}?create_task=1`)
+    } else {
+      // Global — open the AppLayout-level dialog with project picker
+      setGlobalCreateTaskOpen(true)
+    }
+  }, [navigate])
+
   return (
     <SidebarProvider>
       <AppSidebar openSettings={openSettings} />
@@ -54,6 +104,18 @@ export function AppLayout() {
         open={commandPalette.open}
         onOpenChange={commandPalette.setOpen}
         onOpenSettings={openSettings}
+        onCreateProject={() => setCreateProjectOpen(true)}
+        onCreateTask={handleCmdkCreateTask}
+      />
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onOpenChange={setCreateProjectOpen}
+        onSubmit={handleCreateProject}
+      />
+      <CreateTaskDialog
+        open={globalCreateTaskOpen}
+        onOpenChange={setGlobalCreateTaskOpen}
+        onSubmit={handleCreateTask}
       />
       <ShortcutHelpDialog
         open={shortcutsOpen}

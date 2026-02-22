@@ -45,15 +45,18 @@ interface CreateTaskValues {
   start_date?: string | null
   is_internal?: 0 | 1
   assignees?: { member: string }[]
+  project?: string
 }
 
 interface CreateTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (values: CreateTaskValues) => void
+  /** When provided, the task is created in this project and no picker is shown. */
+  projectId?: string | null
 }
 
-export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("")
   const [priority, setPriority] = useState("Medium")
   const [status, setStatus] = useState("Backlog")
@@ -61,6 +64,20 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
   const [startDate, setStartDate] = useState<Date | undefined>()
   const [isInternal, setIsInternal] = useState(false)
   const [assignees, setAssignees] = useState<AssigneeRow[]>([])
+  const [selectedProject, setSelectedProject] = useState("")
+
+  const needsProjectPicker = !projectId
+
+  const { data: projects } = useFrappeGetDocList<{ name: string; title: string }>(
+    "Hive Project",
+    {
+      fields: ["name", "title"],
+      filters: [["status", "=", "Open"]],
+      orderBy: { field: "modified", order: "desc" },
+      limit: 100,
+    },
+    needsProjectPicker ? undefined : null,
+  )
 
   const { data: allMembers } = useFrappeGetDocList<HiveMember>(
     "Hive Member",
@@ -71,9 +88,12 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
     },
   )
 
+  const resolvedProject = projectId || selectedProject
+  const canSubmit = title.trim() && resolvedProject
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!canSubmit) return
     onSubmit({
       title: title.trim(),
       priority,
@@ -82,6 +102,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
       start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
       is_internal: isInternal ? 1 : 0,
       assignees: assignees.map((a) => ({ member: a.member })),
+      project: resolvedProject,
     })
     setTitle("")
     setPriority("Medium")
@@ -90,6 +111,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
     setStartDate(undefined)
     setIsInternal(false)
     setAssignees([])
+    setSelectedProject("")
   }
 
   const toggleAssignee = (member: HiveMember) => {
@@ -116,6 +138,21 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
           <DialogDescription>Add a task to this project.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4">
+          {needsProjectPicker && (
+            <div className="grid gap-2">
+              <Label>Project</Label>
+              <Select value={selectedProject} onValueChange={setSelectedProject}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects?.map((p) => (
+                    <SelectItem key={p.name} value={p.name}>{p.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="task-title">Title</Label>
             <Input
@@ -283,7 +320,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
           </label>
 
           <DialogFooter>
-            <Button type="submit" disabled={!title.trim()}>
+            <Button type="submit" disabled={!canSubmit}>
               Create Task
             </Button>
           </DialogFooter>

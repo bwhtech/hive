@@ -218,11 +218,12 @@ export function ProjectDetailPage() {
     pr_link?: string | null
     is_internal?: 0 | 1
     assignees?: { member: string }[]
+    project?: string
   }) => {
     try {
       await createDoc("Hive Task", {
         ...values,
-        project: id,
+        project: values.project || id,
       })
       mutateTasks()
       callAssignees({ project: id }).catch(() => {})
@@ -717,6 +718,7 @@ export function ProjectDetailPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateTask}
+        projectId={id}
       />
 
       {/* Task Detail Sheet */}

@@ -5,6 +5,8 @@ import {
   UserGroup03Icon,
   Search01Icon,
   ArrowDown01Icon,
+  ArrowUp01Icon,
+  ArrowRight01Icon,
 } from "@hugeicons/core-free-icons"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -27,6 +29,9 @@ interface TeamMemberStats {
   wip_count: number
   backlog_count: number
   blocked_count: number
+  trend: "increasing" | "decreasing" | "stable"
+  completed_7d: number
+  created_7d: number
 }
 
 interface MemberTask {
@@ -121,6 +126,27 @@ function MemberCard({
                 className={`size-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
               />
             </div>
+
+            {/* Trend indicator */}
+            {member.trend !== "stable" && (
+              <div className="mt-3 flex items-center gap-1.5">
+                <HugeiconsIcon
+                  icon={member.trend === "increasing" ? ArrowUp01Icon : ArrowDown01Icon}
+                  strokeWidth={2}
+                  className={`size-3.5 ${member.trend === "increasing" ? "text-amber-500" : "text-green-500"}`}
+                />
+                <Tooltip>
+                  <TooltipTrigger render={
+                    <span className={`text-xs font-medium ${member.trend === "increasing" ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"}`}>
+                      {member.trend === "increasing" ? "Workload increasing" : "Workload decreasing"}
+                    </span>
+                  } />
+                  <TooltipContent>
+                    {member.created_7d} new / {member.completed_7d} completed in 7 days
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
 
             {/* Task counts */}
             <div className="mt-4 grid grid-cols-2 gap-3">

@@ -247,7 +247,7 @@ def search(query: str, project: str | None = None, limit: int = 10):
 
 @frappe.whitelist()
 def get_team_dashboard():
-	"""Return team members with WIP and Backlog task counts."""
+	"""Return team members with WIP/Backlog task counts and 7-day workload trend."""
 	members = frappe.get_all(
 		"Hive Member",
 		filters={"type": "Team", "is_active": 1},
@@ -285,6 +285,59 @@ def get_team_dashboard():
 		if row.parent in task_status:
 			user_tasks.setdefault(row.member, set()).add(row.parent)
 
+	# --- Trend data: completed vs created in last 7 days ---
+	cutoff = getdate(nowdate()) - timedelta(days=7)
+
+	# Tasks completed (moved to Done) in last 7 days
+	done_tasks = frappe.get_all(
+		"Hive Task",
+		filters={"status": "Done", "modified": [">=", cutoff]},
+		fields=["name", "assigned_to"],
+		limit=500,
+	)
+	done_assignees = frappe.get_all(
+		"Hive Task Assignee",
+		filters={
+			"parenttype": "Hive Task",
+			"parentfield": "assignees",
+			"parent": ["in", [t.name for t in done_tasks]] if done_tasks else ["in", []],
+		},
+		fields=["parent", "member"],
+		limit=500,
+	)
+
+	user_completed: dict[str, set] = {}
+	for t in done_tasks:
+		if t.assigned_to:
+			user_completed.setdefault(t.assigned_to, set()).add(t.name)
+	for row in done_assignees:
+		user_completed.setdefault(row.member, set()).add(row.parent)
+
+	# Tasks created in last 7 days (any status)
+	new_tasks = frappe.get_all(
+		"Hive Task",
+		filters={"creation": [">=", cutoff]},
+		fields=["name", "assigned_to"],
+		limit=500,
+	)
+	new_assignees = frappe.get_all(
+		"Hive Task Assignee",
+		filters={
+			"parenttype": "Hive Task",
+			"parentfield": "assignees",
+			"parent": ["in", [t.name for t in new_tasks]] if new_tasks else ["in", []],
+		},
+		fields=["parent", "member"],
+		limit=500,
+	)
+
+	user_created: dict[str, set] = {}
+	for t in new_tasks:
+		if t.assigned_to:
+			user_created.setdefault(t.assigned_to, set()).add(t.name)
+	for row in new_assignees:
+		user_created.setdefault(row.member, set()).add(row.parent)
+
 	# Count per member
 	result = []
 	for member in members:
@@ -301,6 +354,16 @@ def get_team_dashboard():
 			elif status == "Blocked":
 				blocked += 1
 
+		completed_7d = len(user_completed.get(member.user, set()))
+		created_7d = len(user_created.get(member.user, set()))
+		net = created_7d - completed_7d
+		if net > 0:
+			trend = "increasing"
+		elif net < 0:
+			trend = "decreasing"
+		else:
+			trend = "stable"
+
 		result.append(
 			{
 				"user": member.user,
@@ -310,6 +373,9 @@ def get_team_dashboard():
 				"wip_count": wip,
 				"backlog_count": backlog,
 				"blocked_count": blocked,
+				"trend": trend,
+				"completed_7d": completed_7d,
+				"created_7d": created_7d,
 			}
 		)
 

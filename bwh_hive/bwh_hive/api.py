@@ -198,15 +198,64 @@ def get_task_assignees(project: str | None = None):
 
 @frappe.whitelist(methods=["GET"])
 def search(query: str, project: str | None = None, limit: int = 10):
-	"""Search projects and tasks using SQL LIKE."""
+	"""Search projects and tasks using FTS with LIKE fallback."""
 	query = (query or "").strip()
 	if not query:
 		return {"projects": [], "tasks": []}
 
 	limit = min(int(limit), 20)
+
+	try:
+		return _search_fts(query, project, limit)
+	except Exception:
+		return _search_like(query, project, limit)
+
+
+def _search_fts(query: str, project: str | None, limit: int) -> dict:
+	"""Full-text search using Frappe SQLiteSearch."""
+	from bwh_hive.search import HiveSearch
+
+	fts = HiveSearch()
+	filters = {}
+	if project:
+		filters["project"] = [project]
+
+	result = fts.search(query, filters=filters)
+	fts_results = result.get("results", [])
+
+	projects = []
+	tasks = []
+
+	for r in fts_results:
+		if r.get("doctype") == "Hive Project" and len(projects) < limit:
+			projects.append(
+				{
+					"name": r["name"],
+					"title": _strip_marks(r.get("title", "")),
+					"status": r.get("status", ""),
+				}
+			)
+		elif r.get("doctype") == "Hive Task" and len(tasks) < limit:
+			tasks.append(
+				{
+					"name": r["name"],
+					"title": _strip_marks(r.get("title", "")),
+					"project": r.get("project", ""),
+					"status": r.get("status", ""),
+					"priority": r.get("priority", ""),
+				}
+			)
+
+	# Enrich tasks with project titles
+	_enrich_tasks_with_project_titles(tasks)
+
+	return {"projects": projects, "tasks": tasks}
+
+
+def _search_like(query: str, project: str | None, limit: int) -> dict:
+	"""Fallback LIKE-based search."""
 	like = f"%{query}%"
 
-	# Search projects by title
 	projects = frappe.get_all(
 		"Hive Project",
 		filters={"title": ["like", like]},
@@ -215,7 +264,6 @@ def search(query: str, project: str | None = None, limit: int = 10):
 		limit=limit,
 	)
 
-	# Search tasks by title, optionally scoped to a project
 	task_filters: dict = {"title": ["like", like]}
 	if project:
 		task_filters["project"] = project
@@ -228,8 +276,13 @@ def search(query: str, project: str | None = None, limit: int = 10):
 		limit=limit,
 	)
 
-	# Enrich tasks with project titles
-	task_project_ids = list({t.project for t in tasks if t.project})
+	_enrich_tasks_with_project_titles(tasks)
+
+	return {"projects": projects, "tasks": tasks}
+
+
+def _enrich_tasks_with_project_titles(tasks: list) -> None:
+	task_project_ids = list({t["project"] for t in tasks if t.get("project")})
 	if task_project_ids:
 		proj_map = {
 			p.name: p.title
@@ -240,9 +293,12 @@ def search(query: str, project: str | None = None, limit: int = 10):
 			)
 		}
 		for t in tasks:
-			t["project_title"] = proj_map.get(t.project, t.project)
+			t["project_title"] = proj_map.get(t.get("project"), t.get("project"))
 
-	return {"projects": projects, "tasks": tasks}
+
+def _strip_marks(text: str) -> str:
+	"""Strip <mark> tags from FTS highlighted results."""
+	return text.replace("<mark>", "").replace("</mark>", "")
 
 
 @frappe.whitelist()

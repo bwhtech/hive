@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, Link } from "react-router"
 import {
   useFrappeGetDoc,
@@ -44,6 +44,7 @@ import { TaskDetailSheet } from "@/components/TaskDetailSheet"
 import { MilestoneSection } from "@/components/MilestoneSection"
 import { FeatureRequestSection } from "@/components/FeatureRequestSection"
 import { UpdatesSection } from "@/components/UpdatesSection"
+import { useHotkey } from "@/hooks/use-hotkey"
 
 const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
   Open: "secondary",
@@ -75,6 +76,10 @@ export function ProjectDetailPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+
+  // "T" keyboard shortcut to open create task dialog
+  const openCreateDialog = useCallback(() => setCreateOpen(true), [])
+  useHotkey("t", openCreateDialog)
 
   const { data: project, isLoading: projectLoading } = useFrappeGetDoc<HiveProject>(
     "Hive Project",

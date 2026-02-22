@@ -264,7 +264,7 @@ function MyWorkTab() {
                     {upd.is_unread && (
                       <span className="absolute -left-3 top-1.5 size-1.5 rounded-full bg-blue-500" />
                     )}
-                    <Link to={`/projects/${upd.project}`} className="block hover:bg-muted/50 rounded-md p-1 -m-1">
+                    <Link to={`/projects/${upd.project}?tab=updates`} className="block hover:bg-muted/50 rounded-md p-1 -m-1">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-foreground">{upd.posted_by_name}</span>
                         <span>in</span>

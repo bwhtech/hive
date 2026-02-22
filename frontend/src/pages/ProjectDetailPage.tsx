@@ -98,11 +98,27 @@ export function ProjectDetailPage() {
   const openCreateDialog = useCallback(() => setCreateOpen(true), [])
   useHotkey("t", openCreateDialog)
 
+  // Sync active tab from URL (e.g. ?tab=updates from dashboard click)
+  const tabParam = searchParams.get("tab")
+  const [activeTab, setActiveTab] = useState(
+    tabParam && ["overview", "tasks", "milestones", "updates", "requests"].includes(tabParam)
+      ? tabParam
+      : "overview",
+  )
+
   // Auto-open create task dialog from ?create_task=1 (e.g. from CMD K)
   useEffect(() => {
     if (searchParams.get("create_task") === "1") {
       setCreateOpen(true)
       setSearchParams({}, { replace: true })
+    }
+    // Clear tab param from URL after consuming it
+    if (searchParams.get("tab")) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("tab")
+        return next
+      }, { replace: true })
     }
   }, [searchParams, setSearchParams])
 
@@ -439,7 +455,7 @@ export function ProjectDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList variant="line">
           <TabsTrigger value="overview">
             <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />

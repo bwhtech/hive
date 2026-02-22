@@ -43,3 +43,7 @@ Before using any frappe-react-sdk hook (`useFrappeGetDocList`, `useFrappeGetDoc`
 https://github.com/nikkothari22/frappe-react-sdk
 
 Do not guess hook signatures or parameters — refer to the README for the correct API.
+
+## MISC NOTES
+
+Use vercel-react-best-practices and vercel-composition-patterns skills when working on the frontend.

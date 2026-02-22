@@ -5,6 +5,7 @@ import { Notification03Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Kbd } from "@/components/ui/kbd"
 
 interface HeaderProps {
   onOpenSearch: () => void
@@ -29,9 +30,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
         >
           <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-4" />
           <span className="text-sm">Search...</span>
-          <kbd className="pointer-events-none rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-            ⌘K
-          </kbd>
+          <Kbd keys={["⌘", "K"]} className="pointer-events-none" />
         </Button>
         <Tooltip>
           <TooltipTrigger

@@ -34,12 +34,13 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { useUser } from "@/context/UserContext"
 import { useTheme } from "@/components/theme-provider"
+import { Kbd } from "@/components/ui/kbd"
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: DashboardSquare02Icon, shortcut: "G then D" },
-  { to: "/projects", label: "Projects", icon: Folder01Icon, shortcut: "G then P" },
-  { to: "/tasks", label: "Tasks", icon: TaskDaily01Icon, shortcut: "G then T" },
-  { to: "/team", label: "Team", icon: UserGroup03Icon, shortcut: "G then M" },
+  { to: "/", label: "Dashboard", icon: DashboardSquare02Icon, keys: ["G", "D"] },
+  { to: "/projects", label: "Projects", icon: Folder01Icon, keys: ["G", "P"] },
+  { to: "/tasks", label: "Tasks", icon: TaskDaily01Icon, keys: ["G", "T"] },
+  { to: "/team", label: "Team", icon: UserGroup03Icon, keys: ["G", "M"] },
 ]
 
 export function AppSidebar({
@@ -92,7 +93,7 @@ export function AppSidebar({
                           onClick={() => setOpenMobile(false)}
                         />
                       }
-                      tooltip={`${item.label} (${item.shortcut})`}
+                      tooltip={`${item.label} (${item.keys.join(" ")})`}
                     >
                       <HugeiconsIcon
                         icon={item.icon}
@@ -100,9 +101,10 @@ export function AppSidebar({
                         className="size-5"
                       />
                       <span>{item.label}</span>
-                      <kbd className="pointer-events-none ml-auto hidden text-[10px] font-medium text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden lg:inline-block">
-                        {item.shortcut}
-                      </kbd>
+                      <Kbd
+                        keys={item.keys}
+                        className="pointer-events-none ml-auto hidden opacity-40 group-data-[collapsible=icon]:hidden lg:inline-flex"
+                      />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

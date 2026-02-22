@@ -85,12 +85,12 @@ def get_my_dashboard():
 			order_by="modified desc",
 		)
 
-	# Unread updates count across my projects
+	# Unread updates count across my projects (exclude drafts)
 	unread_count = 0
 	if all_my_project_ids:
 		updates = frappe.get_all(
 			"Hive Project Update",
-			filters={"project": ["in", list(all_my_project_ids)]},
+			filters={"project": ["in", list(all_my_project_ids)], "is_draft": 0},
 			fields=["name", "_seen"],
 			limit=200,
 		)
@@ -99,12 +99,12 @@ def get_my_dashboard():
 			if user not in seen:
 				unread_count += 1
 
-	# Recent updates from my projects
+	# Recent updates from my projects (exclude drafts)
 	recent_updates = []
 	if all_my_project_ids:
 		recent_updates = frappe.get_all(
 			"Hive Project Update",
-			filters={"project": ["in", list(all_my_project_ids)]},
+			filters={"project": ["in", list(all_my_project_ids)], "is_draft": 0},
 			fields=["name", "project", "posted_by", "content", "creation", "_seen"],
 			order_by="creation desc",
 			limit=10,
@@ -144,7 +144,7 @@ def get_stale_members(threshold_days: int = 7):
 	for member in team_members:
 		latest = frappe.get_all(
 			"Hive Project Update",
-			filters={"posted_by": member.user},
+			filters={"posted_by": member.user, "is_draft": 0},
 			fields=["creation"],
 			order_by="creation desc",
 			limit=1,
@@ -439,6 +439,17 @@ def get_member_tasks(user: str):
 			blocked.append(task)
 
 	return {"wip": wip, "backlog": backlog, "blocked": blocked}
+
+
+@frappe.whitelist()
+def publish_update(update_name: str):
+	"""Publish a draft update (set is_draft = 0). Only the author can publish."""
+	doc = frappe.get_doc("Hive Project Update", update_name)
+	if doc.posted_by != frappe.session.user:
+		frappe.throw("Only the author can publish this update")
+	doc.is_draft = 0
+	doc.save()
+	return {"name": doc.name}
 
 
 @frappe.whitelist()

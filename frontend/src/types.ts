@@ -91,6 +91,7 @@ export interface HiveProjectUpdate {
   project: string
   posted_by: string
   content: string
+  is_draft: 0 | 1
   reactions: HiveUpdateReaction[]
   _seen: string
   creation: string

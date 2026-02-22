@@ -5,13 +5,21 @@ import {
   useFrappeCreateDoc,
   useFrappePostCall,
   useFrappeAuth,
+  useFrappeUpdateDoc,
+  useFrappeDeleteDoc,
 } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { SentIcon, News01Icon } from "@hugeicons/core-free-icons"
+import {
+  SentIcon,
+  News01Icon,
+  FileEditIcon,
+  ArrowUpRight01Icon,
+} from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
 import type { HiveProjectUpdate } from "@/types"
@@ -25,9 +33,11 @@ interface UpdatesSectionProps {
 export function UpdatesSection({ projectId }: UpdatesSectionProps) {
   const [content, setContent] = useState("")
   const [posting, setPosting] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
   const [editorKey, setEditorKey] = useState(0)
   const { currentUser } = useFrappeAuth()
 
+  // Published updates
   const { data: updates, mutate } = useFrappeGetDocList<HiveProjectUpdate>(
     "Hive Project Update",
     {
@@ -36,18 +46,49 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
         "project",
         "posted_by",
         "content",
+        "is_draft",
         "_seen",
         "creation",
         "modified",
       ],
-      filters: [["project", "=", projectId]],
+      filters: [
+        ["project", "=", projectId],
+        ["is_draft", "=", 0],
+      ],
       orderBy: { field: "creation", order: "desc" },
       limit: 100,
     },
   )
 
+  // My drafts for this project
+  const { data: drafts, mutate: mutateDrafts } =
+    useFrappeGetDocList<HiveProjectUpdate>("Hive Project Update", {
+      fields: [
+        "name",
+        "project",
+        "posted_by",
+        "content",
+        "is_draft",
+        "_seen",
+        "creation",
+        "modified",
+      ],
+      filters: [
+        ["project", "=", projectId],
+        ["is_draft", "=", 1],
+        ["posted_by", "=", currentUser ?? ""],
+      ],
+      orderBy: { field: "modified", order: "desc" },
+      limit: 20,
+    })
+
   const { createDoc } = useFrappeCreateDoc()
+  const { updateDoc } = useFrappeUpdateDoc()
+  const { deleteDoc } = useFrappeDeleteDoc()
   const { call: callMethod } = useFrappePostCall("run_doc_method")
+  const { call: publishCall } = useFrappePostCall(
+    "bwh_hive.bwh_hive.api.publish_update",
+  )
 
   const handlePost = async () => {
     if (!content.trim()) return
@@ -56,6 +97,7 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
       await createDoc("Hive Project Update", {
         project: projectId,
         content: content.trim(),
+        is_draft: 0,
       })
       setContent("")
       setEditorKey((k) => k + 1)
@@ -65,6 +107,47 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
       toast.error("Failed to post update")
     } finally {
       setPosting(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    if (!content.trim()) return
+    setSavingDraft(true)
+    try {
+      await createDoc("Hive Project Update", {
+        project: projectId,
+        content: content.trim(),
+        is_draft: 1,
+      })
+      setContent("")
+      setEditorKey((k) => k + 1)
+      mutateDrafts()
+      toast.success("Draft saved")
+    } catch {
+      toast.error("Failed to save draft")
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  const handlePublish = async (draftName: string) => {
+    try {
+      await publishCall({ update_name: draftName })
+      mutateDrafts()
+      mutate()
+      toast.success("Update published")
+    } catch {
+      toast.error("Failed to publish update")
+    }
+  }
+
+  const handleDeleteDraft = async (draftName: string) => {
+    try {
+      await deleteDoc("Hive Project Update", draftName)
+      mutateDrafts()
+      toast.success("Draft deleted")
+    } catch {
+      toast.error("Failed to delete draft")
     }
   }
 
@@ -98,22 +181,62 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
               {navigator.platform.includes("Mac") ? "\u2318" : "Ctrl"}+Enter to
               post
             </p>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handlePost}
-              disabled={!content.trim() || posting}
-            >
-              <HugeiconsIcon
-                icon={SentIcon}
-                strokeWidth={2}
-                data-icon="inline-start"
-              />
-              Post Update
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSaveDraft}
+                disabled={!content.trim() || savingDraft}
+              >
+                <HugeiconsIcon
+                  icon={FileEditIcon}
+                  strokeWidth={2}
+                  data-icon="inline-start"
+                />
+                Save Draft
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handlePost}
+                disabled={!content.trim() || posting}
+              >
+                <HugeiconsIcon
+                  icon={SentIcon}
+                  strokeWidth={2}
+                  data-icon="inline-start"
+                />
+                Post Update
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Drafts */}
+      {drafts && drafts.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Your Drafts
+          </h3>
+          {drafts.map((draft) => (
+            <DraftCard
+              key={draft.name}
+              draft={draft}
+              onPublish={handlePublish}
+              onDelete={handleDeleteDraft}
+              onUpdate={(name, newContent) => {
+                updateDoc("Hive Project Update", name, {
+                  content: newContent,
+                }).then(() => {
+                  mutateDrafts()
+                  toast.success("Draft updated")
+                })
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Feed */}
       {!updates?.length ? (
@@ -152,6 +275,119 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
         </div>
       )}
     </div>
+  )
+}
+
+function DraftCard({
+  draft,
+  onPublish,
+  onDelete,
+  onUpdate,
+}: {
+  draft: HiveProjectUpdate
+  onPublish: (name: string) => void
+  onDelete: (name: string) => void
+  onUpdate: (name: string, content: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [editContent, setEditContent] = useState("")
+  const [editorKey, setEditorKey] = useState(0)
+
+  return (
+    <Card className="border-dashed border-amber-500/40 bg-amber-50/30 dark:bg-amber-950/10">
+      <CardContent className="pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Badge
+            variant="outline"
+            className="text-amber-600 border-amber-300 text-[10px]"
+          >
+            Draft
+          </Badge>
+          <span className="text-[10px] text-muted-foreground">
+            {formatDistanceToNow(new Date(draft.modified), {
+              addSuffix: true,
+            })}
+          </span>
+        </div>
+
+        {editing ? (
+          <div>
+            <TiptapEditor
+              key={editorKey}
+              onChange={setEditContent}
+              placeholder="Edit your draft..."
+              content={draft.content}
+            />
+            <div className="flex items-center gap-2 mt-3 justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditing(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (editContent.trim()) {
+                    onUpdate(draft.name, editContent.trim())
+                    setEditing(false)
+                  }
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="text-sm prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+            dangerouslySetInnerHTML={{ __html: draft.content }}
+          />
+        )}
+
+        {!editing && (
+          <div className="flex items-center gap-2 mt-3 justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(draft.name)}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setEditContent(draft.content)
+                setEditorKey((k) => k + 1)
+                setEditing(true)
+              }}
+            >
+              <HugeiconsIcon
+                icon={FileEditIcon}
+                strokeWidth={2}
+                data-icon="inline-start"
+              />
+              Edit
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onPublish(draft.name)}
+            >
+              <HugeiconsIcon
+                icon={ArrowUpRight01Icon}
+                strokeWidth={2}
+                data-icon="inline-start"
+              />
+              Publish
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

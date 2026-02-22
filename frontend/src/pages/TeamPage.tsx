@@ -143,33 +143,22 @@ function MemberCard({
             )}
 
             {/* Task counts */}
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-center">
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {member.wip_count}
-                </p>
-                <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
-                  WIP
-                </p>
+            <div className="mt-4 flex divide-x rounded-lg border">
+              <div className="flex-1 py-2.5 text-center">
+                <p className="text-xl font-semibold">{member.wip_count}</p>
+                <p className="text-[11px] text-muted-foreground">Active</p>
               </div>
-              <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 p-3 text-center">
-                <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                  {member.backlog_count}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400/70 font-medium">
-                  Backlog
-                </p>
+              <div className="flex-1 py-2.5 text-center">
+                <p className="text-xl font-semibold">{member.backlog_count}</p>
+                <p className="text-[11px] text-muted-foreground">Backlog</p>
               </div>
+              {member.blocked_count > 0 && (
+                <div className="flex-1 py-2.5 text-center">
+                  <p className="text-xl font-semibold text-destructive">{member.blocked_count}</p>
+                  <p className="text-[11px] text-destructive/70">Blocked</p>
+                </div>
+              )}
             </div>
-
-            {/* Blocked indicator */}
-            {member.blocked_count > 0 && (
-              <div className="mt-2 rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-1.5 text-center">
-                <span className="text-xs font-medium text-red-600 dark:text-red-400">
-                  {member.blocked_count} blocked
-                </span>
-              </div>
-            )}
           </CollapsibleTrigger>
 
           <CollapsibleContent>

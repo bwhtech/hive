@@ -1,21 +1,34 @@
-import { useCallback, useState } from "react"
-import { Outlet } from "react-router"
+import { useCallback, useMemo, useState } from "react"
+import { Outlet, useNavigate } from "react-router"
 import { AppSidebar } from "./Sidebar"
 import { Header } from "./Header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { SettingsDialog } from "@/components/SettingsDialog"
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette"
 import { ShortcutHelpDialog } from "@/components/ShortcutHelpDialog"
-import { useHotkey } from "@/hooks/use-hotkey"
+import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
 
 export function AppLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState("profile")
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const commandPalette = useCommandPalette()
+  const navigate = useNavigate()
 
   const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), [])
   useHotkey("?", toggleShortcuts, { capture: true })
+
+  // G then D/P/T/M navigation chord shortcuts
+  const navChords = useMemo(
+    () => ({
+      d: () => navigate("/"),
+      p: () => navigate("/projects"),
+      t: () => navigate("/tasks"),
+      m: () => navigate("/team"),
+    }),
+    [navigate],
+  )
+  useChordHotkey("g", navChords)
 
   const openSettings = (tab?: string) => {
     if (tab) setSettingsTab(tab)

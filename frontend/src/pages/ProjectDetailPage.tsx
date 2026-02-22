@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useParams, Link } from "react-router"
 import {
+  useFrappeAuth,
   useFrappeGetDoc,
   useFrappeGetDocList,
   useFrappeUpdateDoc,
@@ -36,7 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveMember } from "@/types"
+import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveMember, HiveProjectUpdate } from "@/types"
 import { TASK_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
@@ -82,6 +83,24 @@ export function ProjectDetailPage() {
   // "T" keyboard shortcut to open create task dialog
   const openCreateDialog = useCallback(() => setCreateOpen(true), [])
   useHotkey("t", openCreateDialog)
+
+  const { currentUser } = useFrappeAuth()
+
+  // Fetch draft count for the Updates tab badge
+  const { data: myDrafts, mutate: mutateDraftCount } = useFrappeGetDocList<HiveProjectUpdate>(
+    "Hive Project Update",
+    {
+      fields: ["name"],
+      filters: [
+        ["project", "=", id ?? ""],
+        ["is_draft", "=", 1],
+        ["posted_by", "=", currentUser ?? ""],
+      ],
+      limit: 100,
+    },
+    id && currentUser ? undefined : null,
+  )
+  const draftCount = myDrafts?.length ?? 0
 
   const { data: project, isLoading: projectLoading } = useFrappeGetDoc<HiveProject>(
     "Hive Project",
@@ -351,6 +370,11 @@ export function ProjectDetailPage() {
           <TabsTrigger value="updates">
             <HugeiconsIcon icon={News01Icon} strokeWidth={2} className="size-4" />
             Updates
+            {draftCount > 0 && (
+              <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1.5 border-amber-400 text-amber-600">
+                {draftCount} {draftCount === 1 ? "draft" : "drafts"}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="requests">
             <HugeiconsIcon icon={Idea01Icon} strokeWidth={2} className="size-4" />
@@ -588,7 +612,7 @@ export function ProjectDetailPage() {
         {/* Updates Tab */}
         <TabsContent value="updates">
           <div className="pt-2">
-            {id && <UpdatesSection projectId={id} />}
+            {id && <UpdatesSection projectId={id} onDraftChange={() => mutateDraftCount()} />}
           </div>
         </TabsContent>
 

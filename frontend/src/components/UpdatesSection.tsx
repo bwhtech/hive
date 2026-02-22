@@ -28,9 +28,10 @@ const REACTION_EMOJIS = ["\ud83d\udc4d", "\u2764\ufe0f", "\ud83c\udf89", "\ud83d
 
 interface UpdatesSectionProps {
   projectId: string
+  onDraftChange?: () => void
 }
 
-export function UpdatesSection({ projectId }: UpdatesSectionProps) {
+export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps) {
   const [content, setContent] = useState("")
   const [posting, setPosting] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
@@ -122,6 +123,7 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
       setContent("")
       setEditorKey((k) => k + 1)
       mutateDrafts()
+      onDraftChange?.()
       toast.success("Draft saved")
     } catch {
       toast.error("Failed to save draft")
@@ -135,6 +137,7 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
       await publishCall({ update_name: draftName })
       mutateDrafts()
       mutate()
+      onDraftChange?.()
       toast.success("Update published")
     } catch {
       toast.error("Failed to publish update")
@@ -145,6 +148,7 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
     try {
       await deleteDoc("Hive Project Update", draftName)
       mutateDrafts()
+      onDraftChange?.()
       toast.success("Draft deleted")
     } catch {
       toast.error("Failed to delete draft")

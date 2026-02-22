@@ -58,7 +58,7 @@ import {
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   Open: "outline",
-  "Under Review": "default",
+  "Under Review": "secondary",
   Approved: "secondary",
   Rejected: "destructive",
   Converted: "secondary",
@@ -66,7 +66,7 @@ const statusVariant: Record<string, "default" | "secondary" | "outline" | "destr
 
 const priorityVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   "Nice to Have": "outline",
-  Important: "default",
+  Important: "secondary",
   Critical: "destructive",
 }
 
@@ -162,7 +162,7 @@ export function FeatureRequestSection({ projectId }: FeatureRequestSectionProps)
         <h3 className="text-sm font-medium text-muted-foreground">
           {requests?.length ?? 0} request{requests?.length !== 1 ? "s" : ""}
         </h3>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+        <Button variant="secondary" size="sm" onClick={() => setCreateOpen(true)}>
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
           New Request
         </Button>

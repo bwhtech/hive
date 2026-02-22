@@ -31,7 +31,7 @@ import { MILESTONE_STATUSES, type HiveMilestone } from "@/types"
 
 const milestoneStatusVariant: Record<string, "default" | "secondary" | "outline"> = {
   Upcoming: "outline",
-  "In Progress": "default",
+  "In Progress": "secondary",
   Completed: "secondary",
 }
 
@@ -84,7 +84,7 @@ export function MilestoneSection({ projectId }: MilestoneSectionProps) {
         <h3 className="text-sm font-medium text-muted-foreground">
           {milestones?.length ?? 0} milestone{milestones?.length !== 1 ? "s" : ""}
         </h3>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+        <Button variant="secondary" size="sm" onClick={() => setCreateOpen(true)}>
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
           Add Milestone
         </Button>

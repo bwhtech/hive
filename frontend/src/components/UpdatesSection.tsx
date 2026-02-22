@@ -99,6 +99,7 @@ export function UpdatesSection({ projectId }: UpdatesSectionProps) {
               post
             </p>
             <Button
+              variant="secondary"
               size="sm"
               onClick={handlePost}
               disabled={!content.trim() || posting}

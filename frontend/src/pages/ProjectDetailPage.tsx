@@ -46,7 +46,7 @@ import { FeatureRequestSection } from "@/components/FeatureRequestSection"
 import { UpdatesSection } from "@/components/UpdatesSection"
 
 const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
-  Open: "default",
+  Open: "secondary",
   Completed: "secondary",
   "On Hold": "outline",
 }
@@ -374,7 +374,7 @@ export function ProjectDetailPage() {
                           <div key={ms.name} className="flex items-center justify-between text-sm">
                             <span>{ms.title}</span>
                             <Badge
-                              variant={ms.status === "In Progress" ? "default" : "outline"}
+                              variant={ms.status === "In Progress" ? "secondary" : "outline"}
                               className="text-[10px] h-4 px-1.5"
                             >
                               {ms.status}

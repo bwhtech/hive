@@ -400,7 +400,7 @@ function ProjectsTab() {
         const stats = tasksByProject[project.name] ?? { total: 0, open: 0, clientOpen: 0 }
         return (
           <Link key={project.name} to={`/projects/${project.name}`} className="block">
-            <Card className="transition-shadow hover:shadow-md">
+            <Card className="h-full transition-shadow hover:shadow-md">
               <CardHeader>
                 <CardTitle>{project.title}</CardTitle>
                 <div className="flex flex-wrap items-center gap-1.5">

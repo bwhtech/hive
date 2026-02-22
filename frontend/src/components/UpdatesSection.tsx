@@ -7,6 +7,7 @@ import {
   useFrappeAuth,
   useFrappeUpdateDoc,
   useFrappeDeleteDoc,
+  useSWRConfig,
 } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -105,6 +106,35 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
   const { call: publishCall } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.publish_update",
   )
+  const { call: markSeenCall } = useFrappePostCall(
+    "bwh_hive.bwh_hive.api.mark_updates_seen",
+  )
+  const { mutate: globalMutate } = useSWRConfig()
+
+  // Mark updates as seen when component mounts with updates
+  const hasMarkedSeen = useRef(false)
+  useEffect(() => {
+    if (updates && updates.length > 0 && !hasMarkedSeen.current) {
+      const hasUnread = updates.some((u) => {
+        try {
+          const seen = u._seen ? JSON.parse(u._seen) : []
+          return currentUser ? !seen.includes(currentUser) : false
+        } catch {
+          return false
+        }
+      })
+      if (hasUnread) {
+        hasMarkedSeen.current = true
+        markSeenCall({ project: projectId }).then(() => {
+          mutate()
+          // Refresh dashboard unread count
+          globalMutate(
+            (key) => typeof key === "string" && key.includes("get_my_dashboard"),
+          )
+        })
+      }
+    }
+  }, [updates, currentUser, projectId, markSeenCall, mutate, globalMutate])
 
   // Auto-save: debounce 3s after typing stops
   const doAutoSave = useCallback(

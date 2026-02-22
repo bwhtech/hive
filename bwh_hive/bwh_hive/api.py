@@ -498,6 +498,27 @@ def get_member_tasks(user: str):
 
 
 @frappe.whitelist()
+def mark_updates_seen(project: str):
+	"""Mark all unread project updates as seen by the current user."""
+	import json
+
+	user = frappe.session.user
+	updates = frappe.get_all(
+		"Hive Project Update",
+		filters={"project": project, "is_draft": 0},
+		fields=["name", "_seen"],
+	)
+
+	for upd in updates:
+		seen = json.loads(upd.get("_seen") or "[]")
+		if user not in seen:
+			seen.append(user)
+			frappe.db.set_value(
+				"Hive Project Update", upd.name, "_seen", json.dumps(seen), update_modified=False
+			)
+
+
+@frappe.whitelist()
 def publish_update(update_name: str):
 	"""Publish a draft update (set is_draft = 0). Only the author can publish."""
 	doc = frappe.get_doc("Hive Project Update", update_name)

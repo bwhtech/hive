@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { useParams, Link } from "react-router"
+import { useParams, useSearchParams, Link } from "react-router"
 import {
   useFrappeAuth,
   useFrappeGetDoc,
@@ -76,6 +76,7 @@ const TASK_FIELDS = [
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -83,6 +84,14 @@ export function ProjectDetailPage() {
   // "T" keyboard shortcut to open create task dialog
   const openCreateDialog = useCallback(() => setCreateOpen(true), [])
   useHotkey("t", openCreateDialog)
+
+  // Auto-open create task dialog from ?create_task=1 (e.g. from CMD K)
+  useEffect(() => {
+    if (searchParams.get("create_task") === "1") {
+      setCreateOpen(true)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const { currentUser } = useFrappeAuth()
 

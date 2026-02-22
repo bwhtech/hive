@@ -192,7 +192,7 @@ export function CommandPalette({
                     className="size-4"
                   />
                   <span>Create Task in This Project</span>
-                  <CommandShortcut>N</CommandShortcut>
+                  <CommandShortcut>T</CommandShortcut>
                 </CommandItem>
               </CommandGroup>
               <CommandSeparator />
@@ -212,6 +212,7 @@ export function CommandPalette({
                 className="size-4"
               />
               <span>Go to Dashboard</span>
+              <CommandShortcut>G D</CommandShortcut>
             </CommandItem>
             <CommandItem
               value="projects"
@@ -224,6 +225,7 @@ export function CommandPalette({
                 className="size-4"
               />
               <span>Go to Projects</span>
+              <CommandShortcut>G P</CommandShortcut>
             </CommandItem>
             <CommandItem
               value="tasks"
@@ -236,6 +238,7 @@ export function CommandPalette({
                 className="size-4"
               />
               <span>Go to Tasks</span>
+              <CommandShortcut>G T</CommandShortcut>
             </CommandItem>
             <CommandItem
               value="team"
@@ -248,6 +251,7 @@ export function CommandPalette({
                 className="size-4"
               />
               <span>Go to Team</span>
+              <CommandShortcut>G M</CommandShortcut>
             </CommandItem>
           </CommandGroup>
 

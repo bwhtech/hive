@@ -51,7 +51,7 @@ export function AppSidebar({
   const { setOpenMobile } = useSidebar()
   const { logout } = useFrappeAuth()
   const { user } = useUser()
-  const { setTheme, theme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const location = useLocation()
 
   const handleLogout = () => {
@@ -152,13 +152,13 @@ export function AppSidebar({
                 className="w-[--anchor-width]"
               >
                 <DropdownMenuItem
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                 >
                   <HugeiconsIcon
-                    icon={theme === "dark" ? Sun02Icon : Moon02Icon}
+                    icon={resolvedTheme === "dark" ? Sun02Icon : Moon02Icon}
                     strokeWidth={2}
                   />
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                  {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

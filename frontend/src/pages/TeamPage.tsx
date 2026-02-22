@@ -20,6 +20,8 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible"
 import { Link } from "react-router"
+import { TASK_STATUS_COLOR } from "@/lib/variants"
+import { getInitials } from "@/lib/utils"
 
 interface TeamMemberStats {
   user: string
@@ -48,23 +50,6 @@ interface MemberTasksResponse {
   wip: MemberTask[]
   backlog: MemberTask[]
   blocked: MemberTask[]
-}
-
-const statusColor: Record<string, string> = {
-  Backlog: "bg-muted-foreground/40",
-  "To Do": "bg-yellow-500",
-  "In Progress": "bg-blue-500",
-  Blocked: "bg-red-500",
-  Done: "bg-green-500",
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 function MemberCard({
@@ -270,7 +255,7 @@ function TaskGroup({ label, tasks }: { label: string; tasks: MemberTask[] }) {
             className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
           >
             <span
-              className={`size-1.5 shrink-0 rounded-full ${statusColor[task.status] ?? "bg-muted-foreground/40"}`}
+              className={`size-1.5 shrink-0 rounded-full ${TASK_STATUS_COLOR[task.status] ?? "bg-muted-foreground/40"}`}
             />
             <span className="text-sm truncate flex-1">{task.title}</span>
             <Badge variant="secondary" className="text-[10px] shrink-0">
@@ -310,7 +295,7 @@ function ProjectGroup({
             className="flex items-center gap-2 rounded-md px-2 py-1.5"
           >
             <span
-              className={`size-1.5 shrink-0 rounded-full ${statusColor[task.status] ?? "bg-muted-foreground/40"}`}
+              className={`size-1.5 shrink-0 rounded-full ${TASK_STATUS_COLOR[task.status] ?? "bg-muted-foreground/40"}`}
             />
             <span className="text-sm truncate flex-1">{task.title}</span>
             <span className="text-[10px] text-muted-foreground shrink-0">

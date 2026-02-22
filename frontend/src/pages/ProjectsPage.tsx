@@ -15,12 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PROJECT_STATUSES, type HiveProject } from "@/types"
-
-const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
-  Open: "default",
-  Completed: "secondary",
-  "On Hold": "outline",
-}
+import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
 
 export function ProjectsPage() {
   const [search, setSearch] = useState("")
@@ -121,7 +116,7 @@ export function ProjectsPage() {
                   <CardHeader>
                     <CardTitle>{project.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2">
-                      <Badge variant={statusVariant[project.status] ?? "outline"}>
+                      <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                         {project.status}
                       </Badge>
                       {project.project_type && (

@@ -41,28 +41,7 @@ import {
 } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveTaskAssignee } from "@/types"
-
-const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  Low: "outline",
-  Medium: "secondary",
-  High: "default",
-  Urgent: "destructive",
-}
-
-const statusColor: Record<string, string> = {
-  Backlog: "bg-muted-foreground/40",
-  "To Do": "bg-yellow-500",
-  "In Progress": "bg-blue-500",
-  Done: "bg-green-500",
-  Blocked: "bg-red-500",
-}
-
-const priorityOrder: Record<string, number> = {
-  Urgent: 0,
-  High: 1,
-  Medium: 2,
-  Low: 3,
-}
+import { TASK_PRIORITY_VARIANT, TASK_STATUS_COLOR, PRIORITY_ORDER } from "@/lib/variants"
 
 interface TaskRow {
   task: HiveTask
@@ -100,7 +79,7 @@ const columns: ColumnDef<TaskRow>[] = [
       const { task } = row.original
       return (
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`size-2 shrink-0 rounded-full ${statusColor[task.status] ?? "bg-muted-foreground/40"}`} />
+          <span className={`size-2 shrink-0 rounded-full ${TASK_STATUS_COLOR[task.status] ?? "bg-muted-foreground/40"}`} />
           <span className="truncate font-medium">{task.title}</span>
         </div>
       )
@@ -126,10 +105,10 @@ const columns: ColumnDef<TaskRow>[] = [
   },
   {
     id: "priority",
-    accessorFn: (row) => priorityOrder[row.task.priority] ?? 99,
+    accessorFn: (row) => PRIORITY_ORDER[row.task.priority] ?? 99,
     header: ({ column }) => <SortHeader label="Priority" column={column} />,
     cell: ({ row }) => (
-      <Badge variant={priorityVariant[row.original.task.priority] ?? "outline"} className="text-[10px] h-5 px-1.5">
+      <Badge variant={TASK_PRIORITY_VARIANT[row.original.task.priority] ?? "outline"} className="text-[10px] h-5 px-1.5">
         {row.original.task.priority}
       </Badge>
     ),

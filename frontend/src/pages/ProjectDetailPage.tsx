@@ -61,12 +61,7 @@ import { UpdatesSection } from "@/components/UpdatesSection"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
-
-const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
-  Open: "secondary",
-  Completed: "secondary",
-  "On Hold": "outline",
-}
+import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
 
 const TASK_FIELDS = [
   "name",
@@ -393,7 +388,7 @@ export function ProjectDetailPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
             <div className="mt-1 flex items-center gap-2">
-              <Badge variant={statusVariant[project.status] ?? "outline"}>
+              <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                 {project.status}
               </Badge>
               {project.project_type && (

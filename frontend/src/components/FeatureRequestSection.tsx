@@ -55,20 +55,7 @@ import {
   FEATURE_REQUEST_PRIORITIES,
   type HiveFeatureRequest,
 } from "@/types"
-
-const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  Open: "outline",
-  "Under Review": "secondary",
-  Approved: "secondary",
-  Rejected: "destructive",
-  Converted: "secondary",
-}
-
-const priorityVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  "Nice to Have": "outline",
-  Important: "secondary",
-  Critical: "destructive",
-}
+import { FEATURE_REQUEST_STATUS_VARIANT, FEATURE_REQUEST_PRIORITY_VARIANT } from "@/lib/variants"
 
 interface FeatureRequestSectionProps {
   projectId: string
@@ -210,7 +197,7 @@ export function FeatureRequestSection({ projectId }: FeatureRequestSectionProps)
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={statusVariant[req.status] ?? "outline"}
+                      variant={FEATURE_REQUEST_STATUS_VARIANT[req.status] ?? "outline"}
                       className="text-[10px] h-5 px-1.5"
                     >
                       {req.status}
@@ -218,7 +205,7 @@ export function FeatureRequestSection({ projectId }: FeatureRequestSectionProps)
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={priorityVariant[req.priority] ?? "outline"}
+                      variant={FEATURE_REQUEST_PRIORITY_VARIANT[req.priority] ?? "outline"}
                       className="text-[10px] h-5 px-1.5"
                     >
                       {req.priority}

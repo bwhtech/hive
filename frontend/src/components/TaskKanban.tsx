@@ -18,13 +18,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from "@/types"
-
-const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  Low: "outline",
-  Medium: "secondary",
-  High: "default",
-  Urgent: "destructive",
-}
+import { TASK_PRIORITY_VARIANT } from "@/lib/variants"
 
 interface TaskKanbanProps {
   tasksByStatus: Record<string, HiveTask[]>
@@ -185,7 +179,7 @@ function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOv
       <CardHeader className="gap-2">
         <CardTitle className="text-sm leading-snug">{task.title}</CardTitle>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge variant={priorityVariant[task.priority] ?? "outline"} className="text-[10px] h-4 px-1.5">
+          <Badge variant={TASK_PRIORITY_VARIANT[task.priority] ?? "outline"} className="text-[10px] h-4 px-1.5">
             {task.priority}
           </Badge>
           {task.pr_link && (

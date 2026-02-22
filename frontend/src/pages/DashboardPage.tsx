@@ -17,28 +17,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { HiveMember, HiveProject, HiveTask } from "@/types"
-
-const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
-  Open: "default",
-  Completed: "secondary",
-  "On Hold": "outline",
-}
-
-const priorityColor: Record<string, string> = {
-  Urgent: "text-red-500",
-  High: "text-orange-500",
-  Medium: "text-yellow-500",
-  Low: "text-muted-foreground",
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
-}
+import { PROJECT_STATUS_VARIANT, TASK_PRIORITY_COLOR } from "@/lib/variants"
+import { getInitials } from "@/lib/utils"
 
 export function DashboardPage() {
   const [tab, setTab] = useState("my")
@@ -228,7 +208,7 @@ function MyWorkTab() {
                             }`}
                           />
                           <span className="truncate flex-1">{task.title}</span>
-                          <span className={`text-xs shrink-0 ${priorityColor[task.priority] ?? ""}`}>
+                          <span className={`text-xs shrink-0 ${TASK_PRIORITY_COLOR[task.priority] ?? ""}`}>
                             {task.priority}
                           </span>
                         </li>
@@ -308,7 +288,7 @@ function MyWorkTab() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{project.title}</p>
                     <div className="mt-1 flex items-center gap-1.5">
-                      <Badge variant={statusVariant[project.status] ?? "outline"} className="text-xs">
+                      <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"} className="text-xs">
                         {project.status}
                       </Badge>
                       {project.project_type && (
@@ -404,7 +384,7 @@ function ProjectsTab() {
               <CardHeader>
                 <CardTitle>{project.title}</CardTitle>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant={statusVariant[project.status] ?? "outline"}>
+                  <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                     {project.status}
                   </Badge>
                   {project.project_type && (

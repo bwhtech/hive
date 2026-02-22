@@ -96,7 +96,7 @@ interface MyDashboardData {
       status: string
       priority: string
       due_date: string | null
-      is_client_task: 0 | 1
+      is_internal: 0 | 1
     }[]
   }[]
   my_projects: {
@@ -342,7 +342,7 @@ function ProjectsTab() {
   const { data: tasks } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
     {
-      fields: ["name", "project", "status", "is_client_task"],
+      fields: ["name", "project", "status", "is_internal"],
       limit: 500,
     },
   )
@@ -387,7 +387,7 @@ function ProjectsTab() {
       tasksByProject[task.project].total++
       if (task.status !== "Done") {
         tasksByProject[task.project].open++
-        if (task.is_client_task) {
+        if (task.is_internal) {
           tasksByProject[task.project].clientOpen++
         }
       }

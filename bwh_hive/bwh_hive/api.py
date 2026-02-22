@@ -13,7 +13,7 @@ def get_my_dashboard():
 	my_tasks = frappe.get_all(
 		"Hive Task",
 		filters={"assigned_to": user, "status": ["not in", ["Done"]]},
-		fields=["name", "title", "project", "status", "priority", "due_date", "is_client_task"],
+		fields=["name", "title", "project", "status", "priority", "due_date", "is_internal"],
 		order_by="priority desc, modified desc",
 		limit=50,
 	)
@@ -31,7 +31,7 @@ def get_my_dashboard():
 		extra_tasks = frappe.get_all(
 			"Hive Task",
 			filters={"name": ["in", list(extra_task_names)], "status": ["not in", ["Done"]]},
-			fields=["name", "title", "project", "status", "priority", "due_date", "is_client_task"],
+			fields=["name", "title", "project", "status", "priority", "due_date", "is_internal"],
 			order_by="priority desc, modified desc",
 		)
 		my_tasks.extend(extra_tasks)

@@ -75,7 +75,7 @@ const TASK_FIELDS = [
   "status",
   "priority",
   "assigned_to",
-  "is_client_task",
+  "is_internal",
   "description",
   "due_date",
   "start_date",
@@ -216,7 +216,7 @@ export function ProjectDetailPage() {
     due_date?: string | null
     start_date?: string | null
     pr_link?: string | null
-    is_client_task?: 0 | 1
+    is_internal?: 0 | 1
     assignees?: { member: string }[]
   }) => {
     try {

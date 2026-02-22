@@ -12,7 +12,7 @@
   "priority",
   "assigned_to",
   "assignees",
-  "is_client_task",
+  "is_internal",
   "start_date",
   "due_date",
   "pr_link",
@@ -75,10 +75,10 @@
   },
   {
    "default": "0",
-   "fieldname": "is_client_task",
+   "fieldname": "is_internal",
    "fieldtype": "Check",
    "in_standard_filter": 1,
-   "label": "Is Client Task"
+   "label": "Internal"
   },
   {
    "fieldname": "start_date",

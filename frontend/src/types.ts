@@ -17,7 +17,7 @@ export interface HiveTask {
   status: "Backlog" | "To Do" | "In Progress" | "Done" | "Blocked"
   priority: "Low" | "Medium" | "High" | "Urgent"
   assigned_to: string
-  is_client_task: 0 | 1
+  is_internal: 0 | 1
   description: string
   due_date: string | null
   start_date: string | null

@@ -50,7 +50,7 @@ export function TasksPage() {
     {
       fields: [
         "name", "title", "project", "status", "priority",
-        "assigned_to", "is_client_task", "due_date", "pr_link",
+        "assigned_to", "is_internal", "due_date", "pr_link",
         "uat_status", "creation", "modified",
       ],
       orderBy: { field: "modified", order: "desc" },

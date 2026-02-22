@@ -4,7 +4,6 @@ import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Calendar03Icon,
-  Link04Icon,
   UserAdd01Icon,
   Cancel02Icon,
   CheckmarkCircle02Icon,
@@ -44,8 +43,7 @@ interface CreateTaskValues {
   status: string
   due_date?: string | null
   start_date?: string | null
-  pr_link?: string | null
-  is_client_task?: 0 | 1
+  is_internal?: 0 | 1
   assignees?: { member: string }[]
 }
 
@@ -61,8 +59,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
   const [status, setStatus] = useState("Backlog")
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
-  const [prLink, setPrLink] = useState("")
-  const [isClientTask, setIsClientTask] = useState(false)
+  const [isInternal, setIsInternal] = useState(false)
   const [assignees, setAssignees] = useState<AssigneeRow[]>([])
 
   const { data: allMembers } = useFrappeGetDocList<HiveMember>(
@@ -83,8 +80,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
       status,
       due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
       start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
-      pr_link: prLink || null,
-      is_client_task: isClientTask ? 1 : 0,
+      is_internal: isInternal ? 1 : 0,
       assignees: assignees.map((a) => ({ member: a.member })),
     })
     setTitle("")
@@ -92,8 +88,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
     setStatus("Backlog")
     setDueDate(undefined)
     setStartDate(undefined)
-    setPrLink("")
-    setIsClientTask(false)
+    setIsInternal(false)
     setAssignees([])
   }
 
@@ -277,32 +272,14 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit }: CreateTaskDia
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="task-pr-link">PR Link</Label>
-            <div className="relative">
-              <HugeiconsIcon
-                icon={Link04Icon}
-                strokeWidth={2}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
-              />
-              <Input
-                id="task-pr-link"
-                placeholder="https://github.com/..."
-                value={prLink}
-                onChange={(e) => setPrLink(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-          </div>
-
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={isClientTask}
-              onChange={(e) => setIsClientTask(e.target.checked)}
+              checked={isInternal}
+              onChange={(e) => setIsInternal(e.target.checked)}
               className="size-4 rounded border accent-primary"
             />
-            <span className="text-sm">Client-facing task</span>
+            <span className="text-sm">Internal task</span>
           </label>
 
           <DialogFooter>

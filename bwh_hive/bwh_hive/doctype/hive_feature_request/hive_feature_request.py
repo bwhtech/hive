@@ -48,7 +48,6 @@ class HiveFeatureRequest(Document):
 				"description": self.description,
 				"status": "Backlog",
 				"priority": "Medium",
-				"is_client_task": 1,
 			}
 		)
 		task.insert()

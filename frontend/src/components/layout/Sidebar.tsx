@@ -36,10 +36,10 @@ import { useUser } from "@/context/UserContext"
 import { useTheme } from "@/components/theme-provider"
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: DashboardSquare02Icon },
-  { to: "/projects", label: "Projects", icon: Folder01Icon },
-  { to: "/tasks", label: "Tasks", icon: TaskDaily01Icon },
-  { to: "/team", label: "Team", icon: UserGroup03Icon },
+  { to: "/", label: "Dashboard", icon: DashboardSquare02Icon, shortcut: "G then D" },
+  { to: "/projects", label: "Projects", icon: Folder01Icon, shortcut: "G then P" },
+  { to: "/tasks", label: "Tasks", icon: TaskDaily01Icon, shortcut: "G then T" },
+  { to: "/team", label: "Team", icon: UserGroup03Icon, shortcut: "G then M" },
 ]
 
 export function AppSidebar({
@@ -92,7 +92,7 @@ export function AppSidebar({
                           onClick={() => setOpenMobile(false)}
                         />
                       }
-                      tooltip={item.label}
+                      tooltip={`${item.label} (${item.shortcut})`}
                     >
                       <HugeiconsIcon
                         icon={item.icon}
@@ -100,6 +100,9 @@ export function AppSidebar({
                         className="size-5"
                       />
                       <span>{item.label}</span>
+                      <kbd className="pointer-events-none ml-auto hidden text-[10px] font-medium text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden lg:inline-block">
+                        {item.shortcut}
+                      </kbd>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

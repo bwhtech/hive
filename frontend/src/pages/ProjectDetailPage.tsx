@@ -44,6 +44,7 @@ import { TaskDetailSheet } from "@/components/TaskDetailSheet"
 import { MilestoneSection } from "@/components/MilestoneSection"
 import { FeatureRequestSection } from "@/components/FeatureRequestSection"
 import { UpdatesSection } from "@/components/UpdatesSection"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useHotkey } from "@/hooks/use-hotkey"
 
 const statusVariant: Record<string, "default" | "secondary" | "outline"> = {
@@ -314,10 +315,20 @@ export function ProjectDetailPage() {
             </div>
           </div>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
-          Add Task
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button onClick={() => setCreateOpen(true)} />
+            }
+          >
+            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
+            Add Task
+            <kbd className="pointer-events-none ml-1 hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-block">
+              T
+            </kbd>
+          </TooltipTrigger>
+          <TooltipContent>Create a new task (T)</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Tabs */}

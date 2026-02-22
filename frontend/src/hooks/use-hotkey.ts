@@ -8,10 +8,11 @@ import { useEffect } from "react"
 export function useHotkey(
   key: string,
   callback: () => void,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; capture?: boolean },
 ) {
   useEffect(() => {
     if (options?.enabled === false) return
+    const capture = options?.capture ?? false
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
@@ -28,11 +29,12 @@ export function useHotkey(
 
       if (e.key.toLowerCase() === key.toLowerCase()) {
         e.preventDefault()
+        e.stopPropagation()
         callback()
       }
     }
 
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [key, callback, options?.enabled])
+    document.addEventListener("keydown", handleKeyDown, capture)
+    return () => document.removeEventListener("keydown", handleKeyDown, capture)
+  }, [key, callback, options?.enabled, options?.capture])
 }

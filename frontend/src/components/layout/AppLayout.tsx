@@ -1,15 +1,21 @@
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { Outlet } from "react-router"
 import { AppSidebar } from "./Sidebar"
 import { Header } from "./Header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { SettingsDialog } from "@/components/SettingsDialog"
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette"
+import { ShortcutHelpDialog } from "@/components/ShortcutHelpDialog"
+import { useHotkey } from "@/hooks/use-hotkey"
 
 export function AppLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState("profile")
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const commandPalette = useCommandPalette()
+
+  const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), [])
+  useHotkey("?", toggleShortcuts, { capture: true })
 
   const openSettings = (tab?: string) => {
     if (tab) setSettingsTab(tab)
@@ -35,6 +41,10 @@ export function AppLayout() {
         open={commandPalette.open}
         onOpenChange={commandPalette.setOpen}
         onOpenSettings={openSettings}
+      />
+      <ShortcutHelpDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
       />
     </SidebarProvider>
   )

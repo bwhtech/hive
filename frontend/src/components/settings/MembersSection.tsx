@@ -11,6 +11,15 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Item,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+  ItemGroup,
+} from "@/components/ui/item"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import {
   Select,
@@ -188,42 +197,43 @@ export function MembersSection() {
           {isAdmin && pendingInvites.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold">Pending Invitations</h3>
-              <div className="divide-y divide-border rounded-lg border border-border">
+              <ItemGroup className="rounded-lg border border-border divide-y divide-border">
                 {pendingInvites.map((invite) => (
-                  <div
-                    key={invite.name}
-                    className="flex items-center justify-between px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
+                  <Item key={invite.name} variant="default" className="px-4 py-3">
+                    <ItemMedia>
                       <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
                         {invite.email[0].toUpperCase()}
                       </div>
-                      <div>
-                        <p className="text-sm">{invite.email}</p>
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>{invite.email}</ItemTitle>
+                      <ItemDescription>
                         <Badge
                           variant="secondary"
-                          className="mt-0.5 text-[10px]"
+                          className="text-[10px]"
                         >
                           Pending
                         </Badge>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        handleCancel(invite.name, invite.email)
-                      }
-                    >
-                      <HugeiconsIcon
-                        icon={Cancel01Icon}
-                        strokeWidth={2}
-                        className="size-4"
-                      />
-                    </Button>
-                  </div>
+                      </ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleCancel(invite.name, invite.email)
+                        }
+                      >
+                        <HugeiconsIcon
+                          icon={Cancel01Icon}
+                          strokeWidth={2}
+                          className="size-4"
+                        />
+                      </Button>
+                    </ItemActions>
+                  </Item>
                 ))}
-              </div>
+              </ItemGroup>
             </div>
           )}
 
@@ -247,28 +257,27 @@ export function MembersSection() {
               </Select>
             </div>
             {filteredMembers && filteredMembers.length > 0 ? (
-              <div className="divide-y divide-border rounded-lg border border-border">
+              <ItemGroup className="rounded-lg border border-border divide-y divide-border">
                 {filteredMembers.map((member) => (
-                  <div
-                    key={member.name}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
-                    <MemberAvatar name={member.member_name || member.user} image={member.user_image} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">
-                        {member.member_name || member.user}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                  <Item key={member.name} variant="default" className="px-4 py-3">
+                    <ItemMedia>
+                      <MemberAvatar name={member.member_name || member.user} image={member.user_image} />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>{member.member_name || member.user}</ItemTitle>
+                      <ItemDescription className="text-xs">
                         {member.user}
                         {member.designation && ` · ${member.designation}`}
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {member.type}
-                    </Badge>
-                  </div>
+                      </ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {member.type}
+                      </Badge>
+                    </ItemActions>
+                  </Item>
                 ))}
-              </div>
+              </ItemGroup>
             ) : (
               <p className="text-sm text-muted-foreground">
                 No members found.

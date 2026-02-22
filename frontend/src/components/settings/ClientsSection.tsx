@@ -14,6 +14,16 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Item,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+  ItemGroup,
+} from "@/components/ui/item"
+import { MemberAvatar } from "@/components/MemberAvatar"
 
 interface HiveClient {
   name: string
@@ -112,34 +122,37 @@ export function ClientsSection() {
             ))}
           </div>
         ) : clients && clients.length > 0 ? (
-          <div className="divide-y divide-border rounded-lg border border-border">
+          <ItemGroup className="rounded-lg border border-border divide-y divide-border">
             {clients.map((client) => (
-              <button
+              <Item
                 key={client.name}
-                type="button"
+                render={<button type="button" />}
+                variant="default"
+                className="px-4 py-3 text-left hover:bg-muted/50 cursor-pointer"
                 onClick={() => setSelectedClient(client.name)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
               >
-                <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-xs font-medium text-muted-foreground">
-                  <HugeiconsIcon
-                    icon={Building06Icon}
-                    strokeWidth={2}
-                    className="size-4"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {client.company_name}
-                  </p>
-                </div>
+                <ItemMedia>
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-xs font-medium text-muted-foreground">
+                    <HugeiconsIcon
+                      icon={Building06Icon}
+                      strokeWidth={2}
+                      className="size-4"
+                    />
+                  </div>
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>{client.company_name}</ItemTitle>
+                </ItemContent>
                 {!client.is_active && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    Inactive
-                  </Badge>
+                  <ItemActions>
+                    <Badge variant="secondary" className="text-[10px]">
+                      Inactive
+                    </Badge>
+                  </ItemActions>
                 )}
-              </button>
+              </Item>
             ))}
-          </div>
+          </ItemGroup>
         ) : (
           <p className="text-sm text-muted-foreground">
             No clients yet. Add one above.
@@ -207,34 +220,21 @@ function ClientMembersView({
             ))}
           </div>
         ) : members && members.length > 0 ? (
-          <div className="divide-y divide-border rounded-lg border border-border">
+          <ItemGroup className="rounded-lg border border-border divide-y divide-border">
             {members.map((member) => (
-              <div
-                key={member.name}
-                className="flex items-center gap-3 px-4 py-3"
-              >
-                {member.user_image ? (
-                  <img
-                    src={member.user_image}
-                    alt={member.member_name}
-                    className="size-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                    {(member.member_name || member.user)[0].toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {member.member_name || member.user}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
+              <Item key={member.name} variant="default" className="px-4 py-3">
+                <ItemMedia>
+                  <MemberAvatar name={member.member_name || member.user} image={member.user_image} />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>{member.member_name || member.user}</ItemTitle>
+                  <ItemDescription className="text-xs">
                     {member.user}
-                  </p>
-                </div>
-              </div>
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
             ))}
-          </div>
+          </ItemGroup>
         ) : (
           <p className="text-sm text-muted-foreground">
             No members assigned to this client yet.

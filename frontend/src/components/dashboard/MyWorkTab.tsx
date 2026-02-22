@@ -10,6 +10,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Item,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@/components/ui/item"
 import { PROJECT_STATUS_VARIANT, TASK_PRIORITY_COLOR } from "@/lib/variants"
 
 interface MyDashboardData {
@@ -228,24 +235,27 @@ export function MyWorkTab() {
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {dashboard.my_projects.map((project) => (
-                <Link
+                <Item
                   key={project.name}
-                  to={`/projects/${project.name}`}
-                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                  render={<Link to={`/projects/${project.name}`} />}
+                  variant="outline"
+                  className="p-3 hover:bg-muted/50"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{project.title}</p>
-                    <div className="mt-1 flex items-center gap-1.5">
+                  <ItemContent>
+                    <ItemTitle>{project.title}</ItemTitle>
+                    <ItemDescription className="flex items-center gap-1.5">
                       <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"} className="text-xs">
                         {project.status}
                       </Badge>
                       {project.project_type && (
                         <Badge variant="outline" className="text-xs">{project.project_type}</Badge>
                       )}
-                    </div>
-                  </div>
-                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4 shrink-0 text-muted-foreground" />
-                </Link>
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4 text-muted-foreground" />
+                  </ItemActions>
+                </Item>
               ))}
             </div>
           </CardContent>

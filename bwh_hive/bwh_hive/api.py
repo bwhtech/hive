@@ -228,6 +228,77 @@ def search(query: str, project: str | None = None, limit: int = 10):
 
 
 @frappe.whitelist()
+def get_team_dashboard():
+	"""Return team members with WIP and Backlog task counts."""
+	members = frappe.get_all(
+		"Hive Member",
+		filters={"type": "Team", "is_active": 1},
+		fields=["name", "user", "member_name", "user_image", "designation"],
+		order_by="member_name asc",
+	)
+
+	# Get all non-Done tasks
+	tasks = frappe.get_all(
+		"Hive Task",
+		filters={"status": ["not in", ["Done"]]},
+		fields=["name", "status", "assigned_to"],
+		limit=500,
+	)
+
+	# Get all task assignees (multi-assignee system)
+	assignees = frappe.get_all(
+		"Hive Task Assignee",
+		filters={"parenttype": "Hive Task", "parentfield": "assignees"},
+		fields=["parent", "member"],
+		limit=500,
+	)
+
+	# Build task status map
+	task_status = {t.name: t.status for t in tasks}
+
+	# Build user -> task set mapping (deduplicates legacy + new assignees)
+	user_tasks: dict[str, set] = {}
+
+	for task in tasks:
+		if task.assigned_to:
+			user_tasks.setdefault(task.assigned_to, set()).add(task.name)
+
+	for row in assignees:
+		if row.parent in task_status:
+			user_tasks.setdefault(row.member, set()).add(row.parent)
+
+	# Count per member
+	result = []
+	for member in members:
+		member_task_names = user_tasks.get(member.user, set())
+		wip = 0
+		backlog = 0
+		blocked = 0
+		for task_name in member_task_names:
+			status = task_status.get(task_name)
+			if status in ("In Progress", "To Do"):
+				wip += 1
+			elif status == "Backlog":
+				backlog += 1
+			elif status == "Blocked":
+				blocked += 1
+
+		result.append(
+			{
+				"user": member.user,
+				"member_name": member.member_name,
+				"user_image": member.user_image,
+				"designation": member.designation,
+				"wip_count": wip,
+				"backlog_count": backlog,
+				"blocked_count": blocked,
+			}
+		)
+
+	return result
+
+
+@frappe.whitelist()
 def get_project_dashboard(project: str):
 	"""Return aggregated stats for a project: task counts by status, milestone progress, team members."""
 	tasks = frappe.get_all(

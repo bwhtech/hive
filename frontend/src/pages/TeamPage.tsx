@@ -1,18 +1,25 @@
 import { useState, useMemo } from "react"
-import { useFrappeGetDocList, useFrappeGetCall } from "frappe-react-sdk"
-import { Link } from "react-router"
+import { useFrappeGetCall } from "frappe-react-sdk"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   UserGroup03Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import type { HiveMember, HiveProject, HiveTask } from "@/types"
+
+interface TeamMemberStats {
+  user: string
+  member_name: string
+  user_image: string
+  designation: string
+  wip_count: number
+  backlog_count: number
+  blocked_count: number
+}
 
 function getInitials(name: string) {
   return name
@@ -26,66 +33,18 @@ function getInitials(name: string) {
 export function TeamPage() {
   const [search, setSearch] = useState("")
 
-  const { data: members, isLoading: membersLoading } = useFrappeGetDocList<HiveMember>(
-    "Hive Member",
-    {
-      fields: ["name", "user", "member_name", "user_image", "type", "designation", "is_active"],
-      filters: [["type", "=", "Team"], ["is_active", "=", 1]],
-      orderBy: { field: "member_name", order: "asc" },
-      limit: 100,
-    },
-  )
-
-  const { data: tasks } = useFrappeGetDocList<HiveTask>(
-    "Hive Task",
-    {
-      fields: ["name", "title", "project", "status", "priority", "assigned_to"],
-      filters: [["status", "not in", ["Done"]]],
-      orderBy: { field: "modified", order: "desc" },
-      limit: 500,
-    },
-  )
-
-  const { data: projects } = useFrappeGetDocList<HiveProject>(
-    "Hive Project",
-    {
-      fields: ["name", "title", "status"],
-      filters: [["status", "=", "Open"]],
-      limit: 100,
-    },
-  )
+  const { data: teamData, isLoading } = useFrappeGetCall<{
+    message: TeamMemberStats[]
+  }>("bwh_hive.bwh_hive.api.get_team_dashboard")
 
   const { data: staleData } = useFrappeGetCall<{ message: string[] }>(
     "bwh_hive.bwh_hive.api.get_stale_members",
   )
   const staleUsers = useMemo(() => new Set(staleData?.message ?? []), [staleData])
 
-  // Group tasks and projects by user
-  const { tasksByUser, projectsByUser } = useMemo(() => {
-    const tbu: Record<string, HiveTask[]> = {}
-    const pbu: Record<string, Set<string>> = {}
-    if (tasks) {
-      for (const task of tasks) {
-        if (!task.assigned_to) continue
-        if (!tbu[task.assigned_to]) tbu[task.assigned_to] = []
-        tbu[task.assigned_to].push(task)
-        if (!pbu[task.assigned_to]) pbu[task.assigned_to] = new Set()
-        pbu[task.assigned_to].add(task.project)
-      }
-    }
-    return { tasksByUser: tbu, projectsByUser: pbu }
-  }, [tasks])
-
-  const projectMap = useMemo(() => {
-    const map: Record<string, HiveProject> = {}
-    if (projects) {
-      for (const p of projects) map[p.name] = p
-    }
-    return map
-  }, [projects])
+  const members = teamData?.message ?? []
 
   const filteredMembers = useMemo(() => {
-    if (!members) return []
     if (!search) return members
     const q = search.toLowerCase()
     return members.filter(
@@ -121,21 +80,22 @@ export function TeamPage() {
       </div>
 
       {/* Team Grid */}
-      {membersLoading ? (
+      {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
-              <CardHeader>
+              <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="size-10 rounded-full" />
+                  <Skeleton className="size-12 rounded-full" />
                   <div className="space-y-1.5">
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-3 w-16" />
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-16 w-full" />
+                <div className="mt-4 flex gap-4">
+                  <Skeleton className="h-16 flex-1 rounded-lg" />
+                  <Skeleton className="h-16 flex-1 rounded-lg" />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -153,33 +113,32 @@ export function TeamPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredMembers.map((member) => {
-            const memberTasks = tasksByUser[member.user] ?? []
-            const memberProjectIds = projectsByUser[member.user] ?? new Set<string>()
             const isStale = staleUsers.has(member.user)
 
             return (
-              <Card key={member.name} className={isStale ? "border-red-500/40" : ""}>
-                <CardHeader>
+              <Card key={member.user} className={isStale ? "border-red-500/40" : ""}>
+                <CardContent className="pt-6">
+                  {/* Member identity */}
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <Avatar>
+                      <Avatar className="size-12">
                         {member.user_image && <AvatarImage src={member.user_image} />}
-                        <AvatarFallback>
+                        <AvatarFallback className="text-sm">
                           {member.member_name ? getInitials(member.member_name) : "?"}
                         </AvatarFallback>
                       </Avatar>
                       {isStale && (
                         <Tooltip>
                           <TooltipTrigger render={<span className="absolute -right-0.5 -top-0.5 flex size-3.5" />}>
-                              <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
-                              <span className="relative inline-flex size-3.5 rounded-full bg-red-500" />
+                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex size-3.5 rounded-full bg-red-500" />
                           </TooltipTrigger>
                           <TooltipContent>No updates in 7+ days</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{member.member_name}</p>
+                      <p className="text-sm font-semibold truncate">{member.member_name}</p>
                       {member.designation && (
                         <p className="text-xs text-muted-foreground truncate">
                           {member.designation}
@@ -187,54 +146,34 @@ export function TeamPage() {
                       )}
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {memberProjectIds.size > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5">
-                        Projects ({memberProjectIds.size})
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {Array.from(memberProjectIds).map((pid) => (
-                          <Link key={pid} to={`/projects/${pid}`}>
-                            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent">
-                              {projectMap[pid]?.title ?? pid}
-                            </Badge>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
-                  {memberTasks.length > 0 ? (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5">
-                        Active tasks ({memberTasks.length})
+                  {/* Task counts */}
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-center">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {member.wip_count}
                       </p>
-                      <ul className="space-y-1">
-                        {memberTasks.slice(0, 4).map((task) => (
-                          <li key={task.name} className="flex items-center gap-2 text-xs">
-                            <span
-                              className={`size-1.5 rounded-full shrink-0 ${
-                                task.status === "In Progress"
-                                  ? "bg-blue-500"
-                                  : task.status === "Blocked"
-                                    ? "bg-red-500"
-                                    : "bg-muted-foreground/50"
-                              }`}
-                            />
-                            <span className="truncate">{task.title}</span>
-                          </li>
-                        ))}
-                        {memberTasks.length > 4 && (
-                          <li className="text-xs text-muted-foreground">
-                            +{memberTasks.length - 4} more
-                          </li>
-                        )}
-                      </ul>
+                      <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
+                        WIP
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No active tasks</p>
+                    <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 p-3 text-center">
+                      <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                        {member.backlog_count}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400/70 font-medium">
+                        Backlog
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Blocked indicator */}
+                  {member.blocked_count > 0 && (
+                    <div className="mt-2 rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-1.5 text-center">
+                      <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                        {member.blocked_count} blocked
+                      </span>
+                    </div>
                   )}
                 </CardContent>
               </Card>

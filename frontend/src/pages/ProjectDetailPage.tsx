@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useSearchParams, Link } from "react-router"
 import {
   useFrappeAuth,
@@ -21,6 +21,10 @@ import {
   Cancel02Icon,
   Idea01Icon,
   News01Icon,
+  Link04Icon,
+  Delete02Icon,
+  PencilEdit01Icon,
+  ArrowUpRight01Icon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -36,8 +40,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
-import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveMember, HiveProjectUpdate } from "@/types"
+import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveMember, HiveProjectUpdate, HiveProjectLink } from "@/types"
 import { TASK_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
@@ -111,7 +124,9 @@ export function ProjectDetailPage() {
   )
   const draftCount = myDrafts?.length ?? 0
 
-  const { data: project, isLoading: projectLoading } = useFrappeGetDoc<HiveProject>(
+  const [linksDialogOpen, setLinksDialogOpen] = useState(false)
+
+  const { data: project, isLoading: projectLoading, mutate: mutateProject } = useFrappeGetDoc<HiveProject>(
     "Hive Project",
     id ?? "",
     id ? undefined : null,
@@ -273,6 +288,35 @@ export function ProjectDetailPage() {
     saveProjectMembers(next)
   }
 
+  // -- Related links management --
+  const saveProjectLinks = async (links: HiveProjectLink[]) => {
+    try {
+      await updateDoc("Hive Project", id!, {
+        links: links.map((l) => ({ title: l.title, url: l.url })),
+      })
+      mutateProject()
+    } catch {
+      toast.error("Failed to update links")
+    }
+  }
+
+  const addLink = (title: string, url: string) => {
+    const current = project?.links ?? []
+    saveProjectLinks([...current, { title, url }])
+  }
+
+  const removeLink = (idx: number) => {
+    const current = [...(project?.links ?? [])]
+    current.splice(idx, 1)
+    saveProjectLinks(current)
+  }
+
+  const updateLink = (idx: number, title: string, url: string) => {
+    const current = [...(project?.links ?? [])]
+    current[idx] = { ...current[idx], title, url }
+    saveProjectLinks(current)
+  }
+
   if (projectLoading) {
     return (
       <div className="space-y-6">
@@ -342,6 +386,41 @@ export function ProjectDetailPage() {
                 <Badge variant="outline">{project.client}</Badge>
               )}
             </div>
+            {/* Related Links */}
+            {(project.links?.length ?? 0) > 0 && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {project.links!.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                  >
+                    <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} className="size-3" />
+                    {link.title}
+                  </a>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setLinksDialogOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                >
+                  <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3" />
+                  Manage
+                </button>
+              </div>
+            )}
+            {(project.links?.length ?? 0) === 0 && (
+              <button
+                type="button"
+                onClick={() => setLinksDialogOpen(true)}
+                className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              >
+                <HugeiconsIcon icon={Link04Icon} strokeWidth={2} className="size-3" />
+                Add link
+              </button>
+            )}
           </div>
         </div>
         <Tooltip>
@@ -647,7 +726,152 @@ export function ProjectDetailPage() {
         onOpenChange={setSheetOpen}
         onUpdated={handleTaskUpdated}
       />
+
+      {/* Manage Links Dialog */}
+      <ManageLinksDialog
+        open={linksDialogOpen}
+        onOpenChange={setLinksDialogOpen}
+        links={project.links ?? []}
+        onAdd={addLink}
+        onRemove={removeLink}
+        onUpdate={updateLink}
+      />
     </div>
+  )
+}
+
+function ManageLinksDialog({
+  open,
+  onOpenChange,
+  links,
+  onAdd,
+  onRemove,
+  onUpdate,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  links: HiveProjectLink[]
+  onAdd: (title: string, url: string) => void
+  onRemove: (idx: number) => void
+  onUpdate: (idx: number, title: string, url: string) => void
+}) {
+  const [newTitle, setNewTitle] = useState("")
+  const [newUrl, setNewUrl] = useState("")
+  const [editIdx, setEditIdx] = useState<number | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editUrl, setEditUrl] = useState("")
+  const titleRef = useRef<HTMLInputElement>(null)
+
+  const handleAdd = () => {
+    const title = newTitle.trim()
+    const url = newUrl.trim()
+    if (!title || !url) return
+    onAdd(title, url)
+    setNewTitle("")
+    setNewUrl("")
+    titleRef.current?.focus()
+  }
+
+  const startEdit = (idx: number) => {
+    setEditIdx(idx)
+    setEditTitle(links[idx].title)
+    setEditUrl(links[idx].url)
+  }
+
+  const saveEdit = () => {
+    if (editIdx === null) return
+    const title = editTitle.trim()
+    const url = editUrl.trim()
+    if (!title || !url) return
+    onUpdate(editIdx, title, url)
+    setEditIdx(null)
+  }
+
+  const cancelEdit = () => setEditIdx(null)
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Related Links</DialogTitle>
+        </DialogHeader>
+
+        {/* Existing links */}
+        {links.length > 0 && (
+          <div className="space-y-2">
+            {links.map((link, i) => (
+              <div key={i}>
+                {editIdx === i ? (
+                  <div className="space-y-2 rounded-lg border p-3">
+                    <Input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      placeholder="Title"
+                    />
+                    <Input
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
+                      placeholder="https://..."
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={saveEdit}>Save</Button>
+                      <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+                    <HugeiconsIcon icon={Link04Icon} strokeWidth={2} className="size-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium">{link.title}</span>
+                      <span className="text-muted-foreground ml-2 truncate text-xs">{link.url}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(i)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRemove(i)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add new link */}
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">Add a link</p>
+          <div className="flex gap-2">
+            <Input
+              ref={titleRef}
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Title"
+              className="flex-1"
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+            <Input
+              value={newUrl}
+              onChange={(e) => setNewUrl(e.target.value)}
+              placeholder="https://..."
+              className="flex-1"
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+            <Button onClick={handleAdd} disabled={!newTitle.trim() || !newUrl.trim()}>
+              Add
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

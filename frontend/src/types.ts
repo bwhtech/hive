@@ -5,6 +5,7 @@ export interface HiveProject {
   project_type: string
   client: string
   description: string
+  links?: HiveProjectLink[]
   creation: string
   modified: string
 }
@@ -73,6 +74,12 @@ export interface HiveFeatureRequest {
   converted_task: string | null
   creation: string
   modified: string
+}
+
+export interface HiveProjectLink {
+  name?: string
+  title: string
+  url: string
 }
 
 export interface HiveTaskAssignee {

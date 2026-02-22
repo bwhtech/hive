@@ -11,9 +11,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/collapsible"
 import { Link } from "react-router"
 import { TASK_STATUS_COLOR } from "@/lib/variants"
-import { getInitials } from "@/lib/utils"
 
 interface TeamMemberStats {
   user: string
@@ -96,12 +95,7 @@ function MemberCard({
             {/* Member identity */}
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar className="size-12">
-                  {member.user_image && <AvatarImage src={member.user_image} />}
-                  <AvatarFallback className="text-sm">
-                    {member.member_name ? getInitials(member.member_name) : "?"}
-                  </AvatarFallback>
-                </Avatar>
+                <MemberAvatar name={member.member_name} image={member.user_image} className="size-12" fallbackClassName="text-sm" />
                 {isStale && (
                   <Tooltip>
                     <TooltipTrigger render={<span className="absolute -right-0.5 -top-0.5 flex size-3.5" />}>

@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import {
   Select,
   SelectContent,
@@ -202,15 +202,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
                   key={a.member}
                   className="flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 text-sm"
                 >
-                  <Avatar size="sm">
-                    {a.user_image ? (
-                      <AvatarImage src={a.user_image} alt={a.member_name} />
-                    ) : (
-                      <AvatarFallback className="text-[10px]">
-                        {(a.member_name || a.member).slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
+                  <MemberAvatar size="sm" name={a.member_name || a.member} image={a.user_image} />
                   <span className="truncate max-w-[120px]">{a.member_name || a.member}</span>
                   <button
                     type="button"
@@ -242,15 +234,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
                             assignedMemberNames.has(m.name) ? "bg-muted" : ""
                           }`}
                         >
-                          <Avatar size="sm">
-                            {m.user_image ? (
-                              <AvatarImage src={m.user_image} alt={m.member_name} />
-                            ) : (
-                              <AvatarFallback className="text-[10px]">
-                                {(m.member_name || m.name).slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
+                          <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
                           <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
                           {assignedMemberNames.has(m.name) && (
                             <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />

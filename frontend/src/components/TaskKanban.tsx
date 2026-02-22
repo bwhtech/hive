@@ -16,7 +16,8 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar03Icon, GitBranchIcon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
+import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from "@/types"
 import { TASK_PRIORITY_VARIANT } from "@/lib/variants"
 
@@ -213,15 +214,7 @@ function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOv
           {hasAssignees ? (
             <AvatarGroup>
               {assignees.slice(0, 3).map((a) => (
-                <Avatar key={a.member} size="sm">
-                  {a.user_image ? (
-                    <AvatarImage src={a.user_image} alt={a.member_name} />
-                  ) : (
-                    <AvatarFallback className="text-[10px]">
-                      {(a.member_name || a.member).slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
+                <MemberAvatar key={a.member} size="sm" name={a.member_name || a.member} image={a.user_image} />
               ))}
               {assignees.length > 3 && (
                 <AvatarGroupCount className="text-[10px]">
@@ -230,9 +223,7 @@ function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOv
               )}
             </AvatarGroup>
           ) : legacyInitials ? (
-            <Avatar size="sm">
-              <AvatarFallback className="text-[10px]">{legacyInitials}</AvatarFallback>
-            </Avatar>
+            <MemberAvatar size="sm" name={legacyInitials} />
           ) : null}
         </div>
       </CardHeader>

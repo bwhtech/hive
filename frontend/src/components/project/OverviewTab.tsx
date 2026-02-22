@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
@@ -189,20 +189,7 @@ export function OverviewTab({ projectId, project, stats, milestones }: OverviewT
                               isAssigned ? "bg-muted" : ""
                             }`}
                           >
-                            <Avatar size="sm">
-                              {m.user_image ? (
-                                <AvatarImage
-                                  src={m.user_image}
-                                  alt={m.member_name}
-                                />
-                              ) : (
-                                <AvatarFallback className="text-[10px]">
-                                  {(m.member_name || m.name)
-                                    .slice(0, 2)
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
+                            <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
                             <span className="flex-1 truncate text-left">
                               {m.member_name || m.name}
                             </span>
@@ -238,20 +225,7 @@ export function OverviewTab({ projectId, project, stats, milestones }: OverviewT
                       key={m.member}
                       className="flex items-center gap-2 text-sm"
                     >
-                      <Avatar size="sm">
-                        {memberData?.user_image ? (
-                          <AvatarImage
-                            src={memberData.user_image}
-                            alt={m.member_name}
-                          />
-                        ) : (
-                          <AvatarFallback>
-                            {(m.member_name || m.member)
-                              .slice(0, 2)
-                              .toUpperCase()}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
+                      <MemberAvatar size="sm" name={m.member_name || m.member} image={memberData?.user_image} />
                       <span className="flex-1 truncate">
                         {m.member_name || m.member}
                       </span>

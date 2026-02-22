@@ -39,7 +39,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
+import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveTaskAssignee } from "@/types"
 import { TASK_PRIORITY_VARIANT, TASK_STATUS_COLOR, PRIORITY_ORDER } from "@/lib/variants"
 
@@ -137,15 +138,7 @@ const columns: ColumnDef<TaskRow>[] = [
         return (
           <AvatarGroup>
             {assignees.slice(0, 3).map((a) => (
-              <Avatar key={a.member} size="sm">
-                {a.user_image ? (
-                  <AvatarImage src={a.user_image} alt={a.member_name} />
-                ) : (
-                  <AvatarFallback className="text-[10px]">
-                    {(a.member_name || a.member).slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                )}
-              </Avatar>
+              <MemberAvatar key={a.member} size="sm" name={a.member_name || a.member} image={a.user_image} />
             ))}
             {assignees.length > 3 && (
               <AvatarGroupCount className="text-[10px]">
@@ -157,11 +150,7 @@ const columns: ColumnDef<TaskRow>[] = [
       }
       if (task.assigned_to) {
         return (
-          <Avatar size="sm">
-            <AvatarFallback className="text-[10px]">
-              {task.assigned_to.split("@")[0].slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <MemberAvatar size="sm" name={task.assigned_to.split("@")[0]} />
         )
       }
       return <span className="text-muted-foreground">-</span>

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import {
   Select,
   SelectContent,
@@ -252,17 +253,7 @@ export function MembersSection() {
                     key={member.name}
                     className="flex items-center gap-3 px-4 py-3"
                   >
-                    {member.user_image ? (
-                      <img
-                        src={member.user_image}
-                        alt={member.member_name}
-                        className="size-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                        {(member.member_name || member.user)[0].toUpperCase()}
-                      </div>
-                    )}
+                    <MemberAvatar name={member.member_name || member.user} image={member.user_image} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
                         {member.member_name || member.user}

@@ -31,11 +31,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import { useUser } from "@/context/UserContext"
 import { useTheme } from "@/components/theme-provider"
 import { Kbd } from "@/components/ui/kbd"
-import { getInitials } from "@/lib/utils"
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: DashboardSquare02Icon, keys: ["G", "D"] },
@@ -130,12 +129,7 @@ export function AppSidebar({
               <DropdownMenuTrigger
                 render={<SidebarMenuButton size="lg" />}
               >
-                <Avatar size="sm">
-                  {user?.user_image && <AvatarImage src={user.user_image} />}
-                  <AvatarFallback>
-                    {user?.full_name ? getInitials(user.full_name) : "?"}
-                  </AvatarFallback>
-                </Avatar>
+                <MemberAvatar size="sm" name={user?.full_name} image={user?.user_image} />
                 <span className="truncate text-sm">{user?.full_name}</span>
                 <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} className="ml-auto size-4" />
               </DropdownMenuTrigger>

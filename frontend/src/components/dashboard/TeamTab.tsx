@@ -4,11 +4,10 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { UserGroup03Icon } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { MemberAvatar } from "@/components/MemberAvatar"
 import type { HiveMember, HiveProject, HiveTask } from "@/types"
-import { getInitials } from "@/lib/utils"
 
 export function TeamTab() {
   const { data: members, isLoading: membersLoading } = useFrappeGetDocList<HiveMember>(
@@ -119,12 +118,7 @@ export function TeamTab() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Avatar>
-                    {member.user_image && <AvatarImage src={member.user_image} />}
-                    <AvatarFallback>
-                      {member.member_name ? getInitials(member.member_name) : "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <MemberAvatar name={member.member_name} image={member.user_image} />
                   {isStale && (
                     <Tooltip>
                       <TooltipTrigger render={<span className="absolute -right-0.5 -top-0.5 flex size-3.5" />}>

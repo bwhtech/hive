@@ -1,17 +1,35 @@
 import { useState, useMemo, useEffect } from "react"
 import { useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk"
-import { Link } from "react-router"
+import { useNavigate } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   TaskDaily01Icon,
   Search01Icon,
-  Calendar03Icon,
-  ArrowRight01Icon,
   FilterIcon,
+  ArrowUp01Icon,
+  ArrowDown01Icon,
+  SortingIcon,
 } from "@hugeicons/core-free-icons"
 import { format } from "date-fns"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import {
+  type ColumnDef,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -39,11 +57,146 @@ const statusColor: Record<string, string> = {
   Blocked: "bg-red-500",
 }
 
+const priorityOrder: Record<string, number> = {
+  Urgent: 0,
+  High: 1,
+  Medium: 2,
+  Low: 3,
+}
+
+interface TaskRow {
+  task: HiveTask
+  projectTitle: string
+  assignees: HiveTaskAssignee[]
+}
+
+function SortHeader({ label, column }: { label: string; column: { getIsSorted: () => false | "asc" | "desc"; toggleSorting: (desc?: boolean) => void } }) {
+  const sorted = column.getIsSorted()
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="-ml-3 h-8"
+      onClick={() => column.toggleSorting(sorted === "asc")}
+    >
+      {label}
+      {sorted === "asc" ? (
+        <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} className="ml-1 size-3.5" />
+      ) : sorted === "desc" ? (
+        <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="ml-1 size-3.5" />
+      ) : (
+        <HugeiconsIcon icon={SortingIcon} strokeWidth={2} className="ml-1 size-3.5 opacity-50" />
+      )}
+    </Button>
+  )
+}
+
+const columns: ColumnDef<TaskRow>[] = [
+  {
+    id: "title",
+    accessorFn: (row) => row.task.title,
+    header: ({ column }) => <SortHeader label="Task" column={column} />,
+    cell: ({ row }) => {
+      const { task } = row.original
+      return (
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`size-2 shrink-0 rounded-full ${statusColor[task.status] ?? "bg-muted-foreground/40"}`} />
+          <span className="truncate font-medium">{task.title}</span>
+        </div>
+      )
+    },
+  },
+  {
+    id: "project",
+    accessorFn: (row) => row.projectTitle,
+    header: ({ column }) => <SortHeader label="Project" column={column} />,
+    cell: ({ row }) => (
+      <span className="text-muted-foreground truncate">{row.original.projectTitle}</span>
+    ),
+  },
+  {
+    id: "status",
+    accessorFn: (row) => row.task.status,
+    header: ({ column }) => <SortHeader label="Status" column={column} />,
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+        {row.original.task.status}
+      </Badge>
+    ),
+  },
+  {
+    id: "priority",
+    accessorFn: (row) => priorityOrder[row.task.priority] ?? 99,
+    header: ({ column }) => <SortHeader label="Priority" column={column} />,
+    cell: ({ row }) => (
+      <Badge variant={priorityVariant[row.original.task.priority] ?? "outline"} className="text-[10px] h-5 px-1.5">
+        {row.original.task.priority}
+      </Badge>
+    ),
+  },
+  {
+    id: "due_date",
+    accessorFn: (row) => row.task.due_date ?? "",
+    header: ({ column }) => <SortHeader label="Due Date" column={column} />,
+    cell: ({ row }) => {
+      const { task } = row.original
+      if (!task.due_date) return <span className="text-muted-foreground">-</span>
+      const isOverdue = new Date(task.due_date) < new Date() && task.status !== "Done"
+      return (
+        <span className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
+          {format(new Date(task.due_date), "MMM d, yyyy")}
+        </span>
+      )
+    },
+  },
+  {
+    id: "assignees",
+    header: "Assignees",
+    cell: ({ row }) => {
+      const { assignees, task } = row.original
+      if (assignees.length > 0) {
+        return (
+          <AvatarGroup>
+            {assignees.slice(0, 3).map((a) => (
+              <Avatar key={a.member} size="sm">
+                {a.user_image ? (
+                  <AvatarImage src={a.user_image} alt={a.member_name} />
+                ) : (
+                  <AvatarFallback className="text-[10px]">
+                    {(a.member_name || a.member).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            ))}
+            {assignees.length > 3 && (
+              <AvatarGroupCount className="text-[10px]">
+                +{assignees.length - 3}
+              </AvatarGroupCount>
+            )}
+          </AvatarGroup>
+        )
+      }
+      if (task.assigned_to) {
+        return (
+          <Avatar size="sm">
+            <AvatarFallback className="text-[10px]">
+              {task.assigned_to.split("@")[0].slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        )
+      }
+      return <span className="text-muted-foreground">-</span>
+    },
+  },
+]
+
 export function TasksPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [projectFilter, setProjectFilter] = useState("all")
+  const [sorting, setSorting] = useState<SortingState>([])
 
   const { data: tasks, isLoading: tasksLoading } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
@@ -86,22 +239,39 @@ export function TasksPage() {
     return map
   }, [projects])
 
-  const filteredTasks = useMemo(() => {
+  const tableData = useMemo<TaskRow[]>(() => {
     if (!tasks) return []
-    return tasks.filter((task) => {
-      if (search) {
-        const q = search.toLowerCase()
-        const matchTitle = task.title.toLowerCase().includes(q)
-        const matchProject = (projectMap[task.project] ?? task.project).toLowerCase().includes(q)
-        const matchAssignee = (task.assigned_to ?? "").toLowerCase().includes(q)
-        if (!matchTitle && !matchProject && !matchAssignee) return false
-      }
-      if (statusFilter !== "all" && task.status !== statusFilter) return false
-      if (priorityFilter !== "all" && task.priority !== priorityFilter) return false
-      if (projectFilter !== "all" && task.project !== projectFilter) return false
-      return true
-    })
-  }, [tasks, search, statusFilter, priorityFilter, projectFilter, projectMap])
+    return tasks
+      .filter((task) => {
+        if (search) {
+          const q = search.toLowerCase()
+          const matchTitle = task.title.toLowerCase().includes(q)
+          const matchProject = (projectMap[task.project] ?? task.project).toLowerCase().includes(q)
+          const matchAssignee = (task.assigned_to ?? "").toLowerCase().includes(q)
+          if (!matchTitle && !matchProject && !matchAssignee) return false
+        }
+        if (statusFilter !== "all" && task.status !== statusFilter) return false
+        if (priorityFilter !== "all" && task.priority !== priorityFilter) return false
+        if (projectFilter !== "all" && task.project !== projectFilter) return false
+        return true
+      })
+      .map((task) => ({
+        task,
+        projectTitle: projectMap[task.project] ?? task.project,
+        assignees: assigneesByTask[task.name] ?? [],
+      }))
+  }, [tasks, search, statusFilter, priorityFilter, projectFilter, projectMap, assigneesByTask])
+
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 20 } },
+  })
 
   const activeFilterCount = [statusFilter, priorityFilter, projectFilter].filter(f => f !== "all").length
 
@@ -173,21 +343,32 @@ export function TasksPage() {
         </div>
       </div>
 
-      {/* Task List */}
+      {/* Data Table */}
       {tasksLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="flex items-center gap-4 py-4">
-                <Skeleton className="size-2 rounded-full" />
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-16" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="overflow-hidden rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {["Task", "Project", "Status", "Priority", "Due Date", "Assignees"].map((h) => (
+                  <TableHead key={h}>{h}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="size-6 rounded-full" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      ) : filteredTasks.length === 0 ? (
+      ) : tableData.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
           <HugeiconsIcon icon={TaskDaily01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
           <p className="mt-3 text-sm font-medium">
@@ -202,84 +383,70 @@ export function TasksPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
-            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
-            {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all") && " matching filters"}
-          </p>
-          <div className="space-y-1.5">
-            {filteredTasks.map((task) => (
-              <TaskRow key={task.name} task={task} projectTitle={projectMap[task.project] ?? task.project} assignees={assigneesByTask[task.name]} />
-            ))}
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/projects/${row.original.task.project}`)}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {tableData.length} task{tableData.length !== 1 ? "s" : ""}
+              {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all") && " matching filters"}
+            </p>
+            {table.getPageCount() > 1 && (
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
-  )
-}
-
-function TaskRow({ task, projectTitle, assignees }: { task: HiveTask; projectTitle: string; assignees?: HiveTaskAssignee[] }) {
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
-  const hasAssignees = assignees && assignees.length > 0
-  const legacyInitials = !hasAssignees && task.assigned_to
-    ? task.assigned_to.split("@")[0].slice(0, 2).toUpperCase()
-    : null
-
-  return (
-    <Link to={`/projects/${task.project}`}>
-      <Card className="transition-colors hover:bg-muted/30">
-        <CardHeader className="flex-row items-center gap-3 py-3 px-4">
-          <span className={`size-2 shrink-0 rounded-full ${statusColor[task.status] ?? "bg-muted-foreground/40"}`} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate">{task.title}</p>
-            <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="truncate">{projectTitle}</span>
-              {task.due_date && (
-                <>
-                  <span className="text-border">|</span>
-                  <span className={`flex items-center gap-1 shrink-0 ${isOverdue ? "text-destructive font-medium" : ""}`}>
-                    <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="size-3" />
-                    {format(new Date(task.due_date), "MMM d")}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge variant={priorityVariant[task.priority] ?? "outline"} className="text-[10px] h-5 px-1.5">
-              {task.priority}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-              {task.status}
-            </Badge>
-            {hasAssignees ? (
-              <AvatarGroup>
-                {assignees.slice(0, 3).map((a) => (
-                  <Avatar key={a.member} size="sm">
-                    {a.user_image ? (
-                      <AvatarImage src={a.user_image} alt={a.member_name} />
-                    ) : (
-                      <AvatarFallback className="text-[10px]">
-                        {(a.member_name || a.member).slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                ))}
-                {assignees.length > 3 && (
-                  <AvatarGroupCount className="text-[10px]">
-                    +{assignees.length - 3}
-                  </AvatarGroupCount>
-                )}
-              </AvatarGroup>
-            ) : legacyInitials ? (
-              <Avatar size="sm">
-                <AvatarFallback className="text-[10px]">{legacyInitials}</AvatarFallback>
-              </Avatar>
-            ) : null}
-            <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4 text-muted-foreground" />
-          </div>
-        </CardHeader>
-      </Card>
-    </Link>
   )
 }

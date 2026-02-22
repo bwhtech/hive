@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useAutoSave } from "@/hooks/use-auto-save"
 import {
   useFrappeGetDocList,
   useFrappeGetDoc,
@@ -48,10 +49,6 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
   const [posting, setPosting] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [editorKey, setEditorKey] = useState(0)
-  const [autoSaveDraftId, setAutoSaveDraftId] = useState<string | null>(null)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isSavingRef = useRef(false)
   const { currentUser } = useFrappeAuth()
 
   // Published updates
@@ -111,6 +108,33 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
   )
   const { mutate: globalMutate } = useSWRConfig()
 
+  const handleAutoSave = useCallback(
+    async (text: string, existingDraftId: string | null) => {
+      if (existingDraftId) {
+        await updateDoc("Hive Project Update", existingDraftId, {
+          content: text.trim(),
+        })
+        mutateDrafts()
+      } else {
+        const doc = await createDoc("Hive Project Update", {
+          project: projectId,
+          content: text.trim(),
+          is_draft: 1,
+        })
+        mutateDrafts()
+        onDraftChange?.()
+        return doc.name as string
+      }
+    },
+    [projectId, createDoc, updateDoc, mutateDrafts, onDraftChange],
+  )
+
+  const {
+    status: autoSaveStatus,
+    draftId: autoSaveDraftId,
+    clear: clearAutoSave,
+  } = useAutoSave({ content, onSave: handleAutoSave })
+
   // Mark updates as seen when component mounts with updates
   const hasMarkedSeen = useRef(false)
   useEffect(() => {
@@ -136,57 +160,10 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
     }
   }, [updates, currentUser, projectId, markSeenCall, mutate, globalMutate])
 
-  // Auto-save: debounce 3s after typing stops
-  const doAutoSave = useCallback(
-    async (text: string) => {
-      if (!text.trim() || isSavingRef.current) return
-      isSavingRef.current = true
-      setAutoSaveStatus("saving")
-      try {
-        if (autoSaveDraftId) {
-          await updateDoc("Hive Project Update", autoSaveDraftId, {
-            content: text.trim(),
-          })
-          mutateDrafts()
-        } else {
-          const doc = await createDoc("Hive Project Update", {
-            project: projectId,
-            content: text.trim(),
-            is_draft: 1,
-          })
-          setAutoSaveDraftId(doc.name)
-          mutateDrafts()
-          onDraftChange?.()
-        }
-        setAutoSaveStatus("saved")
-      } catch {
-        setAutoSaveStatus("idle")
-      } finally {
-        isSavingRef.current = false
-      }
-    },
-    [autoSaveDraftId, projectId, createDoc, updateDoc, mutateDrafts, onDraftChange],
-  )
-
-  useEffect(() => {
-    if (!content.trim()) {
-      setAutoSaveStatus("idle")
-      return
-    }
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => doAutoSave(content), 3000)
-    return () => {
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-    }
-  }, [content, doAutoSave])
-
-  // Helper to clear compose area and reset auto-save state
   const clearCompose = () => {
     setContent("")
     setEditorKey((k) => k + 1)
-    setAutoSaveDraftId(null)
-    setAutoSaveStatus("idle")
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    clearAutoSave()
   }
 
   const handlePost = async () => {

@@ -307,11 +307,12 @@ export function TasksPage() {
             </Badge>
           )}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Status" />
+            <SelectTrigger className="w-fit">
+              <span className="text-muted-foreground">Status:</span>
+              <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               {TASK_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
@@ -319,22 +320,24 @@ export function TasksPage() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Priority" />
+            <SelectTrigger className="w-fit">
+              <span className="text-muted-foreground">Priority:</span>
+              <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All priorities</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               {TASK_PRIORITIES.map((p) => (
                 <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Project" />
+            <SelectTrigger className="w-fit">
+              <span className="text-muted-foreground">Project:</span>
+              <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All projects</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               {projects?.map((p) => (
                 <SelectItem key={p.name} value={p.name}>{p.title}</SelectItem>
               ))}

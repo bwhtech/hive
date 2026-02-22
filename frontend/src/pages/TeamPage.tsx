@@ -75,11 +75,26 @@ function MemberCard({
   isStale: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [groupBy, setGroupBy] = useState<"status" | "project">("status")
   const { call, result, loading } = useFrappePostCall<{
     message: MemberTasksResponse
   }>("bwh_hive.bwh_hive.api.get_member_tasks")
 
   const tasks = result?.message
+
+  // Group tasks by project
+  const tasksByProject = useMemo(() => {
+    if (!tasks) return []
+    const allTasks = [...tasks.wip, ...tasks.backlog, ...tasks.blocked]
+    const grouped: Record<string, { project: string; project_title: string; tasks: MemberTask[] }> = {}
+    for (const task of allTasks) {
+      if (!grouped[task.project]) {
+        grouped[task.project] = { project: task.project, project_title: task.project_title, tasks: [] }
+      }
+      grouped[task.project].tasks.push(task)
+    }
+    return Object.values(grouped).sort((a, b) => b.tasks.length - a.tasks.length)
+  }, [tasks])
 
   function handleToggle(open: boolean) {
     setExpanded(open)
@@ -188,9 +203,42 @@ function MemberCard({
                 </div>
               ) : tasks ? (
                 <>
-                  <TaskGroup label="WIP" tasks={tasks.wip} />
-                  <TaskGroup label="Backlog" tasks={tasks.backlog} />
-                  <TaskGroup label="Blocked" tasks={tasks.blocked} />
+                  {/* Group toggle */}
+                  <div className="flex gap-1 rounded-md bg-muted p-0.5 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setGroupBy("status")}
+                      className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                        groupBy === "status" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      By Status
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGroupBy("project")}
+                      className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                        groupBy === "project" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      By Project
+                    </button>
+                  </div>
+
+                  {groupBy === "status" ? (
+                    <>
+                      <TaskGroup label="WIP" tasks={tasks.wip} />
+                      <TaskGroup label="Backlog" tasks={tasks.backlog} />
+                      <TaskGroup label="Blocked" tasks={tasks.blocked} />
+                    </>
+                  ) : (
+                    <>
+                      {tasksByProject.map((group) => (
+                        <ProjectGroup key={group.project} group={group} />
+                      ))}
+                    </>
+                  )}
+
                   {tasks.wip.length === 0 && tasks.backlog.length === 0 && tasks.blocked.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-2">
                       No active tasks
@@ -229,6 +277,46 @@ function TaskGroup({ label, tasks }: { label: string; tasks: MemberTask[] }) {
               {task.project_title}
             </Badge>
           </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ProjectGroup({
+  group,
+}: {
+  group: { project: string; project_title: string; tasks: MemberTask[] }
+}) {
+  return (
+    <div>
+      <Link
+        to={`/projects/${group.project}`}
+        className="flex items-center gap-1.5 mb-1.5 group"
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
+          {group.project_title} ({group.tasks.length})
+        </p>
+        <HugeiconsIcon
+          icon={ArrowRight01Icon}
+          strokeWidth={2}
+          className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        />
+      </Link>
+      <div className="space-y-1">
+        {group.tasks.map((task) => (
+          <div
+            key={task.name}
+            className="flex items-center gap-2 rounded-md px-2 py-1.5"
+          >
+            <span
+              className={`size-1.5 shrink-0 rounded-full ${statusColor[task.status] ?? "bg-muted-foreground/40"}`}
+            />
+            <span className="text-sm truncate flex-1">{task.title}</span>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {task.status}
+            </span>
+          </div>
         ))}
       </div>
     </div>

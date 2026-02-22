@@ -299,6 +299,65 @@ def get_team_dashboard():
 
 
 @frappe.whitelist()
+def get_member_tasks(user: str):
+	"""Return tasks assigned to a specific member, grouped by category (wip, backlog, blocked)."""
+	# Get tasks via legacy assigned_to
+	legacy_tasks = frappe.get_all(
+		"Hive Task",
+		filters={"assigned_to": user, "status": ["not in", ["Done"]]},
+		fields=["name", "title", "project", "status", "priority", "due_date"],
+		limit=100,
+	)
+	task_names = {t.name for t in legacy_tasks}
+	task_map = {t.name: t for t in legacy_tasks}
+
+	# Get tasks via multi-assignee system
+	assignee_rows = frappe.get_all(
+		"Hive Task Assignee",
+		filters={"member": user, "parenttype": "Hive Task", "parentfield": "assignees"},
+		fields=["parent"],
+		limit=100,
+	)
+	extra_task_names = {r.parent for r in assignee_rows} - task_names
+	if extra_task_names:
+		extra_tasks = frappe.get_all(
+			"Hive Task",
+			filters={"name": ["in", list(extra_task_names)], "status": ["not in", ["Done"]]},
+			fields=["name", "title", "project", "status", "priority", "due_date"],
+		)
+		for t in extra_tasks:
+			task_map[t.name] = t
+
+	# Enrich with project titles
+	project_ids = list({t.project for t in task_map.values() if t.project})
+	proj_title_map = {}
+	if project_ids:
+		proj_title_map = {
+			p.name: p.title
+			for p in frappe.get_all(
+				"Hive Project",
+				filters={"name": ["in", project_ids]},
+				fields=["name", "title"],
+			)
+		}
+
+	# Group by category
+	wip = []
+	backlog = []
+	blocked = []
+	for task in task_map.values():
+		task["project_title"] = proj_title_map.get(task.project, task.project)
+		if task.status in ("In Progress", "To Do"):
+			wip.append(task)
+		elif task.status == "Backlog":
+			backlog.append(task)
+		elif task.status == "Blocked":
+			blocked.append(task)
+
+	return {"wip": wip, "backlog": backlog, "blocked": blocked}
+
+
+@frappe.whitelist()
 def get_project_dashboard(project: str):
 	"""Return aggregated stats for a project: task counts by status, milestone progress, team members."""
 	tasks = frappe.get_all(

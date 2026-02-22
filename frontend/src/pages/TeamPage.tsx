@@ -1,15 +1,23 @@
 import { useState, useMemo } from "react"
-import { useFrappeGetCall } from "frappe-react-sdk"
+import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   UserGroup03Icon,
   Search01Icon,
+  ArrowDown01Icon,
 } from "@hugeicons/core-free-icons"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible"
+import { Link } from "react-router"
 
 interface TeamMemberStats {
   user: string
@@ -21,6 +29,30 @@ interface TeamMemberStats {
   blocked_count: number
 }
 
+interface MemberTask {
+  name: string
+  title: string
+  project: string
+  project_title: string
+  status: string
+  priority: string
+  due_date: string | null
+}
+
+interface MemberTasksResponse {
+  wip: MemberTask[]
+  backlog: MemberTask[]
+  blocked: MemberTask[]
+}
+
+const statusColor: Record<string, string> = {
+  Backlog: "bg-muted-foreground/40",
+  "To Do": "bg-yellow-500",
+  "In Progress": "bg-blue-500",
+  Blocked: "bg-red-500",
+  Done: "bg-green-500",
+}
+
 function getInitials(name: string) {
   return name
     .split(" ")
@@ -28,6 +60,153 @@ function getInitials(name: string) {
     .join("")
     .toUpperCase()
     .slice(0, 2)
+}
+
+function MemberCard({
+  member,
+  isStale,
+}: {
+  member: TeamMemberStats
+  isStale: boolean
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const { call, result, loading } = useFrappePostCall<{
+    message: MemberTasksResponse
+  }>("bwh_hive.bwh_hive.api.get_member_tasks")
+
+  const tasks = result?.message
+
+  function handleToggle(open: boolean) {
+    setExpanded(open)
+    if (open && !result && !loading) {
+      call({ user: member.user })
+    }
+  }
+
+  return (
+    <Collapsible open={expanded} onOpenChange={handleToggle}>
+      <Card className={isStale ? "border-red-500/40" : ""}>
+        <CardContent className="pt-6">
+          <CollapsibleTrigger className="w-full text-left cursor-pointer">
+            {/* Member identity */}
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Avatar className="size-12">
+                  {member.user_image && <AvatarImage src={member.user_image} />}
+                  <AvatarFallback className="text-sm">
+                    {member.member_name ? getInitials(member.member_name) : "?"}
+                  </AvatarFallback>
+                </Avatar>
+                {isStale && (
+                  <Tooltip>
+                    <TooltipTrigger render={<span className="absolute -right-0.5 -top-0.5 flex size-3.5" />}>
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex size-3.5 rounded-full bg-red-500" />
+                    </TooltipTrigger>
+                    <TooltipContent>No updates in 7+ days</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate">{member.member_name}</p>
+                {member.designation && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {member.designation}
+                  </p>
+                )}
+              </div>
+              <HugeiconsIcon
+                icon={ArrowDown01Icon}
+                strokeWidth={2}
+                className={`size-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+              />
+            </div>
+
+            {/* Task counts */}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-center">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {member.wip_count}
+                </p>
+                <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
+                  WIP
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 p-3 text-center">
+                <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                  {member.backlog_count}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400/70 font-medium">
+                  Backlog
+                </p>
+              </div>
+            </div>
+
+            {/* Blocked indicator */}
+            {member.blocked_count > 0 && (
+              <div className="mt-2 rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-1.5 text-center">
+                <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                  {member.blocked_count} blocked
+                </span>
+              </div>
+            )}
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <div className="mt-4 border-t pt-4 space-y-3">
+              {loading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : tasks ? (
+                <>
+                  <TaskGroup label="WIP" tasks={tasks.wip} />
+                  <TaskGroup label="Backlog" tasks={tasks.backlog} />
+                  <TaskGroup label="Blocked" tasks={tasks.blocked} />
+                  {tasks.wip.length === 0 && tasks.backlog.length === 0 && tasks.blocked.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      No active tasks
+                    </p>
+                  )}
+                </>
+              ) : null}
+            </div>
+          </CollapsibleContent>
+        </CardContent>
+      </Card>
+    </Collapsible>
+  )
+}
+
+function TaskGroup({ label, tasks }: { label: string; tasks: MemberTask[] }) {
+  if (tasks.length === 0) return null
+
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        {label} ({tasks.length})
+      </p>
+      <div className="space-y-1">
+        {tasks.map((task) => (
+          <Link
+            key={task.name}
+            to={`/projects/${task.project}`}
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+          >
+            <span
+              className={`size-1.5 shrink-0 rounded-full ${statusColor[task.status] ?? "bg-muted-foreground/40"}`}
+            />
+            <span className="text-sm truncate flex-1">{task.title}</span>
+            <Badge variant="secondary" className="text-[10px] shrink-0">
+              {task.project_title}
+            </Badge>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function TeamPage() {
@@ -112,73 +291,13 @@ export function TeamPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredMembers.map((member) => {
-            const isStale = staleUsers.has(member.user)
-
-            return (
-              <Card key={member.user} className={isStale ? "border-red-500/40" : ""}>
-                <CardContent className="pt-6">
-                  {/* Member identity */}
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar className="size-12">
-                        {member.user_image && <AvatarImage src={member.user_image} />}
-                        <AvatarFallback className="text-sm">
-                          {member.member_name ? getInitials(member.member_name) : "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      {isStale && (
-                        <Tooltip>
-                          <TooltipTrigger render={<span className="absolute -right-0.5 -top-0.5 flex size-3.5" />}>
-                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex size-3.5 rounded-full bg-red-500" />
-                          </TooltipTrigger>
-                          <TooltipContent>No updates in 7+ days</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate">{member.member_name}</p>
-                      {member.designation && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          {member.designation}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Task counts */}
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-center">
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                        {member.wip_count}
-                      </p>
-                      <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">
-                        WIP
-                      </p>
-                    </div>
-                    <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 p-3 text-center">
-                      <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                        {member.backlog_count}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400/70 font-medium">
-                        Backlog
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Blocked indicator */}
-                  {member.blocked_count > 0 && (
-                    <div className="mt-2 rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-1.5 text-center">
-                      <span className="text-xs font-medium text-red-600 dark:text-red-400">
-                        {member.blocked_count} blocked
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
+          {filteredMembers.map((member) => (
+            <MemberCard
+              key={member.user}
+              member={member}
+              isStale={staleUsers.has(member.user)}
+            />
+          ))}
         </div>
       )}
     </div>

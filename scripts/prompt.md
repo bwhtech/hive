@@ -64,5 +64,6 @@ If the task is not complete, leave a comment on the GitHub issue with what was d
 # FINAL RULES
 
 * Send me a Telegram Message using `bwh_bot --help`, attach relevant screenshots related to the fix/feature.
+* Push the changes
 
 ONLY WORK ON A SINGLE TASK.

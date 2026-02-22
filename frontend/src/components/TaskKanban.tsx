@@ -16,7 +16,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Calendar03Icon, GitBranchIcon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from "@/types"
 
 const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -229,6 +229,11 @@ function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOv
                   )}
                 </Avatar>
               ))}
+              {assignees.length > 3 && (
+                <AvatarGroupCount className="text-[10px]">
+                  +{assignees.length - 3}
+                </AvatarGroupCount>
+              )}
             </AvatarGroup>
           ) : legacyInitials ? (
             <Avatar size="sm">

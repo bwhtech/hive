@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveTaskAssignee } from "@/types"
 
 const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -265,6 +265,11 @@ function TaskRow({ task, projectTitle, assignees }: { task: HiveTask; projectTit
                     )}
                   </Avatar>
                 ))}
+                {assignees.length > 3 && (
+                  <AvatarGroupCount className="text-[10px]">
+                    +{assignees.length - 3}
+                  </AvatarGroupCount>
+                )}
               </AvatarGroup>
             ) : legacyInitials ? (
               <Avatar size="sm">

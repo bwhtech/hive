@@ -9,7 +9,7 @@ def get_my_dashboard():
 	"""Return aggregated personal dashboard data: my tasks, my projects, unread updates."""
 	user = frappe.session.user
 
-	# My tasks grouped by project
+	# My tasks grouped by project (legacy assigned_to)
 	my_tasks = frappe.get_all(
 		"Hive Task",
 		filters={"assigned_to": user, "status": ["not in", ["Done"]]},
@@ -17,6 +17,24 @@ def get_my_dashboard():
 		order_by="priority desc, modified desc",
 		limit=50,
 	)
+
+	# Also include tasks from multi-assignee system
+	assignee_rows = frappe.get_all(
+		"Hive Task Assignee",
+		filters={"member": user, "parenttype": "Hive Task", "parentfield": "assignees"},
+		fields=["parent"],
+		limit=100,
+	)
+	legacy_task_names = {t.name for t in my_tasks}
+	extra_task_names = {r.parent for r in assignee_rows} - legacy_task_names
+	if extra_task_names:
+		extra_tasks = frappe.get_all(
+			"Hive Task",
+			filters={"name": ["in", list(extra_task_names)], "status": ["not in", ["Done"]]},
+			fields=["name", "title", "project", "status", "priority", "due_date", "is_client_task"],
+			order_by="priority desc, modified desc",
+		)
+		my_tasks.extend(extra_tasks)
 
 	# Get project titles for the tasks
 	project_ids = list({t.project for t in my_tasks if t.project})

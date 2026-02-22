@@ -1,7 +1,7 @@
 import { useFrappeGetCall } from "frappe-react-sdk"
 import { Link } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Notification03Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { Notification01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -48,7 +48,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
               <Button variant="ghost" size="icon" className="relative" render={<Link to="/" />} />
             }
           >
-            <HugeiconsIcon icon={Notification03Icon} strokeWidth={2} className="size-5" />
+            <HugeiconsIcon icon={Notification01Icon} strokeWidth={2} className="size-5" />
             {unreadCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
                 {unreadCount > 9 ? "9+" : unreadCount}

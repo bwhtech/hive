@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Item,
   ItemMedia,
@@ -167,12 +168,7 @@ export function MembersSection() {
               onClick={handleInvite}
               disabled={inviting || !email.trim()}
             >
-              <HugeiconsIcon
-                icon={SentIcon}
-                strokeWidth={2}
-                className="size-4 mr-1.5"
-              />
-              {inviting ? "Sending..." : "Invite"}
+              {inviting ? <><Spinner className="mr-1.5" /> Sending...</> : <><HugeiconsIcon icon={SentIcon} strokeWidth={2} className="size-4 mr-1.5" />Invite</>}
             </Button>
           </div>
         </div>

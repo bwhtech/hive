@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router"
 import { useFrappeAuth } from "frappe-react-sdk"
 import { UserProvider } from "@/context/UserContext"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Spinner } from "@/components/ui/spinner"
 
 const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
@@ -23,7 +24,7 @@ const ProjectDetailPage = lazy(() =>
 function PageSpinner() {
   return (
     <div className="flex h-full items-center justify-center">
-      <p className="text-sm text-muted-foreground">Loading...</p>
+      <Spinner className="size-6 text-muted-foreground" />
     </div>
   )
 }
@@ -34,7 +35,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <Spinner className="size-6 text-muted-foreground" />
       </div>
     )
   }

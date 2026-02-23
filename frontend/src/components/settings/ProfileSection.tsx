@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
 export function ProfileSection() {
@@ -208,7 +209,7 @@ export function ProfileSection() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                 >
-                  {uploading ? "Uploading..." : "Change Photo"}
+                  {uploading ? <><Spinner className="mr-1.5" /> Uploading...</> : "Change Photo"}
                 </Button>
                 {form.user_image && (
                   <Button
@@ -295,7 +296,7 @@ export function ProfileSection() {
           Unsaved changes
         </p>
         <Button onClick={handleSave} disabled={saving || !isDirty}>
-          {saving ? "Saving..." : "Save"}
+          {saving ? <><Spinner className="mr-1.5" /> Saving...</> : "Save"}
         </Button>
       </div>
     </>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc } from "frappe-react-sdk"
+import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -425,7 +426,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
 
   const saveButton = (
     <Button onClick={handleSave} disabled={saving || !title.trim()} className="w-full">
-      {saving ? "Saving..." : "Save Changes"}
+      {saving ? <><Spinner className="mr-1.5" /> Saving...</> : "Save Changes"}
     </Button>
   )
 

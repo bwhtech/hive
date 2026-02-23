@@ -5,6 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
     "postinstall": "cd frontend && yarn install",
     "dev": "cd frontend && yarn dev",
     "build": "cd frontend && yarn build"
@@ -20,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/BuildWithHussain/hive/issues"
   },
-  "homepage": "https://github.com/BuildWithHussain/hive#readme"
+  "homepage": "https://github.com/BuildWithHussain/hive#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
 }

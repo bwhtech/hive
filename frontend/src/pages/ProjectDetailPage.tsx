@@ -73,11 +73,16 @@ export function ProjectDetailPage() {
 
   // Sync active tab from URL (e.g. ?tab=updates from dashboard click)
   const tabParam = searchParams.get("tab")
-  const [activeTab, setActiveTab] = useState(
-    tabParam && ["overview", "tasks", "milestones", "updates", "requests"].includes(tabParam)
-      ? tabParam
-      : "overview",
-  )
+  const taskParam = searchParams.get("task")
+  const [activeTab, setActiveTab] = useState(() => {
+    if (taskParam) return "tasks"
+    if (tabParam && ["overview", "tasks", "milestones", "updates", "requests"].includes(tabParam))
+      return tabParam
+    return "overview"
+  })
+
+  // Track task name from URL that needs to be opened once tasks load
+  const [pendingTaskName, setPendingTaskName] = useState<string | null>(taskParam)
 
   // Auto-open create task dialog from ?create_task=1 (e.g. from CMD K)
   useEffect(() => {
@@ -159,6 +164,18 @@ export function ProjectDetailPage() {
     }
   }, [id, callAssignees])
 
+  // Open task from URL param once tasks are loaded
+  useEffect(() => {
+    if (pendingTaskName && tasks) {
+      const task = tasks.find((t) => t.name === pendingTaskName)
+      if (task) {
+        setSelectedTask(task)
+        setSheetOpen(true)
+      }
+      setPendingTaskName(null)
+    }
+  }, [pendingTaskName, tasks])
+
   const handleStatusChange = async (taskName: string, newStatus: string) => {
     try {
       await updateDoc("Hive Task", taskName, { status: newStatus })
@@ -196,6 +213,22 @@ export function ProjectDetailPage() {
   const handleTaskClick = (task: HiveTask) => {
     setSelectedTask(task)
     setSheetOpen(true)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set("task", task.name)
+      return next
+    }, { replace: true })
+  }
+
+  const handleSheetOpenChange = (open: boolean) => {
+    setSheetOpen(open)
+    if (!open) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("task")
+        return next
+      }, { replace: true })
+    }
   }
 
   const handleTaskUpdated = () => {
@@ -457,7 +490,7 @@ export function ProjectDetailPage() {
       <TaskDetailSheet
         task={selectedTask}
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        onOpenChange={handleSheetOpenChange}
         onUpdated={handleTaskUpdated}
       />
 

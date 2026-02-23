@@ -375,7 +375,7 @@ export function TasksPage() {
                   <TableRow
                     key={row.id}
                     className="cursor-pointer"
-                    onClick={() => navigate(`/projects/${row.original.task.project}`)}
+                    onClick={() => navigate(`/projects/${row.original.task.project}?tab=tasks&task=${row.original.task.name}`)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>

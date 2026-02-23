@@ -150,22 +150,27 @@ export function MyWorkTab() {
                     </Link>
                     <ul className="space-y-1.5">
                       {group.tasks.map((task) => (
-                        <li key={task.name} className="flex items-center gap-2 text-sm">
-                          <span
-                            className={`size-2 shrink-0 rounded-full ${
-                              task.status === "In Progress"
-                                ? "bg-blue-500"
-                                : task.status === "Blocked"
-                                  ? "bg-red-500"
-                                  : task.status === "To Do"
-                                    ? "bg-yellow-500"
-                                    : "bg-muted-foreground/40"
-                            }`}
-                          />
-                          <span className="truncate flex-1">{task.title}</span>
-                          <span className={`text-xs shrink-0 ${TASK_PRIORITY_COLOR[task.priority] ?? ""}`}>
-                            {task.priority}
-                          </span>
+                        <li key={task.name}>
+                          <Link
+                            to={`/projects/${task.project}?tab=tasks&task=${task.name}`}
+                            className="flex items-center gap-2 text-sm hover:bg-muted/50 rounded-md px-1 py-0.5 -mx-1 transition-colors"
+                          >
+                            <span
+                              className={`size-2 shrink-0 rounded-full ${
+                                task.status === "In Progress"
+                                  ? "bg-blue-500"
+                                  : task.status === "Blocked"
+                                    ? "bg-red-500"
+                                    : task.status === "To Do"
+                                      ? "bg-yellow-500"
+                                      : "bg-muted-foreground/40"
+                              }`}
+                            />
+                            <span className="truncate flex-1">{task.title}</span>
+                            <span className={`text-xs shrink-0 ${TASK_PRIORITY_COLOR[task.priority] ?? ""}`}>
+                              {task.priority}
+                            </span>
+                          </Link>
                         </li>
                       ))}
                     </ul>

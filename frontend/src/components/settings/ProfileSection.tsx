@@ -30,6 +30,17 @@ export function ProfileSection() {
   }>("User", currentUser ?? "", currentUser ? undefined : null, {
     revalidateOnFocus: false,
   })
+  const {
+    data: memberData,
+    isLoading: memberLoading,
+    mutate: mutateMember,
+  } = useFrappeGetDoc<{
+    name: string
+    designation: string
+  }>("Hive Member", currentUser ?? "", currentUser ? undefined : null, {
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
+  })
   const { call: setValue, loading: saving } = useFrappePostCall(
     "frappe.client.set_value",
   )
@@ -40,12 +51,14 @@ export function ProfileSection() {
     last_name: "",
     full_name: "",
     user_image: "",
+    designation: "",
   })
   const initialForm = useRef({
     first_name: "",
     last_name: "",
     full_name: "",
     user_image: "",
+    designation: "",
   })
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -57,15 +70,24 @@ export function ProfileSection() {
         last_name: profileData.last_name || "",
         full_name: profileData.full_name || "",
         user_image: profileData.user_image || "",
+        designation: form.designation,
       }
       setForm(values)
       initialForm.current = values
     }
   }, [profileData])
 
+  useEffect(() => {
+    if (memberData) {
+      setForm((prev) => ({ ...prev, designation: memberData.designation || "" }))
+      initialForm.current = { ...initialForm.current, designation: memberData.designation || "" }
+    }
+  }, [memberData])
+
   const isDirty =
     form.first_name !== initialForm.current.first_name ||
-    form.last_name !== initialForm.current.last_name
+    form.last_name !== initialForm.current.last_name ||
+    form.designation !== initialForm.current.designation
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -73,15 +95,30 @@ export function ProfileSection() {
 
   const handleSave = async () => {
     try {
-      await setValue({
-        doctype: "User",
-        name: currentUser,
-        fieldname: {
-          first_name: form.first_name,
-          last_name: form.last_name,
-        },
-      })
-      await mutateProfile()
+      const nameChanged =
+        form.first_name !== initialForm.current.first_name ||
+        form.last_name !== initialForm.current.last_name
+      const designationChanged =
+        form.designation !== initialForm.current.designation
+
+      if (nameChanged) {
+        await setValue({
+          doctype: "User",
+          name: currentUser,
+          fieldname: {
+            first_name: form.first_name,
+            last_name: form.last_name,
+          },
+        })
+      }
+      if (designationChanged) {
+        await setValue({
+          doctype: "Hive Member",
+          name: currentUser,
+          fieldname: { designation: form.designation },
+        })
+      }
+      await Promise.all([mutateProfile(), mutateMember()])
       toast.success("Profile updated")
     } catch (e: unknown) {
       const message =
@@ -137,7 +174,7 @@ export function ProfileSection() {
     }
   }
 
-  if (isLoading && !profileData) {
+  if ((isLoading && !profileData) || (memberLoading && !memberData)) {
     return (
       <div className="p-4 md:p-6 space-y-6">
         <div className="space-y-4">
@@ -280,6 +317,29 @@ export function ProfileSection() {
                   Auto-generated from first and last name.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Designation */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">Designation</h3>
+              <p className="text-xs text-muted-foreground">
+                Your role or title visible to other team members.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="designation" className="text-xs">
+                Designation
+              </Label>
+              <Input
+                id="designation"
+                placeholder="e.g. Project Manager, Designer, Developer"
+                value={form.designation}
+                onChange={(e) =>
+                  handleChange("designation", e.target.value)
+                }
+              />
             </div>
           </div>
         </div>

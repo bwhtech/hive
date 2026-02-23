@@ -154,7 +154,9 @@ export function MembersSection() {
             />
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue />
+                <span data-slot="select-value" className="flex flex-1 text-left">
+                  {role === "Hive Client" ? "Client" : "Team"}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Hive Team">Team</SelectItem>

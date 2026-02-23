@@ -58,3 +58,6 @@ jspm_packages/
 e2e/.auth/
 playwright-report/
 test-results/
+bwh_hive/public/frontend/
+bwh_hive/public/node_modules
+bwh_hive/www/hive.html

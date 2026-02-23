@@ -23,11 +23,12 @@ def setup_e2e_data():
 				"first_name": "Client",
 				"last_name": "User",
 				"enabled": 1,
-				"new_password": "admin",
 				"roles": [{"role": "Hive Client"}],
 			}
 		)
+		user.flags.no_welcome_mail = True
 		user.insert(ignore_permissions=True)
+		frappe.utils.password.update_password(client_email, "admin")
 
 	# 3. Create client org
 	client_name = "Acme Corp"

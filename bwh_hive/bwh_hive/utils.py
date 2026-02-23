@@ -14,9 +14,7 @@ def on_user_invitation_update(doc: "frappe.types.Document", method: str) -> None
 		return
 
 	member_type = "Team"
-	if doc.invited_to_role and "Hive Client" in (doc.invited_to_role or ""):
-		member_type = "Client"
-	elif hasattr(doc, "role") and doc.role == "Hive Client":
+	if any(r.role == "Hive Client" for r in (doc.roles or [])):
 		member_type = "Client"
 
 	member = frappe.new_doc("Hive Member")

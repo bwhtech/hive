@@ -20,6 +20,7 @@ import {
   Link04Icon,
   PencilEdit01Icon,
   ArrowUpRight01Icon,
+  FilterIcon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -85,6 +86,7 @@ export function ProjectDetailPage() {
   const [createFeatureRequestOpen, setCreateFeatureRequestOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [milestoneFilter, setMilestoneFilter] = useState<string>("all")
 
   // "T" keyboard shortcut to open create task dialog
   const openCreateDialog = useCallback(() => setCreateOpen(true), [])
@@ -383,23 +385,30 @@ export function ProjectDetailPage() {
     )
   }
 
-  // Group tasks by status
+  // Filter tasks by milestone (for kanban view)
+  const filteredTasks = tasks?.filter((task) => {
+    if (milestoneFilter === "all") return true
+    if (milestoneFilter === "none") return !task.milestone
+    return task.milestone === milestoneFilter
+  })
+
+  // Group filtered tasks by status
   const tasksByStatus: Record<string, HiveTask[]> = {}
   for (const status of TASK_STATUSES) {
     tasksByStatus[status] = []
   }
-  if (tasks) {
-    for (const task of tasks) {
+  if (filteredTasks) {
+    for (const task of filteredTasks) {
       if (tasksByStatus[task.status]) {
         tasksByStatus[task.status].push(task)
       }
     }
   }
 
-  // Compute stats
+  // Compute stats (always from all tasks, not filtered)
   const totalTasks = tasks?.length ?? 0
-  const doneTasks = tasksByStatus["Done"]?.length ?? 0
-  const inProgressTasks = tasksByStatus["In Progress"]?.length ?? 0
+  const doneTasks = tasks?.filter((t) => t.status === "Done").length ?? 0
+  const inProgressTasks = tasks?.filter((t) => t.status === "In Progress").length ?? 0
   const blockedTasks = tasks?.filter((t) => t.status === "Blocked").length ?? 0
 
   // Assignees data
@@ -562,7 +571,38 @@ export function ProjectDetailPage() {
 
         {/* Tasks Tab */}
         <TabsContent value="tasks">
-          <div className="pt-2">
+          <div className="pt-2 space-y-3">
+            {/* Milestone filter */}
+            {milestones && milestones.length > 0 && (
+              <div className="flex items-center gap-2">
+                <HugeiconsIcon icon={FilterIcon} strokeWidth={2} className="size-3.5 text-muted-foreground" />
+                <Select value={milestoneFilter} onValueChange={setMilestoneFilter}>
+                  <SelectTrigger className="h-7 w-auto text-xs px-2.5 gap-1.5">
+                    <span>
+                      {milestoneFilter === "all"
+                        ? "All tasks"
+                        : milestoneFilter === "none"
+                          ? "No milestone"
+                          : milestones.find((m) => m.name === milestoneFilter)?.title ?? milestoneFilter}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All tasks</SelectItem>
+                    <SelectItem value="none">No milestone</SelectItem>
+                    {milestones.map((m) => (
+                      <SelectItem key={m.name} value={m.name}>
+                        {m.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {milestoneFilter !== "all" && (
+                  <span className="text-xs text-muted-foreground">
+                    {filteredTasks?.length ?? 0} of {tasks?.length ?? 0} tasks
+                  </span>
+                )}
+              </div>
+            )}
             {tasksLoading ? (
               <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
                 {Array.from({ length: 4 }).map((_, i) => (

@@ -6,6 +6,7 @@ import { UserGroup03Icon } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import type { HiveMember, HiveProject, HiveTask } from "@/types"
@@ -85,13 +86,15 @@ export function TeamTab() {
 
   if (!members?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
-        <HugeiconsIcon icon={UserGroup03Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
-        <p className="mt-3 text-sm font-medium">No team members yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Add team members from Settings.
-        </p>
-      </div>
+      <Empty className="border rounded-2xl p-12">
+        <EmptyHeader>
+          <EmptyMedia>
+            <HugeiconsIcon icon={UserGroup03Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
+          </EmptyMedia>
+          <EmptyTitle>No team members yet</EmptyTitle>
+          <EmptyDescription>Add team members from Settings.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 

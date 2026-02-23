@@ -16,6 +16,13 @@ import {
 } from "@/components/ui/select"
 import { PROJECT_STATUSES, type HiveProject } from "@/types"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 
 export function ProjectsPage() {
   const [search, setSearch] = useState("")
@@ -92,17 +99,21 @@ export function ProjectsPage() {
           ))}
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
-          <HugeiconsIcon icon={Folder01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
-          <p className="mt-3 text-sm font-medium">
-            {search || statusFilter !== "all" ? "No projects match your filters" : "No projects yet"}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {search || statusFilter !== "all"
-              ? "Try adjusting your search or filters."
-              : "Projects will appear here once created."}
-          </p>
-        </div>
+        <Empty className="border rounded-2xl p-12">
+          <EmptyHeader>
+            <EmptyMedia>
+              <HugeiconsIcon icon={Folder01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>
+              {search || statusFilter !== "all" ? "No projects match your filters" : "No projects yet"}
+            </EmptyTitle>
+            <EmptyDescription>
+              {search || statusFilter !== "all"
+                ? "Try adjusting your search or filters."
+                : "Projects will appear here once created."}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <>
           <p className="text-xs text-muted-foreground">

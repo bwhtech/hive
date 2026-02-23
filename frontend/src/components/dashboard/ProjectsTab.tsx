@@ -5,6 +5,7 @@ import { Folder01Icon, TaskDaily01Icon } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import type { HiveProject, HiveTask } from "@/types"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
 
@@ -46,13 +47,15 @@ export function ProjectsTab() {
 
   if (!projects?.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
-        <HugeiconsIcon icon={Folder01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
-        <p className="mt-3 text-sm font-medium">No projects yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Projects will appear here once created.
-        </p>
-      </div>
+      <Empty className="border rounded-2xl p-12">
+        <EmptyHeader>
+          <EmptyMedia>
+            <HugeiconsIcon icon={Folder01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
+          </EmptyMedia>
+          <EmptyTitle>No projects yet</EmptyTitle>
+          <EmptyDescription>Projects will appear here once created.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 

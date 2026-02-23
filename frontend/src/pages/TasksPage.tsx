@@ -43,6 +43,13 @@ import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveMilestone, type HiveTaskAssignee } from "@/types"
 import { TASK_PRIORITY_VARIANT, TASK_SIZE_VARIANT, TASK_STATUS_COLOR, PRIORITY_ORDER } from "@/lib/variants"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 
 interface TaskRow {
   task: HiveTask
@@ -386,19 +393,23 @@ export function TasksPage() {
           </Table>
         </div>
       ) : tableData.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
-          <HugeiconsIcon icon={TaskDaily01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
-          <p className="mt-3 text-sm font-medium">
-            {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all"
-              ? "No tasks match your filters"
-              : "No tasks yet"}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all"
-              ? "Try adjusting your search or filters."
-              : "Tasks will appear here once created in a project."}
-          </p>
-        </div>
+        <Empty className="border rounded-2xl p-12">
+          <EmptyHeader>
+            <EmptyMedia>
+              <HugeiconsIcon icon={TaskDaily01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>
+              {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all"
+                ? "No tasks match your filters"
+                : "No tasks yet"}
+            </EmptyTitle>
+            <EmptyDescription>
+              {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all"
+                ? "Try adjusting your search or filters."
+                : "Tasks will appear here once created in a project."}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-md border">

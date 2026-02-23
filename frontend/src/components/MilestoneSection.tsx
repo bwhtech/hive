@@ -4,6 +4,7 @@ import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Add01Icon, Calendar03Icon, Target02Icon } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -117,11 +118,15 @@ export function MilestoneSection({ projectId, tasks }: MilestoneSectionProps) {
       </div>
 
       {!milestones?.length ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
-          <HugeiconsIcon icon={Target02Icon} strokeWidth={1.5} className="size-10 text-muted-foreground/50 mb-3" />
-          <p className="text-sm text-muted-foreground">No milestones yet</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">Create a milestone to track project progress</p>
-        </div>
+        <Empty className="border rounded-xl py-12">
+          <EmptyHeader>
+            <EmptyMedia>
+              <HugeiconsIcon icon={Target02Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>No milestones yet</EmptyTitle>
+            <EmptyDescription>Create a milestone to track project progress</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="grid gap-3">
           {milestones.map((ms) => (

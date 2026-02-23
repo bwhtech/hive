@@ -6,7 +6,7 @@ import {
 import { useState } from "react"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Cancel01Icon, SentIcon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, SentIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +22,13 @@ import {
   ItemGroup,
 } from "@/components/ui/item"
 import { MemberAvatar } from "@/components/MemberAvatar"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 import {
   Select,
   SelectContent,
@@ -277,9 +284,17 @@ export function MembersSection() {
                 ))}
               </ItemGroup>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No members found.
-              </p>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia>
+                    <HugeiconsIcon icon={UserGroupIcon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+                  </EmptyMedia>
+                  <EmptyTitle>No members found</EmptyTitle>
+                  <EmptyDescription>
+                    {typeFilter !== "all" ? "Try a different filter." : "Invite members to get started."}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
           </div>
         </>

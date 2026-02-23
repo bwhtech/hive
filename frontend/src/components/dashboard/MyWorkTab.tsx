@@ -6,6 +6,7 @@ import {
   AlertCircleIcon,
   ArrowRight01Icon,
   Folder01Icon,
+  Notification03Icon,
 } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +19,13 @@ import {
   ItemActions,
 } from "@/components/ui/item"
 import { PROJECT_STATUS_VARIANT, TASK_PRIORITY_COLOR } from "@/lib/variants"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 
 interface MyDashboardData {
   tasks_by_project: {
@@ -132,7 +140,15 @@ export function MyWorkTab() {
           </CardHeader>
           <CardContent>
             {dashboard.tasks_by_project.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No open tasks assigned to you.</p>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia>
+                    <HugeiconsIcon icon={TaskDaily01Icon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+                  </EmptyMedia>
+                  <EmptyTitle>No open tasks</EmptyTitle>
+                  <EmptyDescription>Tasks assigned to you will appear here.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <div className="space-y-5">
                 {dashboard.tasks_by_project.map((group) => (
@@ -196,7 +212,15 @@ export function MyWorkTab() {
           </CardHeader>
           <CardContent>
             {dashboard.recent_updates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No recent updates.</p>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia>
+                    <HugeiconsIcon icon={Notification03Icon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+                  </EmptyMedia>
+                  <EmptyTitle>No recent updates</EmptyTitle>
+                  <EmptyDescription>Updates from your projects will show up here.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <ul className="space-y-3">
                 {dashboard.recent_updates.map((upd) => (

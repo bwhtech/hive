@@ -11,6 +11,7 @@ import {
   ArrowLeft01Icon,
   Building06Icon,
   Cancel01Icon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,13 @@ import {
   ItemGroup,
 } from "@/components/ui/item"
 import { MemberAvatar } from "@/components/MemberAvatar"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 import {
   Select,
   SelectContent,
@@ -163,9 +171,15 @@ export function ClientsSection() {
             ))}
           </ItemGroup>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No clients yet. Add one above.
-          </p>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia>
+                <HugeiconsIcon icon={Building06Icon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+              </EmptyMedia>
+              <EmptyTitle>No clients yet</EmptyTitle>
+              <EmptyDescription>Add a client organization above to get started.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </div>
@@ -332,9 +346,15 @@ function ClientMembersView({
             ))}
           </ItemGroup>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No members assigned to this client yet.
-          </p>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia>
+                <HugeiconsIcon icon={UserGroupIcon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+              </EmptyMedia>
+              <EmptyTitle>No members assigned</EmptyTitle>
+              <EmptyDescription>Use the dropdown above to assign members to this client.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </div>

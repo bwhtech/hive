@@ -28,6 +28,13 @@ import {
 import { toast } from "sonner"
 import type { HiveProject, HiveMilestone, HiveMember, HiveTask } from "@/types"
 import { TASK_SIZE_WEIGHT } from "@/types"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 
 interface OverviewTabProps {
   projectId: string
@@ -200,7 +207,15 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks }: Ov
                   })}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No active milestones</p>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia>
+                    <HugeiconsIcon icon={Target02Icon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+                  </EmptyMedia>
+                  <EmptyTitle>No active milestones</EmptyTitle>
+                  <EmptyDescription>Create milestones to track project progress.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
           </CardContent>
         </Card>
@@ -308,9 +323,15 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks }: Ov
                 })}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No team members assigned
-              </p>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia>
+                    <HugeiconsIcon icon={UserGroupIcon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+                  </EmptyMedia>
+                  <EmptyTitle>No team members</EmptyTitle>
+                  <EmptyDescription>Add members using the button above.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
           </CardContent>
         </Card>

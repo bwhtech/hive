@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/collapsible"
 import { Link } from "react-router"
 import { TASK_STATUS_COLOR } from "@/lib/variants"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 
 interface TeamMemberStats {
   user: string
@@ -362,15 +369,19 @@ export function TeamPage() {
           ))}
         </div>
       ) : filteredMembers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
-          <HugeiconsIcon icon={UserGroup03Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
-          <p className="mt-3 text-sm font-medium">
-            {search ? "No members match your search" : "No team members yet"}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {search ? "Try a different search term." : "Add team members from Settings."}
-          </p>
-        </div>
+        <Empty className="border rounded-2xl p-12">
+          <EmptyHeader>
+            <EmptyMedia>
+              <HugeiconsIcon icon={UserGroup03Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>
+              {search ? "No members match your search" : "No team members yet"}
+            </EmptyTitle>
+            <EmptyDescription>
+              {search ? "Try a different search term." : "Add team members from Settings."}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredMembers.map((member) => (

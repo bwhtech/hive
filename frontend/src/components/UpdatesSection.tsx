@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
@@ -342,17 +343,15 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
 
       {/* Feed */}
       {!updates?.length ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
-          <HugeiconsIcon
-            icon={News01Icon}
-            strokeWidth={1.5}
-            className="size-10 text-muted-foreground/50 mb-3"
-          />
-          <p className="text-sm text-muted-foreground">No updates yet</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            Be the first to share a project update
-          </p>
-        </div>
+        <Empty className="border rounded-xl py-12">
+          <EmptyHeader>
+            <EmptyMedia>
+              <HugeiconsIcon icon={News01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyTitle>No updates yet</EmptyTitle>
+            <EmptyDescription>Be the first to share a project update</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="space-y-3">
           {updates.map((update) => {

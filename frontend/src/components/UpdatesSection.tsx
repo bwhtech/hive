@@ -447,10 +447,8 @@ function DraftCard({
         {!editing && (
           <div className="flex items-center gap-2 mt-3 justify-end">
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  Delete
-                </Button>
+              <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
+                Delete
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>

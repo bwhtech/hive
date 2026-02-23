@@ -27,6 +27,7 @@ class HiveTask(Document):
 		description: DF.TextEditor | None
 		due_date: DF.Date | None
 		is_internal: DF.Check
+		milestone: DF.Link | None
 		pr_link: DF.Data | None
 		priority: DF.Literal["Low", "Medium", "High", "Urgent"]
 		project: DF.Link

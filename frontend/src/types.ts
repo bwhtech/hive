@@ -17,6 +17,7 @@ export interface HiveTask {
   status: "Backlog" | "To Do" | "In Progress" | "Done" | "Blocked"
   priority: "Low" | "Medium" | "High" | "Urgent"
   size: "Small" | "Medium" | "Large" | "" | null
+  milestone: string | null
   assigned_to: string
   is_internal: 0 | 1
   description: string

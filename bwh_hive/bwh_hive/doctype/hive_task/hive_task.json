@@ -11,6 +11,7 @@
   "status",
   "priority",
   "size",
+  "milestone",
   "assigned_to",
   "assignees",
   "is_internal",
@@ -65,6 +66,13 @@
    "in_standard_filter": 1,
    "label": "Size",
    "options": "\nSmall\nMedium\nLarge"
+  },
+  {
+   "fieldname": "milestone",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Milestone",
+   "options": "Hive Milestone"
   },
   {
    "fieldname": "assigned_to",

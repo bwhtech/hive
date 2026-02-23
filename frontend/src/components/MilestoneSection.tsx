@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useFrappeGetDocList, useFrappeCreateDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
   DialogContent,
@@ -27,7 +28,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
-import { MILESTONE_STATUSES, type HiveMilestone } from "@/types"
+import { MILESTONE_STATUSES, TASK_SIZE_WEIGHT, type HiveMilestone, type HiveTask } from "@/types"
 
 const milestoneStatusVariant: Record<string, "default" | "secondary" | "outline"> = {
   Upcoming: "outline",
@@ -37,9 +38,14 @@ const milestoneStatusVariant: Record<string, "default" | "secondary" | "outline"
 
 interface MilestoneSectionProps {
   projectId: string
+  tasks?: HiveTask[]
 }
 
-export function MilestoneSection({ projectId }: MilestoneSectionProps) {
+function getWeight(size: string | null | undefined): number {
+  return TASK_SIZE_WEIGHT[size ?? ""] ?? 1
+}
+
+export function MilestoneSection({ projectId, tasks }: MilestoneSectionProps) {
   const [createOpen, setCreateOpen] = useState(false)
 
   const { data: milestones, mutate } = useFrappeGetDocList<HiveMilestone>(
@@ -51,6 +57,26 @@ export function MilestoneSection({ projectId }: MilestoneSectionProps) {
       limit: 50,
     },
   )
+
+  // Compute weighted progress per milestone
+  const progressByMilestone = useMemo(() => {
+    const map: Record<string, { total: number; done: number; taskCount: number; doneCount: number }> = {}
+    if (!tasks) return map
+    for (const task of tasks) {
+      if (!task.milestone) continue
+      if (!map[task.milestone]) {
+        map[task.milestone] = { total: 0, done: 0, taskCount: 0, doneCount: 0 }
+      }
+      const w = getWeight(task.size)
+      map[task.milestone].total += w
+      map[task.milestone].taskCount += 1
+      if (task.status === "Done") {
+        map[task.milestone].done += w
+        map[task.milestone].doneCount += 1
+      }
+    }
+    return map
+  }, [tasks])
 
   const { createDoc } = useFrappeCreateDoc()
   const { updateDoc } = useFrappeUpdateDoc()
@@ -126,11 +152,27 @@ export function MilestoneSection({ projectId }: MilestoneSectionProps) {
                   </SelectContent>
                 </Select>
               </CardHeader>
-              {ms.description && (
-                <CardContent>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{stripHtml(ms.description)}</p>
-                </CardContent>
-              )}
+              <CardContent>
+                {(() => {
+                  const progress = progressByMilestone[ms.name]
+                  if (!progress || progress.total === 0) {
+                    if (ms.description) {
+                      return <p className="text-xs text-muted-foreground line-clamp-2">{stripHtml(ms.description)}</p>
+                    }
+                    return <p className="text-xs text-muted-foreground">No tasks linked</p>
+                  }
+                  const pct = Math.round((progress.done / progress.total) * 100)
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{progress.doneCount}/{progress.taskCount} tasks</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <Progress value={pct} className="h-2" />
+                    </div>
+                  )
+                })()}
+              </CardContent>
             </Card>
           ))}
         </div>

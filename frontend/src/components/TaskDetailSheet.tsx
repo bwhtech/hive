@@ -35,7 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
-import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember } from "@/types"
+import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember, type HiveMilestone } from "@/types"
 
 interface TaskDetailSheetProps {
   task: HiveTask | null
@@ -62,6 +62,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   const [status, setStatus] = useState("Backlog")
   const [priority, setPriority] = useState("Medium")
   const [size, setSize] = useState("")
+  const [milestone, setMilestone] = useState("")
   const [prLink, setPrLink] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
@@ -77,6 +78,18 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
     "Hive Task",
     task?.name ?? "",
     task?.name ? undefined : null,
+  )
+
+  // Fetch milestones for the task's project
+  const { data: projectMilestones } = useFrappeGetDocList<HiveMilestone>(
+    "Hive Milestone",
+    {
+      fields: ["name", "title", "status", "target_date"] as (keyof HiveMilestone)[],
+      filters: [["project", "=", task?.project ?? ""]],
+      orderBy: { field: "target_date", order: "asc" },
+      limit: 50,
+    },
+    task?.project ? undefined : null,
   )
 
   // Fetch all active members for the picker
@@ -96,6 +109,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       setStatus(task.status)
       setPriority(task.priority)
       setSize(task.size || "")
+      setMilestone(task.milestone || "")
       setPrLink(task.pr_link || "")
       setDueDate(task.due_date ? new Date(task.due_date) : undefined)
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
@@ -126,6 +140,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         status,
         priority,
         size: size || null,
+        milestone: milestone || null,
         pr_link: prLink || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
@@ -247,6 +262,22 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Milestone */}
+            <div className="grid gap-2">
+              <Label>Milestone</Label>
+              <Select value={milestone} onValueChange={setMilestone}>
+                <SelectTrigger className="w-full">
+                  <span>{milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {projectMilestones?.map((ms) => (
+                    <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Assignees */}

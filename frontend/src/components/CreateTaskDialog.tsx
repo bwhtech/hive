@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { TASK_PRIORITIES, TASK_STATUSES, type HiveMember } from "@/types"
+import { TASK_PRIORITIES, TASK_STATUSES, type HiveMember, type HiveMilestone } from "@/types"
 
 interface AssigneeRow {
   member: string
@@ -44,6 +44,7 @@ interface CreateTaskValues {
   due_date?: string | null
   start_date?: string | null
   is_internal?: 0 | 1
+  milestone?: string | null
   assignees?: { member: string }[]
   project?: string
 }
@@ -64,6 +65,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
   const [startDate, setStartDate] = useState<Date | undefined>()
   const [isInternal, setIsInternal] = useState(false)
   const [assignees, setAssignees] = useState<AssigneeRow[]>([])
+  const [selectedMilestone, setSelectedMilestone] = useState("")
   const [selectedProject, setSelectedProject] = useState("")
 
   const needsProjectPicker = !projectId
@@ -89,6 +91,17 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
   )
 
   const resolvedProject = projectId || selectedProject
+
+  const { data: milestones } = useFrappeGetDocList<HiveMilestone>(
+    "Hive Milestone",
+    {
+      fields: ["name", "title", "status", "target_date"] as (keyof HiveMilestone)[],
+      filters: [["project", "=", resolvedProject]],
+      orderBy: { field: "target_date", order: "asc" },
+      limit: 50,
+    },
+    resolvedProject ? undefined : null,
+  )
   const canSubmit = title.trim() && resolvedProject
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -101,6 +114,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
       due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
       start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
       is_internal: isInternal ? 1 : 0,
+      milestone: selectedMilestone || null,
       assignees: assignees.map((a) => ({ member: a.member })),
       project: resolvedProject,
     })
@@ -111,6 +125,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     setStartDate(undefined)
     setIsInternal(false)
     setAssignees([])
+    setSelectedMilestone("")
     setSelectedProject("")
   }
 
@@ -192,6 +207,24 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
               </Select>
             </div>
           </div>
+
+          {/* Milestone */}
+          {milestones && milestones.length > 0 && (
+            <div className="grid gap-2">
+              <Label>Milestone</Label>
+              <Select value={selectedMilestone} onValueChange={setSelectedMilestone}>
+                <SelectTrigger className="w-full">
+                  <span>{selectedMilestone ? (milestones?.find((ms) => ms.name === selectedMilestone)?.title ?? selectedMilestone) : "None"}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {milestones.map((ms) => (
+                    <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Assignees */}
           <div className="grid gap-2">

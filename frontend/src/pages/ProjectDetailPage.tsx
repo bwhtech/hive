@@ -48,6 +48,7 @@ const TASK_FIELDS = [
   "status",
   "priority",
   "size",
+  "milestone",
   "assigned_to",
   "is_internal",
   "description",
@@ -476,7 +477,7 @@ export function ProjectDetailPage() {
         {/* Milestones Tab */}
         <TabsContent value="milestones">
           <div className="pt-2">
-            {id && <MilestoneSection projectId={id} />}
+            {id && <MilestoneSection projectId={id} tasks={tasks} />}
           </div>
         </TabsContent>
 

@@ -270,17 +270,6 @@ export function OverviewTab({ projectId, project, stats, milestones }: OverviewT
         </Card>
       </div>
 
-      {/* Client Info */}
-      {project.client && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Client</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">{project.client}</p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

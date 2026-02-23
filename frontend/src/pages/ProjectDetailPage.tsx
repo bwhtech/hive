@@ -26,8 +26,24 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveProjectUpdate, HiveProjectLink } from "@/types"
+import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveProjectUpdate, HiveProjectLink, HiveClient } from "@/types"
 import { TASK_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
@@ -132,6 +148,8 @@ export function ProjectDetailPage() {
   const draftCount = myDrafts?.length ?? 0
 
   const [linksDialogOpen, setLinksDialogOpen] = useState(false)
+  const [newClientOpen, setNewClientOpen] = useState(false)
+  const [newClientName, setNewClientName] = useState("")
 
   const { data: project, isLoading: projectLoading, mutate: mutateProject } = useFrappeGetDoc<HiveProject>(
     "Hive Project",
@@ -162,6 +180,22 @@ export function ProjectDetailPage() {
       limit: 50,
     },
     id ? undefined : null,
+  )
+
+  const { data: projectTypes } = useFrappeGetDocList("Hive Project Type", {
+    fields: ["name", "type_name"],
+    limit: 50,
+    orderBy: { field: "type_name", order: "asc" },
+  })
+
+  const { data: clients, mutate: mutateClients } = useFrappeGetDocList<HiveClient>(
+    "Hive Client",
+    {
+      fields: ["name", "company_name", "is_active"],
+      filters: [["is_active", "=", 1]],
+      limit: 100,
+      orderBy: { field: "company_name", order: "asc" },
+    },
   )
 
   const { updateDoc } = useFrappeUpdateDoc()
@@ -288,6 +322,42 @@ export function ProjectDetailPage() {
     saveProjectLinks(current)
   }
 
+  const handleTypeChange = async (value: string) => {
+    try {
+      await updateDoc("Hive Project", id!, { project_type: value || null })
+      mutateProject()
+    } catch {
+      toast.error("Failed to update project type")
+    }
+  }
+
+  const handleClientChange = async (value: string) => {
+    try {
+      await updateDoc("Hive Project", id!, { client: value || null })
+      mutateProject()
+    } catch {
+      toast.error("Failed to update client")
+    }
+  }
+
+  const handleCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newClientName.trim()) return
+    try {
+      const doc = await createDoc("Hive Client", {
+        company_name: newClientName.trim(),
+      })
+      toast.success("Client created")
+      await mutateClients()
+      await updateDoc("Hive Project", id!, { client: doc.name })
+      mutateProject()
+      setNewClientName("")
+      setNewClientOpen(false)
+    } catch {
+      toast.error("Failed to create client")
+    }
+  }
+
   if (projectLoading) {
     return (
       <div className="space-y-6">
@@ -349,12 +419,51 @@ export function ProjectDetailPage() {
               <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                 {project.status}
               </Badge>
-              {project.project_type && (
-                <Badge variant="outline">{project.project_type}</Badge>
-              )}
-              {project.client && (
-                <Badge variant="outline">{project.client}</Badge>
-              )}
+              <Select value={project.project_type || ""} onValueChange={handleTypeChange}>
+                <SelectTrigger
+                  className={`h-5 w-auto text-[11px] px-2.5 gap-1 rounded-full font-medium ${
+                    !project.project_type ? "border-dashed text-muted-foreground" : ""
+                  }`}
+                >
+                  {project.project_type
+                    ? (projectTypes?.find((t) => t.name === project.project_type) as { type_name: string } | undefined)?.type_name ?? project.project_type
+                    : "Set type"}
+                </SelectTrigger>
+                <SelectContent>
+                  {projectTypes?.map((t) => (
+                    <SelectItem key={t.name} value={t.name}>
+                      {(t as { type_name: string }).type_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                <Select value={project.client || ""} onValueChange={handleClientChange}>
+                  <SelectTrigger
+                    className={`h-5 w-auto text-[11px] px-2.5 gap-1 rounded-full font-medium ${
+                      !project.client ? "border-dashed text-muted-foreground" : ""
+                    }`}
+                  >
+                    {project.client
+                      ? clients?.find((c) => c.name === project.client)?.company_name ?? project.client
+                      : "Set client"}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients?.map((c) => (
+                      <SelectItem key={c.name} value={c.name}>
+                        {c.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <button
+                  type="button"
+                  onClick={() => setNewClientOpen(true)}
+                  className="inline-flex items-center justify-center size-5 rounded-full border border-dashed text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                >
+                  <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3" />
+                </button>
+              </div>
             </div>
             {/* Related Links */}
             {(project.links?.length ?? 0) > 0 && (
@@ -527,6 +636,33 @@ export function ProjectDetailPage() {
         onRemove={removeLink}
         onUpdate={updateLink}
       />
+
+      {/* New Client Sheet */}
+      <Sheet open={newClientOpen} onOpenChange={setNewClientOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>New Client</SheetTitle>
+            <SheetDescription>Add a new client to your workspace.</SheetDescription>
+          </SheetHeader>
+          <form onSubmit={handleCreateClient} className="grid gap-4 p-6">
+            <div className="grid gap-2">
+              <Label htmlFor="detail-client-name">Company Name</Label>
+              <Input
+                id="detail-client-name"
+                placeholder="Acme Inc."
+                value={newClientName}
+                onChange={(e) => setNewClientName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <SheetFooter>
+              <Button type="submit" disabled={!newClientName.trim()}>
+                Create Client
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

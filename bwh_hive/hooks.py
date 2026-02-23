@@ -86,7 +86,8 @@ app_license = "agpl-3.0"
 # ------------
 
 # before_install = "bwh_hive.install.before_install"
-# after_install = "bwh_hive.install.after_install"
+after_install = "bwh_hive.install.after_install"
+after_migrate = "bwh_hive.install.after_migrate"
 
 # Uninstallation
 # ------------

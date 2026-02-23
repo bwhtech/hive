@@ -30,6 +30,7 @@ class HiveTask(Document):
 		pr_link: DF.Data | None
 		priority: DF.Literal["Low", "Medium", "High", "Urgent"]
 		project: DF.Link
+		size: DF.Literal["", "Small", "Medium", "Large"]
 		start_date: DF.Date | None
 		status: DF.Literal["Backlog", "To Do", "In Progress", "Done", "Blocked"]
 		title: DF.Data

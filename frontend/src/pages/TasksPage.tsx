@@ -42,7 +42,7 @@ import {
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveTaskAssignee } from "@/types"
-import { TASK_PRIORITY_VARIANT, TASK_STATUS_COLOR, PRIORITY_ORDER } from "@/lib/variants"
+import { TASK_PRIORITY_VARIANT, TASK_SIZE_VARIANT, TASK_STATUS_COLOR, PRIORITY_ORDER } from "@/lib/variants"
 
 interface TaskRow {
   task: HiveTask
@@ -115,6 +115,20 @@ const columns: ColumnDef<TaskRow>[] = [
     ),
   },
   {
+    id: "size",
+    accessorFn: (row) => row.task.size ?? "",
+    header: ({ column }) => <SortHeader label="Size" column={column} />,
+    cell: ({ row }) => {
+      const size = row.original.task.size
+      if (!size) return <span className="text-muted-foreground">-</span>
+      return (
+        <Badge variant={TASK_SIZE_VARIANT[size] ?? "outline"} className="text-[10px] h-5 px-1.5">
+          {size}
+        </Badge>
+      )
+    },
+  },
+  {
     id: "due_date",
     accessorFn: (row) => row.task.due_date ?? "",
     header: ({ column }) => <SortHeader label="Due Date" column={column} />,
@@ -170,7 +184,7 @@ export function TasksPage() {
     "Hive Task",
     {
       fields: [
-        "name", "title", "project", "status", "priority",
+        "name", "title", "project", "status", "priority", "size",
         "assigned_to", "is_internal", "due_date", "pr_link",
         "uat_status", "creation", "modified",
       ],

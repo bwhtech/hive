@@ -38,6 +38,16 @@ export const FEATURE_REQUEST_PRIORITY_VARIANT: Record<
   Critical: "destructive",
 }
 
+// Task size → Badge variant
+export const TASK_SIZE_VARIANT: Record<
+  string,
+  "default" | "secondary" | "outline"
+> = {
+  Small: "outline",
+  Medium: "secondary",
+  Large: "default",
+}
+
 // Task status → dot color class
 export const TASK_STATUS_COLOR: Record<string, string> = {
   Backlog: "bg-muted-foreground/40",

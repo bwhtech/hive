@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from "@/types"
-import { TASK_PRIORITY_VARIANT } from "@/lib/variants"
+import { TASK_PRIORITY_VARIANT, TASK_SIZE_VARIANT } from "@/lib/variants"
 
 interface TaskKanbanProps {
   tasksByStatus: Record<string, HiveTask[]>
@@ -183,6 +183,11 @@ function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOv
           <Badge variant={TASK_PRIORITY_VARIANT[task.priority] ?? "outline"} className="text-[10px] h-4 px-1.5">
             {task.priority}
           </Badge>
+          {task.size && (
+            <Badge variant={TASK_SIZE_VARIANT[task.size] ?? "outline"} className="text-[10px] h-4 px-1.5">
+              {task.size}
+            </Badge>
+          )}
           {task.pr_link && (
             <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5">
               <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-2.5" />

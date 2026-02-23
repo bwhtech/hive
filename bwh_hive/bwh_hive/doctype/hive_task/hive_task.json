@@ -10,6 +10,7 @@
   "project",
   "status",
   "priority",
+  "size",
   "assigned_to",
   "assignees",
   "is_internal",
@@ -57,6 +58,13 @@
    "in_standard_filter": 1,
    "label": "Priority",
    "options": "Low\nMedium\nHigh\nUrgent"
+  },
+  {
+   "fieldname": "size",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Size",
+   "options": "\nSmall\nMedium\nLarge"
   },
   {
    "fieldname": "assigned_to",

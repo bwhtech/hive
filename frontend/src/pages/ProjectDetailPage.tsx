@@ -47,6 +47,7 @@ const TASK_FIELDS = [
   "project",
   "status",
   "priority",
+  "size",
   "assigned_to",
   "is_internal",
   "description",

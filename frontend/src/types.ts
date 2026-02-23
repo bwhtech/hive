@@ -16,6 +16,7 @@ export interface HiveTask {
   project: string
   status: "Backlog" | "To Do" | "In Progress" | "Done" | "Blocked"
   priority: "Low" | "Medium" | "High" | "Urgent"
+  size: "Small" | "Medium" | "Large" | "" | null
   assigned_to: string
   is_internal: 0 | 1
   description: string
@@ -107,6 +108,14 @@ export interface HiveProjectUpdate {
 
 export const TASK_STATUSES = ["Backlog", "To Do", "In Progress", "Done"] as const
 export const TASK_PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const
+export const TASK_SIZES = ["Small", "Medium", "Large"] as const
+
+/** Numeric weight for each size (Large ≈ 4× Small, Medium ≈ 2×) */
+export const TASK_SIZE_WEIGHT: Record<string, number> = {
+  Small: 1,
+  Medium: 2,
+  Large: 4,
+} as const
 export const PROJECT_STATUSES = ["Open", "Completed", "On Hold"] as const
 export const MILESTONE_STATUSES = ["Upcoming", "In Progress", "Completed"] as const
 export const FEATURE_REQUEST_STATUSES = ["Open", "Under Review", "Approved", "Rejected", "Converted"] as const

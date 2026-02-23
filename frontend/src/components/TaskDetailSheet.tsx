@@ -35,7 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
-import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveMember } from "@/types"
+import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember } from "@/types"
 
 interface TaskDetailSheetProps {
   task: HiveTask | null
@@ -61,6 +61,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("Backlog")
   const [priority, setPriority] = useState("Medium")
+  const [size, setSize] = useState("")
   const [prLink, setPrLink] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
@@ -94,6 +95,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       setDescription(task.description || "")
       setStatus(task.status)
       setPriority(task.priority)
+      setSize(task.size || "")
       setPrLink(task.pr_link || "")
       setDueDate(task.due_date ? new Date(task.due_date) : undefined)
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
@@ -123,6 +125,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         description,
         status,
         priority,
+        size: size || null,
         pr_link: prLink || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
@@ -201,8 +204,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
               />
             </div>
 
-            {/* Status & Priority */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Status, Priority & Size */}
+            <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={setStatus}>
@@ -226,6 +229,20 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
                   <SelectContent>
                     {TASK_PRIORITIES.map((p) => (
                       <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Size</Label>
+                <Select value={size} onValueChange={setSize}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {TASK_SIZES.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

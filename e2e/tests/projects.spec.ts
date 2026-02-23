@@ -18,7 +18,7 @@ test.describe("Projects", () => {
 		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
-		await expect(page).toHaveURL(/\/frontend\/projects/);
+		await expect(page).toHaveURL(/\/hive\/projects/);
 	});
 
 	test("should create a new project via command palette", async ({ page }) => {
@@ -90,7 +90,7 @@ test.describe("Projects", () => {
 
 		// Should navigate to the project detail page
 		await page.waitForLoadState("networkidle");
-		await expect(page).toHaveURL(/\/frontend\/projects\//);
+		await expect(page).toHaveURL(/\/hive\/projects\//);
 	});
 
 	test("should delete a project via API", async ({ request }) => {

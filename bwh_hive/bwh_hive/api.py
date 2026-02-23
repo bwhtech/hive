@@ -20,7 +20,7 @@ def invite_client_member(email: str, client: str):
 	result = invite_by_email(
 		emails=email,
 		roles=["Hive Client"],
-		redirect_to_path="/frontend",
+		redirect_to_path="/hive",
 		app_name="bwh_hive",
 	)
 

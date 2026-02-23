@@ -109,7 +109,7 @@ export function MembersSection() {
       await inviteByEmail({
         emails: trimmed,
         roles: [role],
-        redirect_to_path: "/frontend",
+        redirect_to_path: "/hive",
         app_name: "bwh_hive",
       })
       toast.success(`Invitation sent to ${trimmed}`)

@@ -8,7 +8,7 @@ Hive (Project Management Solution) is a Frappe application with a React frontend
 
 ## Testing
 
-After building a frontend feature, test using the agent-browser, the site name is pms.localhost:8000/frontend. For backend testing etc. using bench CLI (execute, etc.)
+After building a frontend feature, test using the agent-browser, the site name is pms.localhost:8000/hive. For backend testing etc. using bench CLI (execute, etc.)
 
 ## Common Commands
 

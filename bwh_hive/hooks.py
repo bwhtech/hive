@@ -262,5 +262,5 @@ fixtures = [
 sqlite_search = ["bwh_hive.search.HiveSearch"]
 
 website_route_rules = [
-	{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"},
+	{"from_route": "/hive/<path:app_path>", "to_route": "hive"},
 ]

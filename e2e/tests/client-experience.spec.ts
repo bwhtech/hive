@@ -7,7 +7,7 @@ test.describe("Client Experience", () => {
 	test("should only see projects assigned to their client", async ({
 		page,
 	}) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Client user (clientuser@example.com) belongs to "Acme Corp"
@@ -24,7 +24,7 @@ test.describe("Client Experience", () => {
 	});
 
 	test("should not see Settings in sidebar", async ({ page }) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Client users should not have access to Settings in the sidebar
@@ -36,7 +36,7 @@ test.describe("Client Experience", () => {
 	test("should not see Add Task button on project page", async ({
 		page,
 	}) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Navigate to the client's project
@@ -50,7 +50,7 @@ test.describe("Client Experience", () => {
 	});
 
 	test("should see the Requests tab", async ({ page }) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Navigate to the client's project
@@ -65,7 +65,7 @@ test.describe("Client Experience", () => {
 	});
 
 	test("should see tasks in the kanban board", async ({ page }) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Navigate to the client's project
@@ -87,7 +87,7 @@ test.describe("Client Experience", () => {
 	test("should not see project metadata dropdowns or manage links", async ({
 		page,
 	}) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Navigate to the client's project
@@ -116,7 +116,7 @@ test.describe("Client Experience", () => {
 	test("should see team members as read-only (no add/remove/role change)", async ({
 		page,
 	}) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Navigate to the client's project
@@ -142,7 +142,7 @@ test.describe("Client Experience", () => {
 	test("should see task details as read-only (no Save button)", async ({
 		page,
 	}) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Navigate to the client's project
@@ -191,7 +191,7 @@ test.describe("Client Experience", () => {
 		await cleanupTestFeatureRequests(request, FR_TEST_PREFIX);
 
 		// Navigate to the client's project
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 		await page.locator("text=Website Redesign").first().click();
 		await page.waitForLoadState("networkidle");

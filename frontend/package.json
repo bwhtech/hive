@@ -8,9 +8,9 @@
     "build": "vite build --base=/assets/bwh_hive/frontend/ && yarn copy-html-entry",
     "lint": "eslint .",
     "preview": "vite preview",
-    "copy-html-entry": "cp ../bwh_hive/public/frontend/index.html ../bwh_hive/www/frontend.html"
+    "copy-html-entry": "cp ../bwh_hive/public/frontend/index.html ../bwh_hive/www/hive.html"
   },
-  "dependencies": {
+"dependencies": {
     "@base-ui/react": "^1.2.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

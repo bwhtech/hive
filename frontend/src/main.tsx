@@ -15,7 +15,7 @@ createRoot(document.getElementById("root")!).render(
       <FrappeProvider>
         <ThemeProvider defaultTheme="system" storageKey="hive-ui-theme">
           <TooltipProvider>
-            <BrowserRouter basename="/frontend">
+            <BrowserRouter basename="/hive">
               <App />
               <Toaster position="top-right" />
             </BrowserRouter>

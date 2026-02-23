@@ -15,14 +15,14 @@ test.describe("Projects", () => {
 	});
 
 	test("should display the projects page", async ({ page }) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		await expect(page).toHaveURL(/\/frontend\/projects/);
 	});
 
 	test("should create a new project via command palette", async ({ page }) => {
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Open command palette with Cmd+K
@@ -48,7 +48,7 @@ test.describe("Projects", () => {
 		await submitBtn.first().click();
 
 		// Verify project was created by checking it appears in the list
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 		await expect(
 			page.locator(`text=${projectTitle}`).first(),
@@ -63,7 +63,7 @@ test.describe("Projects", () => {
 			title: `E2E Test Project API ${Date.now()}`,
 		});
 
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// The API-created project should appear in the list
@@ -82,7 +82,7 @@ test.describe("Projects", () => {
 			});
 		}
 
-		await page.goto("/frontend/projects");
+		await page.goto("/hive/projects");
 		await page.waitForLoadState("networkidle");
 
 		// Click on the project

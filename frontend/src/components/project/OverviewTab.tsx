@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   useFrappeGetDocList,
   useFrappeUpdateDoc,
@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
@@ -25,7 +26,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import type { HiveProject, HiveMilestone, HiveMember } from "@/types"
+import type { HiveProject, HiveMilestone, HiveMember, HiveTask } from "@/types"
+import { TASK_SIZE_WEIGHT } from "@/types"
 
 interface OverviewTabProps {
   projectId: string
@@ -37,9 +39,14 @@ interface OverviewTabProps {
     blockedTasks: number
   }
   milestones: HiveMilestone[] | undefined
+  tasks?: HiveTask[]
 }
 
-export function OverviewTab({ projectId, project, stats, milestones }: OverviewTabProps) {
+function getWeight(size: string | null | undefined): number {
+  return TASK_SIZE_WEIGHT[size ?? ""] ?? 1
+}
+
+export function OverviewTab({ projectId, project, stats, milestones, tasks }: OverviewTabProps) {
   const { updateDoc } = useFrappeUpdateDoc()
   const { call: callDashboard, result: dashboardResult } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.get_project_dashboard",
@@ -112,6 +119,26 @@ export function OverviewTab({ projectId, project, stats, milestones }: OverviewT
     saveProjectMembers(next)
   }
 
+  // Compute weighted progress per milestone
+  const progressByMilestone = useMemo(() => {
+    const map: Record<string, { total: number; done: number; taskCount: number; doneCount: number }> = {}
+    if (!tasks) return map
+    for (const task of tasks) {
+      if (!task.milestone) continue
+      if (!map[task.milestone]) {
+        map[task.milestone] = { total: 0, done: 0, taskCount: 0, doneCount: 0 }
+      }
+      const w = getWeight(task.size)
+      map[task.milestone].total += w
+      map[task.milestone].taskCount += 1
+      if (task.status === "Done") {
+        map[task.milestone].done += w
+        map[task.milestone].doneCount += 1
+      }
+    }
+    return map
+  }, [tasks])
+
   const { totalTasks, inProgressTasks, doneTasks, blockedTasks } = stats
   const activeMilestones = milestones?.filter((m) => m.status === "In Progress").length ?? 0
 
@@ -137,21 +164,40 @@ export function OverviewTab({ projectId, project, stats, milestones }: OverviewT
           </CardHeader>
           <CardContent>
             {activeMilestones > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {milestones
                   ?.filter((m) => m.status !== "Completed")
                   .slice(0, 5)
-                  .map((ms) => (
-                    <div key={ms.name} className="flex items-center justify-between text-sm">
-                      <span>{ms.title}</span>
-                      <Badge
-                        variant={ms.status === "In Progress" ? "secondary" : "outline"}
-                        className="text-[10px] h-4 px-1.5"
-                      >
-                        {ms.status}
-                      </Badge>
-                    </div>
-                  ))}
+                  .map((ms) => {
+                    const progress = progressByMilestone[ms.name]
+                    const pct = progress && progress.total > 0
+                      ? Math.round((progress.done / progress.total) * 100)
+                      : 0
+                    return (
+                      <div key={ms.name} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>{ms.title}</span>
+                          <Badge
+                            variant={ms.status === "In Progress" ? "secondary" : "outline"}
+                            className="text-[10px] h-4 px-1.5"
+                          >
+                            {ms.status}
+                          </Badge>
+                        </div>
+                        {progress && progress.total > 0 ? (
+                          <div className="space-y-1">
+                            <Progress value={pct} className="h-1.5" />
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                              <span>{progress.doneCount}/{progress.taskCount} tasks</span>
+                              <span>{pct}%</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground">No tasks linked</p>
+                        )}
+                      </div>
+                    )
+                  })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No active milestones</p>

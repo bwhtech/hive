@@ -556,6 +556,7 @@ export function ProjectDetailPage() {
             project={project}
             stats={{ totalTasks, inProgressTasks, doneTasks, blockedTasks }}
             milestones={milestones}
+            tasks={tasks}
           />
         </TabsContent>
 

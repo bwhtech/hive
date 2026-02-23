@@ -311,6 +311,19 @@ def get_team_dashboard():
 		order_by="member_name asc",
 	)
 
+	# Fetch user_image from User docs (Hive Member's fetch_from only runs on save)
+	user_emails = [m.user for m in members]
+	user_images = {}
+	if user_emails:
+		user_images = {
+			u.name: u.user_image
+			for u in frappe.get_all(
+				"User",
+				filters={"name": ["in", user_emails]},
+				fields=["name", "user_image"],
+			)
+		}
+
 	# Get all non-Done tasks
 	tasks = frappe.get_all(
 		"Hive Task",
@@ -424,7 +437,7 @@ def get_team_dashboard():
 			{
 				"user": member.user,
 				"member_name": member.member_name,
-				"user_image": member.user_image,
+				"user_image": user_images.get(member.user) or member.user_image,
 				"designation": member.designation,
 				"wip_count": wip,
 				"backlog_count": backlog,

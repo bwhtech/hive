@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useFrappeGetDocList, useFrappeGetCall } from "frappe-react-sdk"
 import { Link } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -38,6 +39,20 @@ export function TeamTab() {
       limit: 100,
     },
   )
+
+  // Fetch user images from User docs (Hive Member's fetch_from may be stale)
+  const { data: userDocs } = useFrappeGetDocList<{ name: string; user_image: string }>("User", {
+    fields: ["name", "user_image"],
+    filters: [["enabled", "=", 1]],
+    limit: 200,
+  })
+  const userImageMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const u of userDocs ?? []) {
+      if (u.user_image) map[u.name] = u.user_image
+    }
+    return map
+  }, [userDocs])
 
   // Fetch stale members
   const { data: staleData } = useFrappeGetCall<{ message: string[] }>(
@@ -118,7 +133,7 @@ export function TeamTab() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <MemberAvatar name={member.member_name} image={member.user_image} />
+                  <MemberAvatar name={member.member_name} image={userImageMap[member.user] ?? member.user_image} />
                   {isStale && (
                     <Tooltip>
                       <TooltipTrigger render={<span className="absolute -right-0.5 -top-0.5 flex size-3.5" />}>

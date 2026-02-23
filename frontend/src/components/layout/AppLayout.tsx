@@ -43,9 +43,14 @@ export function AppLayout() {
     setSettingsOpen(true)
   }
 
-  const handleCreateProject = useCallback(async (values: { title: string }) => {
+  const handleCreateProject = useCallback(async (values: { title: string; project_type?: string; client?: string }) => {
     try {
-      const doc = await createDoc("Hive Project", { title: values.title, status: "Open" })
+      const doc = await createDoc("Hive Project", {
+        title: values.title,
+        status: "Open",
+        ...(values.project_type && { project_type: values.project_type }),
+        ...(values.client && { client: values.client }),
+      })
       setCreateProjectOpen(false)
       toast.success("Project created")
       navigate(`/projects/${doc.name}`)

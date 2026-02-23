@@ -14,6 +14,7 @@ class HiveProject(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		client: DF.Link | None
 		description: DF.TextEditor | None
 		project_type: DF.Link | None
 		status: DF.Literal["Open", "Completed", "On Hold"]

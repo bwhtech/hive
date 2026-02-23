@@ -81,6 +81,61 @@ test.describe("Client Experience", () => {
 		).toBeVisible({ timeout: 5000 });
 	});
 
+	test("should not see project metadata dropdowns or manage links", async ({
+		page,
+	}) => {
+		await page.goto("/frontend/projects");
+		await page.waitForLoadState("networkidle");
+
+		// Navigate to the client's project
+		await page.locator("text=Website Redesign").first().click();
+		await page.waitForLoadState("networkidle");
+
+		// Client should NOT see "Set type" or "Set client" dropdowns
+		await expect(
+			page.locator('text=Set type'),
+		).not.toBeVisible({ timeout: 5000 });
+		await expect(
+			page.locator('text=Set client'),
+		).not.toBeVisible({ timeout: 3000 });
+
+		// Client should NOT see "Manage" links button
+		await expect(
+			page.locator('button:has-text("Manage")'),
+		).not.toBeVisible({ timeout: 3000 });
+
+		// Client should NOT see "Add link" button
+		await expect(
+			page.locator('button:has-text("Add link")'),
+		).not.toBeVisible({ timeout: 3000 });
+	});
+
+	test("should see team members as read-only (no add/remove/role change)", async ({
+		page,
+	}) => {
+		await page.goto("/frontend/projects");
+		await page.waitForLoadState("networkidle");
+
+		// Navigate to the client's project
+		await page.locator("text=Website Redesign").first().click();
+		await page.waitForLoadState("networkidle");
+
+		// Overview tab is the default, team section should be visible
+		const teamCard = page.locator('text=Team').first();
+		await expect(teamCard).toBeVisible({ timeout: 10000 });
+
+		// Client should NOT see the add team member button (UserAdd icon button)
+		const teamSection = page.locator('[data-slot="card"]').filter({ hasText: 'Team' });
+		await expect(
+			teamSection.locator('[data-slot="popover-trigger"]'),
+		).not.toBeVisible({ timeout: 3000 });
+
+		// Role dropdowns should NOT be visible (replaced with badges)
+		await expect(
+			teamSection.locator('[data-slot="select-trigger"]'),
+		).not.toBeVisible({ timeout: 3000 });
+	});
+
 	test("should see task details as read-only (no Save button)", async ({
 		page,
 	}) => {

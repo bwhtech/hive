@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner"
 import type { HiveProject, HiveMilestone, HiveMember, HiveTask } from "@/types"
 import { TASK_SIZE_WEIGHT } from "@/types"
+import { useUser } from "@/context/UserContext"
 import {
   Empty,
   EmptyHeader,
@@ -54,6 +55,7 @@ function getWeight(size: string | null | undefined): number {
 }
 
 export function OverviewTab({ projectId, project, stats, milestones, tasks }: OverviewTabProps) {
+  const { isClient } = useUser()
   const { updateDoc } = useFrappeUpdateDoc()
   const { call: callDashboard, result: dashboardResult } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.get_project_dashboard",
@@ -226,52 +228,54 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks }: Ov
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-4" />
               Team
-              <Popover>
-                <PopoverTrigger
-                  render={
-                    <Button variant="ghost" size="icon-sm" className="ml-auto" />
-                  }
-                >
-                  <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-4" />
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-2" align="end">
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {allMembers?.length ? (
-                      allMembers.map((m) => {
-                        const isAssigned = teamMembers.some(
-                          (tm) => tm.member === m.name,
-                        )
-                        return (
-                          <button
-                            key={m.name}
-                            type="button"
-                            onClick={() => toggleTeamMember(m)}
-                            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
-                              isAssigned ? "bg-muted" : ""
-                            }`}
-                          >
-                            <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
-                            <span className="flex-1 truncate text-left">
-                              {m.member_name || m.name}
-                            </span>
-                            {isAssigned && (
-                              <HugeiconsIcon
-                                icon={CheckmarkCircle02Icon}
-                                strokeWidth={2}
-                                className="size-4 text-primary"
-                              />
-                            )}
-                          </button>
-                        )
-                      })
-                    ) : (
-                      <p className="text-xs text-muted-foreground px-2 py-1">
-                        No members found
-                      </p>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              {!isClient && (
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button variant="ghost" size="icon-sm" className="ml-auto" />
+                    }
+                  >
+                    <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-4" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="end">
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {allMembers?.length ? (
+                        allMembers.map((m) => {
+                          const isAssigned = teamMembers.some(
+                            (tm) => tm.member === m.name,
+                          )
+                          return (
+                            <button
+                              key={m.name}
+                              type="button"
+                              onClick={() => toggleTeamMember(m)}
+                              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
+                                isAssigned ? "bg-muted" : ""
+                              }`}
+                            >
+                              <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
+                              <span className="flex-1 truncate text-left">
+                                {m.member_name || m.name}
+                              </span>
+                              {isAssigned && (
+                                <HugeiconsIcon
+                                  icon={CheckmarkCircle02Icon}
+                                  strokeWidth={2}
+                                  className="size-4 text-primary"
+                                />
+                              )}
+                            </button>
+                          )
+                        })
+                      ) : (
+                        <p className="text-xs text-muted-foreground px-2 py-1">
+                          No members found
+                        </p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -290,34 +294,42 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks }: Ov
                       <span className="flex-1 truncate">
                         {m.member_name || m.member}
                       </span>
-                      <Select
-                        value={m.role}
-                        onValueChange={(role) =>
-                          changeTeamMemberRole(m.member, role)
-                        }
-                      >
-                        <SelectTrigger className="h-6 w-auto text-[10px] px-2 gap-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Member">Member</SelectItem>
-                          <SelectItem value="Champion">Champion</SelectItem>
-                          <SelectItem value="Stakeholder">
-                            Stakeholder
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <button
-                        type="button"
-                        onClick={() => removeTeamMember(m.member)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <HugeiconsIcon
-                          icon={Cancel02Icon}
-                          strokeWidth={2}
-                          className="size-3.5"
-                        />
-                      </button>
+                      {isClient ? (
+                        <Badge variant="outline" className="text-[10px] h-5 px-2">
+                          {m.role}
+                        </Badge>
+                      ) : (
+                        <>
+                          <Select
+                            value={m.role}
+                            onValueChange={(role) =>
+                              changeTeamMemberRole(m.member, role)
+                            }
+                          >
+                            <SelectTrigger className="h-6 w-auto text-[10px] px-2 gap-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Member">Member</SelectItem>
+                              <SelectItem value="Champion">Champion</SelectItem>
+                              <SelectItem value="Stakeholder">
+                                Stakeholder
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <button
+                            type="button"
+                            onClick={() => removeTeamMember(m.member)}
+                            className="text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <HugeiconsIcon
+                              icon={Cancel02Icon}
+                              strokeWidth={2}
+                              className="size-3.5"
+                            />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )
                 })}

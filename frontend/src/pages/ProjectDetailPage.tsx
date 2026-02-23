@@ -432,51 +432,68 @@ export function ProjectDetailPage() {
               <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                 {project.status}
               </Badge>
-              <Select value={project.project_type || ""} onValueChange={handleTypeChange}>
-                <SelectTrigger
-                  className={`h-5 w-auto text-[11px] px-2.5 gap-1 rounded-full font-medium ${
-                    !project.project_type ? "border-dashed text-muted-foreground" : ""
-                  }`}
-                >
-                  {project.project_type
-                    ? (projectTypes?.find((t) => t.name === project.project_type) as { type_name: string } | undefined)?.type_name ?? project.project_type
-                    : "Set type"}
-                </SelectTrigger>
-                <SelectContent>
-                  {projectTypes?.map((t) => (
-                    <SelectItem key={t.name} value={t.name}>
-                      {(t as { type_name: string }).type_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-1">
-                <Select value={project.client || ""} onValueChange={handleClientChange}>
-                  <SelectTrigger
-                    className={`h-5 w-auto text-[11px] px-2.5 gap-1 rounded-full font-medium ${
-                      !project.client ? "border-dashed text-muted-foreground" : ""
-                    }`}
-                  >
-                    {project.client
-                      ? clients?.find((c) => c.name === project.client)?.company_name ?? project.client
-                      : "Set client"}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients?.map((c) => (
-                      <SelectItem key={c.name} value={c.name}>
-                        {c.company_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <button
-                  type="button"
-                  onClick={() => setNewClientOpen(true)}
-                  className="inline-flex items-center justify-center size-5 rounded-full border border-dashed text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                >
-                  <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3" />
-                </button>
-              </div>
+              {isClient ? (
+                <>
+                  {project.project_type && (
+                    <Badge variant="outline" className="text-[11px] h-5 px-2.5 rounded-full font-medium">
+                      {(projectTypes?.find((t) => t.name === project.project_type) as { type_name: string } | undefined)?.type_name ?? project.project_type}
+                    </Badge>
+                  )}
+                  {project.client && (
+                    <Badge variant="outline" className="text-[11px] h-5 px-2.5 rounded-full font-medium">
+                      {clients?.find((c) => c.name === project.client)?.company_name ?? project.client}
+                    </Badge>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Select value={project.project_type || ""} onValueChange={handleTypeChange}>
+                    <SelectTrigger
+                      className={`h-5 w-auto text-[11px] px-2.5 gap-1 rounded-full font-medium ${
+                        !project.project_type ? "border-dashed text-muted-foreground" : ""
+                      }`}
+                    >
+                      {project.project_type
+                        ? (projectTypes?.find((t) => t.name === project.project_type) as { type_name: string } | undefined)?.type_name ?? project.project_type
+                        : "Set type"}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectTypes?.map((t) => (
+                        <SelectItem key={t.name} value={t.name}>
+                          {(t as { type_name: string }).type_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-1">
+                    <Select value={project.client || ""} onValueChange={handleClientChange}>
+                      <SelectTrigger
+                        className={`h-5 w-auto text-[11px] px-2.5 gap-1 rounded-full font-medium ${
+                          !project.client ? "border-dashed text-muted-foreground" : ""
+                        }`}
+                      >
+                        {project.client
+                          ? clients?.find((c) => c.name === project.client)?.company_name ?? project.client
+                          : "Set client"}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients?.map((c) => (
+                          <SelectItem key={c.name} value={c.name}>
+                            {c.company_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      type="button"
+                      onClick={() => setNewClientOpen(true)}
+                      className="inline-flex items-center justify-center size-5 rounded-full border border-dashed text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                    >
+                      <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3" />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
             {/* Related Links */}
             {(project.links?.length ?? 0) > 0 && (
@@ -493,17 +510,19 @@ export function ProjectDetailPage() {
                     {link.title}
                   </a>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setLinksDialogOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                >
-                  <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3" />
-                  Manage
-                </button>
+                {!isClient && (
+                  <button
+                    type="button"
+                    onClick={() => setLinksDialogOpen(true)}
+                    className="inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                  >
+                    <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3" />
+                    Manage
+                  </button>
+                )}
               </div>
             )}
-            {(project.links?.length ?? 0) === 0 && (
+            {!isClient && (project.links?.length ?? 0) === 0 && (
               <button
                 type="button"
                 onClick={() => setLinksDialogOpen(true)}

@@ -41,12 +41,13 @@ import {
 } from "@/components/ui/select"
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { MemberAvatar } from "@/components/MemberAvatar"
-import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveTaskAssignee } from "@/types"
+import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveMilestone, type HiveTaskAssignee } from "@/types"
 import { TASK_PRIORITY_VARIANT, TASK_SIZE_VARIANT, TASK_STATUS_COLOR, PRIORITY_ORDER } from "@/lib/variants"
 
 interface TaskRow {
   task: HiveTask
   projectTitle: string
+  milestoneTitle: string
   assignees: HiveTaskAssignee[]
 }
 
@@ -129,6 +130,16 @@ const columns: ColumnDef<TaskRow>[] = [
     },
   },
   {
+    id: "milestone",
+    accessorFn: (row) => row.milestoneTitle,
+    header: ({ column }) => <SortHeader label="Milestone" column={column} />,
+    cell: ({ row }) => {
+      const title = row.original.milestoneTitle
+      if (!title) return <span className="text-muted-foreground">-</span>
+      return <span className="truncate text-muted-foreground">{title}</span>
+    },
+  },
+  {
     id: "due_date",
     accessorFn: (row) => row.task.due_date ?? "",
     header: ({ column }) => <SortHeader label="Due Date" column={column} />,
@@ -201,6 +212,14 @@ export function TasksPage() {
     },
   )
 
+  const { data: milestones } = useFrappeGetDocList<HiveMilestone>(
+    "Hive Milestone",
+    {
+      fields: ["name", "title"],
+      limit: 500,
+    },
+  )
+
   const { call: callAssignees, result: assigneesResult } = useFrappePostCall<{
     message: Record<string, HiveTaskAssignee[]>
   }>("bwh_hive.bwh_hive.api.get_task_assignees")
@@ -221,6 +240,16 @@ export function TasksPage() {
     return map
   }, [projects])
 
+  const milestoneMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    if (milestones) {
+      for (const m of milestones) {
+        map[m.name] = m.title
+      }
+    }
+    return map
+  }, [milestones])
+
   const tableData = useMemo<TaskRow[]>(() => {
     if (!tasks) return []
     return tasks
@@ -240,9 +269,10 @@ export function TasksPage() {
       .map((task) => ({
         task,
         projectTitle: projectMap[task.project] ?? task.project,
+        milestoneTitle: task.milestone ? (milestoneMap[task.milestone] ?? "") : "",
         assignees: assigneesByTask[task.name] ?? [],
       }))
-  }, [tasks, search, statusFilter, priorityFilter, projectFilter, projectMap, assigneesByTask])
+  }, [tasks, search, statusFilter, priorityFilter, projectFilter, projectMap, milestoneMap, assigneesByTask])
 
   const table = useReactTable({
     data: tableData,
@@ -334,7 +364,7 @@ export function TasksPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                {["Task", "Project", "Status", "Priority", "Due Date", "Assignees"].map((h) => (
+                {["Task", "Project", "Status", "Priority", "Size", "Milestone", "Due Date", "Assignees"].map((h) => (
                   <TableHead key={h}>{h}</TableHead>
                 ))}
               </TableRow>
@@ -346,6 +376,8 @@ export function TasksPage() {
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="size-6 rounded-full" /></TableCell>
                 </TableRow>

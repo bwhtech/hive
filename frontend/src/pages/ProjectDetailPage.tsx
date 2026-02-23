@@ -211,6 +211,11 @@ export function ProjectDetailPage() {
   }
 
   const handleTaskClick = (task: HiveTask) => {
+    // Blur the draggable card so the sheet's focus manager doesn't
+    // conflict with aria-hidden applied to the kanban board
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
     setSelectedTask(task)
     setSheetOpen(true)
     setSearchParams((prev) => {

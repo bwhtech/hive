@@ -303,43 +303,32 @@ export function ProfileSection() {
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="full_name" className="text-xs">
-                  Full Name
-                </Label>
-                <Input
-                  id="full_name"
-                  value={form.full_name}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Auto-generated from first and last name.
-                </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="full_name" className="text-xs">
+                    Full Name
+                  </Label>
+                  <Input
+                    id="full_name"
+                    value={form.full_name}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="designation" className="text-xs">
+                    Designation
+                  </Label>
+                  <Input
+                    id="designation"
+                    placeholder="e.g. CEO, Designer"
+                    value={form.designation}
+                    onChange={(e) =>
+                      handleChange("designation", e.target.value)
+                    }
+                  />
+                </div>
               </div>
-            </div>
-          </div>
-
-          {/* Designation */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold">Designation</h3>
-              <p className="text-xs text-muted-foreground">
-                Your role or title visible to other team members.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="designation" className="text-xs">
-                Designation
-              </Label>
-              <Input
-                id="designation"
-                placeholder="e.g. Project Manager, Designer, Developer"
-                value={form.designation}
-                onChange={(e) =>
-                  handleChange("designation", e.target.value)
-                }
-              />
             </div>
           </div>
         </div>

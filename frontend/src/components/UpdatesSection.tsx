@@ -18,6 +18,7 @@ import {
   FileEditIcon,
   ArrowUpRight01Icon,
 } from "@hugeicons/core-free-icons"
+import { Spinner } from "@/components/ui/spinner"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   Tooltip,
@@ -277,9 +278,9 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
             onSubmit={handlePost}
           />
           <div className="flex items-center justify-between mt-3">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
               {autoSaveStatus === "saving"
-                ? "Saving..."
+                ? <><Spinner className="size-3" /> Saving...</>
                 : autoSaveStatus === "saved"
                   ? "Auto-saved"
                   : `${navigator.platform.includes("Mac") ? "\u2318" : "Ctrl"}+Enter to post`}

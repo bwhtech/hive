@@ -421,13 +421,13 @@ export function ProjectDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
+      <div className="flex items-start justify-between gap-2 sm:gap-4">
+        <div className="flex items-start gap-3 min-w-0">
           <Button variant="ghost" size="icon-sm" render={<Link to="/projects" />} className="mt-0.5">
             <HugeiconsIcon icon={ArrowLeft02Icon} strokeWidth={2} />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight truncate">{project.title}</h1>
             <div className="mt-1 flex items-center gap-2">
               <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                 {project.status}
@@ -542,7 +542,7 @@ export function ProjectDetailPage() {
             }
           >
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
-            Add Task
+            <span className="hidden sm:inline">Add Task</span>
             <Kbd keys={["T"]} className="pointer-events-none ml-1 hidden sm:inline-flex" />
           </TooltipTrigger>
           <TooltipContent>Create a new task (T)</TooltipContent>

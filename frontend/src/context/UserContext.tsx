@@ -44,6 +44,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     currentUser ? undefined : null,
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
     }
   )
 

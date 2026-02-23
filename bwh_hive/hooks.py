@@ -260,6 +260,12 @@ fixtures = [
 	}
 ]
 
+user_invitation = {
+	"allowed_roles": {
+		"Hive Team": ["Hive Team", "Hive Client"],
+	},
+}
+
 sqlite_search = ["bwh_hive.search.HiveSearch"]
 
 website_route_rules = [

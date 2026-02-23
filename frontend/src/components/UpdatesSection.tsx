@@ -99,7 +99,7 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
   const { createDoc } = useFrappeCreateDoc()
   const { updateDoc } = useFrappeUpdateDoc()
   const { deleteDoc } = useFrappeDeleteDoc()
-  const { call: callMethod } = useFrappePostCall("run_doc_method")
+  const { call: callMethod } = useFrappePostCall("frappe.client.run_doc_method")
   const { call: publishCall } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.publish_update",
   )

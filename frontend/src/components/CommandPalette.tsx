@@ -66,7 +66,7 @@ export function CommandPalette({
   const { data: searchData } = useFrappeGetCall<{
     message: { projects: ProjectResult[]; tasks: TaskResult[] }
   }>(
-    shouldSearch ? "bwh_hive.bwh_hive.api.search" : null,
+    "bwh_hive.bwh_hive.api.search",
     shouldSearch
       ? {
           query: query.trim(),
@@ -74,7 +74,7 @@ export function CommandPalette({
           limit: 8,
         }
       : undefined,
-    undefined,
+    shouldSearch ? undefined : null,
     { revalidateOnFocus: false },
   )
 

@@ -20,6 +20,11 @@ import {
 } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -501,6 +506,23 @@ function DraftCard({
   )
 }
 
+function formatReactorNames(users: string[], currentUser: string): string {
+  const names = users.map((email) => {
+    if (email === currentUser) return "You"
+    const prefix = email.split("@")[0]
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1)
+  })
+  // Move "You" to the end if present
+  const youIndex = names.indexOf("You")
+  if (youIndex > -1) {
+    names.splice(youIndex, 1)
+    names.push("You")
+  }
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`
+}
+
 function UpdateCard({
   update,
   isUnread,
@@ -569,18 +591,26 @@ function UpdateCard({
               {Object.entries(reactionGroups).map(([emoji, users]) => {
                 const hasReacted = users.includes(currentUser)
                 return (
-                  <button
-                    key={emoji}
-                    onClick={() => handleReactionClick(emoji)}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-muted ${
-                      hasReacted
-                        ? "border-primary/40 bg-primary/5"
-                        : "border-border"
-                    }`}
-                  >
-                    <span>{emoji}</span>
-                    <span className="text-muted-foreground">{users.length}</span>
-                  </button>
+                  <Tooltip key={emoji}>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          onClick={() => handleReactionClick(emoji)}
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-muted ${
+                            hasReacted
+                              ? "border-primary/40 bg-primary/5"
+                              : "border-border"
+                          }`}
+                        />
+                      }
+                    >
+                      <span>{emoji}</span>
+                      <span className="text-muted-foreground">{users.length}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {formatReactorNames(users, currentUser)}
+                    </TooltipContent>
+                  </Tooltip>
                 )
               })}
 

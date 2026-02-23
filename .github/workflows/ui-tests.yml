@@ -102,6 +102,12 @@ jobs:
           bench --site hive.test set-config allow_tests true
           bench --site hive.test set-config host_name "http://hive.test:8000"
 
+      - name: Seed Test Data
+        working-directory: /home/runner/frappe-bench
+        run: |
+          bench --site hive.test execute frappe.utils.password.update_password --args "['Administrator', 'admin']"
+          bench --site hive.test execute bwh_hive.e2e_seed.setup_e2e_data
+
       - name: Start Frappe Server
         working-directory: /home/runner/frappe-bench
         run: |
@@ -126,6 +132,8 @@ jobs:
           SITE_HOST: hive.test:8000
           FRAPPE_USER: Administrator
           FRAPPE_PASSWORD: admin
+          CLIENT_USER: clientuser@example.com
+          CLIENT_PASSWORD: admin
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4

@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
-import { Link } from "react-router"
+import { Link, useOutletContext } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Folder01Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { Folder01Icon, Search01Icon, Add01Icon } from "@hugeicons/core-free-icons"
+import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/empty"
 
 export function ProjectsPage() {
+  const { openCreateProject } = useOutletContext<{ openCreateProject: () => void }>()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
@@ -51,9 +53,15 @@ export function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-        <p className="mt-1 text-muted-foreground">Manage your projects.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
+          <p className="mt-1 text-muted-foreground">Manage your projects.</p>
+        </div>
+        <Button onClick={openCreateProject}>
+          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-4" />
+          New Project
+        </Button>
       </div>
 
       {/* Search & Filter */}

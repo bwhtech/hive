@@ -1,6 +1,7 @@
 import {
   useFrappeGetDocList,
   useFrappeCreateDoc,
+  useFrappeUpdateDoc,
 } from "frappe-react-sdk"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -9,6 +10,7 @@ import {
   Add01Icon,
   ArrowLeft01Icon,
   Building06Icon,
+  Cancel01Icon,
 } from "@hugeicons/core-free-icons"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -24,6 +26,13 @@ import {
   ItemGroup,
 } from "@/components/ui/item"
 import { MemberAvatar } from "@/components/MemberAvatar"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface HiveClient {
   name: string
@@ -170,7 +179,11 @@ function ClientMembersView({
   clientName: string
   onBack: () => void
 }) {
-  const { data: members, isLoading } = useFrappeGetDocList<HiveMember>(
+  const {
+    data: members,
+    isLoading,
+    mutate: mutateMembers,
+  } = useFrappeGetDocList<HiveMember>(
     "Hive Member",
     {
       fields: [
@@ -190,6 +203,55 @@ function ClientMembersView({
     },
   )
 
+  const {
+    data: allMembers,
+    mutate: mutateAll,
+  } = useFrappeGetDocList<HiveMember>(
+    "Hive Member",
+    {
+      fields: ["name", "user", "member_name", "user_image", "type", "designation"],
+      filters: [["is_active", "=", 1]],
+      limit_page_length: 0,
+    },
+  )
+
+  const assignedNames = new Set(members?.map((m) => m.name) ?? [])
+  const availableMembers = allMembers?.filter((m) => !assignedNames.has(m.name)) ?? []
+
+  const { updateDoc } = useFrappeUpdateDoc()
+
+  const refreshAll = () => {
+    mutateMembers()
+    mutateAll()
+  }
+
+  const handleAssign = async (memberName: string) => {
+    try {
+      await updateDoc("Hive Member", memberName, {
+        type: "Client",
+        client: clientName,
+      })
+      toast.success("Member assigned to client")
+      refreshAll()
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to assign member"
+      toast.error(message)
+    }
+  }
+
+  const handleRemove = async (memberName: string) => {
+    try {
+      await updateDoc("Hive Member", memberName, { client: "" })
+      toast.success("Member removed from client")
+      refreshAll()
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to remove member"
+      toast.error(message)
+    }
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
       <div className="flex items-center gap-2">
@@ -202,6 +264,27 @@ function ClientMembersView({
         </Button>
         <h3 className="text-sm font-semibold">{clientName}</h3>
       </div>
+
+      {/* Assign members to this client */}
+      {availableMembers.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Add Member
+          </h4>
+          <Select onValueChange={handleAssign}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a member to assign..." />
+            </SelectTrigger>
+            <SelectContent>
+              {availableMembers.map((m) => (
+                <SelectItem key={m.name} value={m.name}>
+                  {m.member_name || m.user}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-3">
         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -232,6 +315,19 @@ function ClientMembersView({
                     {member.user}
                   </ItemDescription>
                 </ItemContent>
+                <ItemActions>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemove(member.name)}
+                  >
+                    <HugeiconsIcon
+                      icon={Cancel01Icon}
+                      strokeWidth={2}
+                      className="size-4"
+                    />
+                  </Button>
+                </ItemActions>
               </Item>
             ))}
           </ItemGroup>

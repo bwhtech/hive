@@ -85,6 +85,10 @@ export function AppLayout() {
     }
   }, [navigate])
 
+  const handleCmdkCreateFeatureRequest = useCallback((projectId: string) => {
+    navigate(`/projects/${projectId}?tab=requests&create_feature_request=1`)
+  }, [navigate])
+
   return (
     <SidebarProvider>
       <AppSidebar openSettings={openSettings} />
@@ -106,6 +110,7 @@ export function AppLayout() {
         onOpenSettings={openSettings}
         onCreateProject={() => setCreateProjectOpen(true)}
         onCreateTask={handleCmdkCreateTask}
+        onCreateFeatureRequest={handleCmdkCreateFeatureRequest}
       />
       <CreateProjectDialog
         open={createProjectOpen}

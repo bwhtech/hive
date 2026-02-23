@@ -59,10 +59,18 @@ import { FEATURE_REQUEST_STATUS_VARIANT, FEATURE_REQUEST_PRIORITY_VARIANT } from
 
 interface FeatureRequestSectionProps {
   projectId: string
+  createOpen?: boolean
+  onCreateOpenChange?: (open: boolean) => void
 }
 
-export function FeatureRequestSection({ projectId }: FeatureRequestSectionProps) {
-  const [createOpen, setCreateOpen] = useState(false)
+export function FeatureRequestSection({
+  projectId,
+  createOpen: controlledCreateOpen,
+  onCreateOpenChange,
+}: FeatureRequestSectionProps) {
+  const [internalCreateOpen, setInternalCreateOpen] = useState(false)
+  const createOpen = controlledCreateOpen ?? internalCreateOpen
+  const setCreateOpen = onCreateOpenChange ?? setInternalCreateOpen
 
   const { data: requests, mutate } = useFrappeGetDocList<HiveFeatureRequest>(
     "Hive Feature Request",

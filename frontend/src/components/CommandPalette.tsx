@@ -10,6 +10,7 @@ import {
   Settings01Icon,
   Add01Icon,
   FolderAddIcon,
+  Idea01Icon,
 } from "@hugeicons/core-free-icons"
 import {
   CommandDialog,
@@ -29,6 +30,7 @@ interface CommandPaletteProps {
   onOpenSettings: (tab?: string) => void
   onCreateProject: () => void
   onCreateTask: (projectId: string | null) => void
+  onCreateFeatureRequest: (projectId: string) => void
 }
 
 interface TaskResult {
@@ -52,6 +54,7 @@ export function CommandPalette({
   onOpenSettings,
   onCreateProject,
   onCreateTask,
+  onCreateFeatureRequest,
 }: CommandPaletteProps) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -211,6 +214,22 @@ export function CommandPalette({
               />
               <span>New Project</span>
             </CommandItem>
+            {currentProjectId && (
+              <CommandItem
+                value="new feature request"
+                keywords={["new", "create", "add", "feature", "request", "idea"]}
+                onSelect={() =>
+                  runCommand(() => onCreateFeatureRequest(currentProjectId))
+                }
+              >
+                <HugeiconsIcon
+                  icon={Idea01Icon}
+                  strokeWidth={2}
+                  className="size-4"
+                />
+                <span>New Feature Request</span>
+              </CommandItem>
+            )}
           </CommandGroup>
           <CommandSeparator />
 

@@ -64,6 +64,7 @@ export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const [createOpen, setCreateOpen] = useState(false)
+  const [createFeatureRequestOpen, setCreateFeatureRequestOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -84,11 +85,21 @@ export function ProjectDetailPage() {
   // Track task name from URL that needs to be opened once tasks load
   const [pendingTaskName, setPendingTaskName] = useState<string | null>(taskParam)
 
-  // Auto-open create task dialog from ?create_task=1 (e.g. from CMD K)
+  // Auto-open create dialogs from query params (e.g. from CMD K)
   useEffect(() => {
     if (searchParams.get("create_task") === "1") {
       setCreateOpen(true)
       setSearchParams({}, { replace: true })
+    }
+    if (searchParams.get("create_feature_request") === "1") {
+      setActiveTab("requests")
+      setCreateFeatureRequestOpen(true)
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("create_feature_request")
+        next.delete("tab")
+        return next
+      }, { replace: true })
     }
     // Clear tab param from URL after consuming it
     if (searchParams.get("tab")) {
@@ -478,7 +489,13 @@ export function ProjectDetailPage() {
         {/* Feature Requests Tab */}
         <TabsContent value="requests">
           <div className="pt-2">
-            {id && <FeatureRequestSection projectId={id} />}
+            {id && (
+              <FeatureRequestSection
+                projectId={id}
+                createOpen={createFeatureRequestOpen}
+                onCreateOpenChange={setCreateFeatureRequestOpen}
+              />
+            )}
           </div>
         </TabsContent>
       </Tabs>

@@ -121,6 +121,24 @@ function MemberCard({
               />
             </div>
 
+            {/* Task counts */}
+            <div className="mt-4 flex divide-x rounded-lg border">
+              <div className="flex-1 py-2.5 text-center">
+                <p className="text-xl font-semibold">{member.wip_count}</p>
+                <p className="text-[11px] text-muted-foreground">Active</p>
+              </div>
+              <div className="flex-1 py-2.5 text-center">
+                <p className="text-xl font-semibold">{member.backlog_count}</p>
+                <p className="text-[11px] text-muted-foreground">Backlog</p>
+              </div>
+              {member.blocked_count > 0 && (
+                <div className="flex-1 py-2.5 text-center">
+                  <p className="text-xl font-semibold text-destructive">{member.blocked_count}</p>
+                  <p className="text-[11px] text-destructive/70">Blocked</p>
+                </div>
+              )}
+            </div>
+
             {/* Trend indicator */}
             {member.trend !== "stable" && (
               <div className="mt-3 flex items-center gap-1.5">
@@ -141,24 +159,6 @@ function MemberCard({
                 </Tooltip>
               </div>
             )}
-
-            {/* Task counts */}
-            <div className="mt-4 flex divide-x rounded-lg border">
-              <div className="flex-1 py-2.5 text-center">
-                <p className="text-xl font-semibold">{member.wip_count}</p>
-                <p className="text-[11px] text-muted-foreground">Active</p>
-              </div>
-              <div className="flex-1 py-2.5 text-center">
-                <p className="text-xl font-semibold">{member.backlog_count}</p>
-                <p className="text-[11px] text-muted-foreground">Backlog</p>
-              </div>
-              {member.blocked_count > 0 && (
-                <div className="flex-1 py-2.5 text-center">
-                  <p className="text-xl font-semibold text-destructive">{member.blocked_count}</p>
-                  <p className="text-[11px] text-destructive/70">Blocked</p>
-                </div>
-              )}
-            </div>
           </CollapsibleTrigger>
 
           <CollapsibleContent>

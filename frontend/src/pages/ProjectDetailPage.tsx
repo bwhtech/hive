@@ -552,7 +552,7 @@ export function ProjectDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList variant="line">
+        <TabsList variant="line" className="w-full overflow-x-auto [scrollbar-width:none]">
           <TabsTrigger value="overview">
             <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
             Overview

@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { cleanupTestFeatureRequests, listFeatureRequests } from "../helpers/hive";
+
+const FR_TEST_PREFIX = "E2E Client FR";
 
 test.describe("Client Experience", () => {
 	test("should only see projects assigned to their client", async ({
@@ -176,5 +179,62 @@ test.describe("Client Experience", () => {
 		await expect(
 			page.locator('button:has-text("Approve")').first(),
 		).toBeVisible();
+	});
+
+	test("should be able to create a feature request", async ({
+		page,
+		request,
+	}) => {
+		const frTitle = `${FR_TEST_PREFIX} ${Date.now()}`;
+
+		// Cleanup any leftover test feature requests (uses admin auth)
+		await cleanupTestFeatureRequests(request, FR_TEST_PREFIX);
+
+		// Navigate to the client's project
+		await page.goto("/frontend/projects");
+		await page.waitForLoadState("networkidle");
+		await page.locator("text=Website Redesign").first().click();
+		await page.waitForLoadState("networkidle");
+
+		// Click the Requests tab
+		const requestsTab = page.locator('[role="tab"]:has-text("Requests")');
+		await expect(requestsTab.first()).toBeVisible({ timeout: 10000 });
+		await requestsTab.first().click();
+		await page.waitForLoadState("networkidle");
+
+		// Click "New Request" button
+		await page.locator('button:has-text("New Request")').click();
+
+		// Fill in the feature request form
+		await expect(page.locator("text=New Feature Request")).toBeVisible({ timeout: 5000 });
+		await page.locator("#fr-title").fill(frTitle);
+
+		// Select "Important" priority
+		await page.locator('[data-slot="select-trigger"]').click();
+		await page.locator('[data-slot="select-item"]:has-text("Important")').click();
+
+		// Submit the request
+		await page.locator('button:has-text("Submit Request")').click();
+
+		// Verify the request appears in the table
+		await expect(
+			page.locator(`text=${frTitle}`).first(),
+		).toBeVisible({ timeout: 10000 });
+
+		// Verify the status badge shows "Open"
+		const requestRow = page.locator("tr").filter({ hasText: frTitle });
+		await expect(requestRow.locator("text=Open")).toBeVisible();
+		await expect(requestRow.locator("text=Important")).toBeVisible();
+
+		// Verify the request was created in the backend
+		const requests = await listFeatureRequests(request, {
+			filters: { title: frTitle },
+		});
+		expect(requests.length).toBe(1);
+		expect(requests[0].status).toBe("Open");
+		expect(requests[0].priority).toBe("Important");
+
+		// Cleanup
+		await cleanupTestFeatureRequests(request, FR_TEST_PREFIX);
 	});
 });

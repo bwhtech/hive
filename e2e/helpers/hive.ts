@@ -2,6 +2,21 @@ import { APIRequestContext } from "@playwright/test";
 import { createDoc, deleteDoc, getDoc, getList } from "./frappe";
 
 /**
+ * Hive Feature Request document interface.
+ */
+export interface HiveFeatureRequest {
+	name: string;
+	title: string;
+	project: string;
+	requested_by: string;
+	status: string;
+	priority: string;
+	description?: string;
+	creation?: string;
+	modified?: string;
+}
+
+/**
  * Hive Project document interface.
  */
 export interface HiveProject {
@@ -129,6 +144,54 @@ export async function deleteTestTask(
 	name: string,
 ): Promise<void> {
 	await deleteDoc(request, "Hive Task", name);
+}
+
+/**
+ * List feature requests for a project via API.
+ */
+export async function listFeatureRequests(
+	request: APIRequestContext,
+	options: {
+		filters?: Record<string, unknown>;
+		limit?: number;
+	} = {},
+): Promise<HiveFeatureRequest[]> {
+	return getList<HiveFeatureRequest>(request, "Hive Feature Request", {
+		fields: ["name", "title", "project", "requested_by", "status", "priority", "creation"],
+		filters: options.filters,
+		limit: options.limit,
+	});
+}
+
+/**
+ * Delete a test feature request via API.
+ */
+export async function deleteTestFeatureRequest(
+	request: APIRequestContext,
+	name: string,
+): Promise<void> {
+	await deleteDoc(request, "Hive Feature Request", name);
+}
+
+/**
+ * Cleanup test feature requests matching a title pattern.
+ */
+export async function cleanupTestFeatureRequests(
+	request: APIRequestContext,
+	titlePattern: string,
+): Promise<void> {
+	const requests = await listFeatureRequests(request, {
+		filters: { title: ["like", `${titlePattern}%`] },
+		limit: 100,
+	});
+
+	for (const req of requests) {
+		try {
+			await deleteTestFeatureRequest(request, req.name);
+		} catch (error) {
+			console.warn(`Failed to delete feature request ${req.name}:`, error);
+		}
+	}
 }
 
 /**

@@ -16,7 +16,7 @@ setup("authenticate as client", async ({ page }) => {
 	}
 
 	const usr = process.env.CLIENT_USER || "clientuser@example.com";
-	const pwd = process.env.CLIENT_PASSWORD || "Cl!ent2024#Secure";
+	const pwd = process.env.CLIENT_PASSWORD || "admin";
 
 	// Navigate to login page first to establish the domain context
 	await page.goto("/login");

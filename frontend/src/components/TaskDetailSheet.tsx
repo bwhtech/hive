@@ -45,6 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
+import { useUser } from "@/context/UserContext"
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember, type HiveMilestone } from "@/types"
 
 interface TaskDetailSheetProps {
@@ -68,6 +69,7 @@ interface TaskAssigneeRow {
 
 export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDetailSheetProps) {
   const isMobile = useIsMobile()
+  const { isClient } = useUser()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("Backlog")
@@ -216,72 +218,94 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         {/* Title */}
         <div className="grid gap-2">
           <Label htmlFor="task-detail-title">Title</Label>
-          <Input
-            id="task-detail-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+          {isClient ? (
+            <p className="text-sm py-1">{title}</p>
+          ) : (
+            <Input
+              id="task-detail-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          )}
         </div>
 
         {/* Status, Priority & Size */}
         <div className="grid grid-cols-3 gap-4">
           <div className="grid gap-2">
             <Label>Status</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TASK_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-                <SelectItem value="Blocked">Blocked</SelectItem>
-              </SelectContent>
-            </Select>
+            {isClient ? (
+              <Badge variant="outline" className="w-fit">{status}</Badge>
+            ) : (
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TASK_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                  <SelectItem value="Blocked">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="grid gap-2">
             <Label>Priority</Label>
-            <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TASK_PRIORITIES.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isClient ? (
+              <Badge variant="outline" className="w-fit">{priority}</Badge>
+            ) : (
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TASK_PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="grid gap-2">
             <Label>Size</Label>
-            <Select value={size} onValueChange={setSize}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="None" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">None</SelectItem>
-                {TASK_SIZES.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isClient ? (
+              <Badge variant="outline" className="w-fit">{size || "None"}</Badge>
+            ) : (
+              <Select value={size} onValueChange={setSize}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {TASK_SIZES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
         {/* Milestone */}
         <div className="grid gap-2">
           <Label>Milestone</Label>
-          <Select value={milestone} onValueChange={setMilestone}>
-            <SelectTrigger className="w-full">
-              <span>{milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">None</SelectItem>
-              {projectMilestones?.map((ms) => (
-                <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isClient ? (
+            <p className="text-sm text-muted-foreground py-1">
+              {milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}
+            </p>
+          ) : (
+            <Select value={milestone} onValueChange={setMilestone}>
+              <SelectTrigger className="w-full">
+                <span>{milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {projectMilestones?.map((ms) => (
+                  <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Assignees */}
@@ -295,49 +319,56 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
               >
                 <MemberAvatar size="sm" name={a.member_name || a.member} image={a.user_image} />
                 <span className="truncate max-w-[120px]">{a.member_name || a.member}</span>
-                <button
-                  type="button"
-                  onClick={() => removeAssignee(a.member)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <HugeiconsIcon icon={Cancel02Icon} strokeWidth={2} className="size-3.5" />
-                </button>
+                {!isClient && (
+                  <button
+                    type="button"
+                    onClick={() => removeAssignee(a.member)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <HugeiconsIcon icon={Cancel02Icon} strokeWidth={2} className="size-3.5" />
+                  </button>
+                )}
               </div>
             ))}
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" />
-                }
-              >
-                <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
-                Add
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="start">
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {allMembers?.length ? (
-                    allMembers.map((m) => (
-                      <button
-                        key={m.name}
-                        type="button"
-                        onClick={() => toggleAssignee(m)}
-                        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
-                          assignedMemberNames.has(m.name) ? "bg-muted" : ""
-                        }`}
-                      >
-                        <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
-                        <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
-                        {assignedMemberNames.has(m.name) && (
-                          <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
-                        )}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground px-2 py-1">No members found</p>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
+            {assignees.length === 0 && isClient && (
+              <p className="text-sm text-muted-foreground">None</p>
+            )}
+            {!isClient && (
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" />
+                  }
+                >
+                  <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
+                  Add
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2" align="start">
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {allMembers?.length ? (
+                      allMembers.map((m) => (
+                        <button
+                          key={m.name}
+                          type="button"
+                          onClick={() => toggleAssignee(m)}
+                          className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
+                            assignedMemberNames.has(m.name) ? "bg-muted" : ""
+                          }`}
+                        >
+                          <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
+                          <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
+                          {assignedMemberNames.has(m.name) && (
+                            <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground px-2 py-1">No members found</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         </div>
 
@@ -345,42 +376,72 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
             <Label>Start Date</Label>
-            <DatePicker date={startDate} onSelect={setStartDate} />
+            {isClient ? (
+              <p className="text-sm text-muted-foreground py-1">
+                {startDate ? format(startDate, "MMM d, yyyy") : "Not set"}
+              </p>
+            ) : (
+              <DatePicker date={startDate} onSelect={setStartDate} />
+            )}
           </div>
           <div className="grid gap-2">
             <Label>Due Date</Label>
-            <DatePicker date={dueDate} onSelect={setDueDate} />
+            {isClient ? (
+              <p className="text-sm text-muted-foreground py-1">
+                {dueDate ? format(dueDate, "MMM d, yyyy") : "Not set"}
+              </p>
+            ) : (
+              <DatePicker date={dueDate} onSelect={setDueDate} />
+            )}
           </div>
         </div>
 
         {/* PR Link */}
         <div className="grid gap-2">
           <Label htmlFor="task-pr-link">PR Link</Label>
-          <div className="relative">
-            <HugeiconsIcon
-              icon={Link04Icon}
-              strokeWidth={2}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
-            />
-            <Input
-              id="task-pr-link"
-              placeholder="https://github.com/..."
-              value={prLink}
-              onChange={(e) => setPrLink(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+          {isClient ? (
+            prLink ? (
+              <a href={prLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
+                {prLink}
+              </a>
+            ) : (
+              <p className="text-sm text-muted-foreground py-1">None</p>
+            )
+          ) : (
+            <div className="relative">
+              <HugeiconsIcon
+                icon={Link04Icon}
+                strokeWidth={2}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+              />
+              <Input
+                id="task-pr-link"
+                placeholder="https://github.com/..."
+                value={prLink}
+                onChange={(e) => setPrLink(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          )}
         </div>
 
         {/* Description */}
         <div className="grid gap-2">
           <Label>Description</Label>
-          <TiptapEditor
-            key={task.name}
-            content={task.description || ""}
-            onChange={setDescription}
-            placeholder="Add a description..."
-          />
+          {isClient ? (
+            task.description ? (
+              <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: task.description }} />
+            ) : (
+              <p className="text-sm text-muted-foreground py-1">No description</p>
+            )
+          ) : (
+            <TiptapEditor
+              key={task.name}
+              content={task.description || ""}
+              onChange={setDescription}
+              placeholder="Add a description..."
+            />
+          )}
         </div>
 
         {/* UAT Section */}
@@ -424,7 +485,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
     </ScrollArea>
   )
 
-  const saveButton = (
+  const saveButton = isClient ? null : (
     <Button onClick={handleSave} disabled={saving || !title.trim()} className="w-full">
       {saving ? <><Spinner className="mr-1.5" /> Saving...</> : "Save Changes"}
     </Button>
@@ -439,9 +500,11 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             <DrawerDescription>{task.name}</DrawerDescription>
           </DrawerHeader>
           {formContent}
-          <DrawerFooter>
-            {saveButton}
-          </DrawerFooter>
+          {saveButton && (
+            <DrawerFooter>
+              {saveButton}
+            </DrawerFooter>
+          )}
         </DrawerContent>
       </Drawer>
     )
@@ -455,9 +518,11 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
           <SheetDescription>{task.name}</SheetDescription>
         </SheetHeader>
         {formContent}
-        <SheetFooter>
-          {saveButton}
-        </SheetFooter>
+        {saveButton && (
+          <SheetFooter>
+            {saveButton}
+          </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   )

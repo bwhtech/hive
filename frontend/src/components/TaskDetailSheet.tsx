@@ -213,7 +213,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   const assignedMemberNames = new Set(assignees.map((a) => a.member))
 
   const formContent = (
-    <ScrollArea className="flex-1 overflow-auto">
+    <ScrollArea className="h-0 flex-1">
       <div className="grid gap-5 px-6 py-4">
         {/* Title */}
         <div className="grid gap-2">

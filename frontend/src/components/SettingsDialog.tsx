@@ -20,6 +20,7 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { ProfileSection } from "@/components/settings/ProfileSection"
 import { GeneralSection } from "@/components/settings/GeneralSection"
@@ -105,32 +106,37 @@ function SettingsContent({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <TabsContent
-          value="profile"
-          className="flex flex-1 flex-col overflow-hidden m-0"
-        >
-          <ProfileSection />
-        </TabsContent>
-        <TabsContent
-          value="general"
-          className="flex flex-1 flex-col overflow-hidden m-0"
-        >
-          <GeneralSection />
-        </TabsContent>
-        <TabsContent
-          value="members"
-          className="flex flex-1 flex-col overflow-hidden m-0"
-        >
-          <MembersSection />
-        </TabsContent>
-        <TabsContent
-          value="clients"
-          className="flex flex-1 flex-col overflow-hidden m-0"
-        >
-          <ClientsSection />
-        </TabsContent>
-      </div>
+      {isMobile ? (
+        <ScrollArea className="h-0 flex-1">
+          <TabsContent value="profile" className="flex flex-col m-0">
+            <ProfileSection />
+          </TabsContent>
+          <TabsContent value="general" className="flex flex-col m-0">
+            <GeneralSection />
+          </TabsContent>
+          <TabsContent value="members" className="flex flex-col m-0">
+            <MembersSection />
+          </TabsContent>
+          <TabsContent value="clients" className="flex flex-col m-0">
+            <ClientsSection />
+          </TabsContent>
+        </ScrollArea>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <TabsContent value="profile" className="flex flex-1 flex-col overflow-hidden m-0">
+            <ProfileSection />
+          </TabsContent>
+          <TabsContent value="general" className="flex flex-1 flex-col overflow-hidden m-0">
+            <GeneralSection />
+          </TabsContent>
+          <TabsContent value="members" className="flex flex-1 flex-col overflow-hidden m-0">
+            <MembersSection />
+          </TabsContent>
+          <TabsContent value="clients" className="flex flex-1 flex-col overflow-hidden m-0">
+            <ClientsSection />
+          </TabsContent>
+        </div>
+      )}
     </Tabs>
   )
 }
@@ -158,7 +164,7 @@ export function SettingsDialog({
               Application settings
             </DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <SettingsContent
               activeTab={activeTab}
               onTabChange={onTabChange}

@@ -439,7 +439,7 @@ function DraftCard({
           </div>
         ) : (
           <div
-            className="text-sm prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+            className="text-sm tiptap-content max-w-none"
             dangerouslySetInnerHTML={{ __html: draft.content }}
           />
         )}
@@ -560,7 +560,7 @@ function UpdateCard({
               )}
             </div>
             <div
-              className="mt-1.5 text-sm prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+              className="mt-1.5 text-sm tiptap-content max-w-none"
               dangerouslySetInnerHTML={{ __html: update.content }}
             />
 

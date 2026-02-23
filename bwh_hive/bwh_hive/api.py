@@ -4,6 +4,40 @@ import frappe
 from frappe.utils import getdate, nowdate
 
 
+@frappe.whitelist(methods=["POST"])
+def invite_client_member(email: str, client: str):
+	"""Invite a user as a Hive Client member and pre-link them to a client org.
+
+	Sends the standard Frappe invitation email, then stamps the User Invitation
+	with the hive_client field so the on_update hook auto-assigns the client
+	when the invitation is accepted.
+	"""
+	from frappe.core.api.user_invitation import invite_by_email
+
+	if not frappe.db.exists("Hive Client", client):
+		frappe.throw(f"Client '{client}' does not exist")
+
+	result = invite_by_email(
+		emails=email,
+		roles=["Hive Client"],
+		redirect_to_path="/frontend",
+		app_name="bwh_hive",
+	)
+
+	# Stamp hive_client on the newly created invitation
+	invited = result.get("invited_emails") or []
+	if invited:
+		inv_name = frappe.db.get_value(
+			"User Invitation",
+			{"email": email, "status": "Pending", "app_name": "bwh_hive"},
+			"name",
+		)
+		if inv_name:
+			frappe.db.set_value("User Invitation", inv_name, "hive_client", client)
+
+	return result
+
+
 @frappe.whitelist()
 def get_my_dashboard():
 	"""Return aggregated personal dashboard data: my tasks, my projects, unread updates."""

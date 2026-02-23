@@ -252,6 +252,13 @@ require_type_annotated_api_methods = True
 # ignore_translatable_strings_from = []
 
 
+fixtures = [
+	{
+		"dt": "Custom Field",
+		"filters": [["module", "=", "BWH Hive"]],
+	}
+]
+
 sqlite_search = ["bwh_hive.search.HiveSearch"]
 
 website_route_rules = [

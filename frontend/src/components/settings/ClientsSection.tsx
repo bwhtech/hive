@@ -2,6 +2,7 @@ import {
   useFrappeGetDocList,
   useFrappeCreateDoc,
   useFrappeUpdateDoc,
+  useFrappePostCall,
 } from "frappe-react-sdk"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -11,12 +12,14 @@ import {
   ArrowLeft01Icon,
   Building06Icon,
   Cancel01Icon,
+  SentIcon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Item,
   ItemMedia,
@@ -233,10 +236,30 @@ function ClientMembersView({
   const availableMembers = allMembers?.filter((m) => !assignedNames.has(m.name)) ?? []
 
   const { updateDoc } = useFrappeUpdateDoc()
+  const { call: inviteClientMember, loading: inviting } = useFrappePostCall(
+    "bwh_hive.bwh_hive.api.invite_client_member",
+  )
+
+  const [inviteEmail, setInviteEmail] = useState("")
 
   const refreshAll = () => {
     mutateMembers()
     mutateAll()
+  }
+
+  const handleInvite = async () => {
+    const trimmed = inviteEmail.trim()
+    if (!trimmed) return
+    try {
+      await inviteClientMember({ email: trimmed, client: clientName })
+      toast.success(`Invitation sent to ${trimmed}`)
+      setInviteEmail("")
+      refreshAll()
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to send invitation"
+      toast.error(message)
+    }
   }
 
   const handleAssign = async (memberName: string) => {
@@ -279,11 +302,53 @@ function ClientMembersView({
         <h3 className="text-sm font-semibold">{clientName}</h3>
       </div>
 
-      {/* Assign members to this client */}
+      {/* Invite new member to this client */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Invite New Member
+        </h4>
+        <div className="flex gap-2">
+          <Input
+            placeholder="email@example.com"
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleInvite()
+            }}
+            className="flex-1"
+          />
+          <Button
+            onClick={handleInvite}
+            disabled={inviting || !inviteEmail.trim()}
+            size="sm"
+          >
+            {inviting ? (
+              <>
+                <Spinner className="mr-1.5" /> Sending...
+              </>
+            ) : (
+              <>
+                <HugeiconsIcon
+                  icon={SentIcon}
+                  strokeWidth={2}
+                  className="size-4 mr-1.5"
+                />
+                Invite
+              </>
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Invited members will be auto-assigned to this client when they accept.
+        </p>
+      </div>
+
+      {/* Assign existing members to this client */}
       {availableMembers.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Add Member
+            Add Existing Member
           </h4>
           <Select onValueChange={handleAssign}>
             <SelectTrigger>

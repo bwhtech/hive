@@ -23,4 +23,9 @@ def on_user_invitation_update(doc: "frappe.types.Document", method: str) -> None
 	member.user = user
 	member.type = member_type
 	member.is_active = 1
+
+	# Auto-assign client if the invitation was sent from a client context
+	if member_type == "Client" and getattr(doc, "hive_client", None):
+		member.client = doc.hive_client
+
 	member.insert(ignore_permissions=True)

@@ -50,7 +50,7 @@ export function AppSidebar({
 }) {
   const { setOpenMobile } = useSidebar()
   const { logout } = useFrappeAuth()
-  const { user } = useUser()
+  const { user, isClient } = useUser()
   const { setTheme, resolvedTheme } = useTheme()
   const location = useLocation()
 
@@ -101,7 +101,8 @@ export function AppSidebar({
                   </SidebarMenuItem>
                 )
               })}
-              {/* Settings button — opens dialog, not a route */}
+              {/* Settings button — opens dialog, not a route (hidden for client users) */}
+              {!isClient && (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   tooltip="Settings"
@@ -118,6 +119,7 @@ export function AppSidebar({
                   <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

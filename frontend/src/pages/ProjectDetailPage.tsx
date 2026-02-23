@@ -54,6 +54,7 @@ import { FeatureRequestSection } from "@/components/FeatureRequestSection"
 import { UpdatesSection } from "@/components/UpdatesSection"
 import { OverviewTab } from "@/components/project/OverviewTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
+import { useUser } from "@/context/UserContext"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
@@ -81,6 +82,7 @@ const TASK_FIELDS = [
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const { isClient } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
   const [createOpen, setCreateOpen] = useState(false)
   const [createFeatureRequestOpen, setCreateFeatureRequestOpen] = useState(false)
@@ -88,8 +90,10 @@ export function ProjectDetailPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [milestoneFilter, setMilestoneFilter] = useState<string>("all")
 
-  // "T" keyboard shortcut to open create task dialog
-  const openCreateDialog = useCallback(() => setCreateOpen(true), [])
+  // "T" keyboard shortcut to open create task dialog (not for client users)
+  const openCreateDialog = useCallback(() => {
+    if (!isClient) setCreateOpen(true)
+  }, [isClient])
   useHotkey("t", openCreateDialog)
 
   // Sync active tab from URL (e.g. ?tab=updates from dashboard click)
@@ -511,6 +515,7 @@ export function ProjectDetailPage() {
             )}
           </div>
         </div>
+        {!isClient && (
         <Tooltip>
           <TooltipTrigger
             render={
@@ -523,6 +528,7 @@ export function ProjectDetailPage() {
           </TooltipTrigger>
           <TooltipContent>Create a new task (T)</TooltipContent>
         </Tooltip>
+        )}
       </div>
 
       {/* Tabs */}

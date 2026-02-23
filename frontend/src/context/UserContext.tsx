@@ -10,11 +10,13 @@ interface UserData {
 interface UserContextValue {
   user: UserData | null
   isLoading: boolean
+  isClient: boolean
 }
 
 const UserContext = createContext<UserContextValue>({
   user: null,
   isLoading: true,
+  isClient: false,
 })
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
@@ -33,6 +35,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   )
 
+  const { data: memberData } = useFrappeGetDoc<{
+    name: string
+    type: string
+  }>(
+    "Hive Member",
+    currentUser ?? "",
+    currentUser ? undefined : null,
+    {
+      revalidateOnFocus: false,
+    }
+  )
+
   const user: UserData | null = data
     ? {
         email: data.name,
@@ -41,8 +55,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     : null
 
+  const isClient = memberData?.type === "Client"
+
   return (
-    <UserContext.Provider value={{ user, isLoading }}>
+    <UserContext.Provider value={{ user, isLoading, isClient }}>
       {children}
     </UserContext.Provider>
   )

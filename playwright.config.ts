@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 const authFile = path.join(__dirname, "e2e", ".auth", "user.json");
+const clientAuthFile = path.join(__dirname, "e2e", ".auth", "client.json");
 
 // Frappe multisite routing requires the Host header to match the site name.
 // Node.js can't resolve .localhost TLDs, so we connect to 127.0.0.1 and set
@@ -41,7 +42,11 @@ export default defineConfig({
 	projects: [
 		{
 			name: "setup",
-			testMatch: /auth\.setup\.ts/,
+			testMatch: "**/auth.setup.ts",
+		},
+		{
+			name: "client-setup",
+			testMatch: "**/client-auth.setup.ts",
 		},
 		{
 			name: "chromium",
@@ -50,6 +55,16 @@ export default defineConfig({
 				storageState: authFile,
 			},
 			dependencies: ["setup"],
+			testIgnore: /client-experience/,
+		},
+		{
+			name: "client",
+			use: {
+				...devices["Desktop Chrome"],
+				storageState: clientAuthFile,
+			},
+			dependencies: ["client-setup"],
+			testMatch: /client-experience/,
 		},
 	],
 });

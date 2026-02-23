@@ -6,12 +6,26 @@ import {
   UserIcon,
 } from "@hugeicons/core-free-icons"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { MyWorkTab } from "@/components/dashboard/MyWorkTab"
 import { ProjectsTab } from "@/components/dashboard/ProjectsTab"
 import { TeamTab } from "@/components/dashboard/TeamTab"
 
+const dashboardTabs = [
+  { value: "my", label: "My Work", icon: UserIcon },
+  { value: "projects", label: "Projects", icon: Folder01Icon },
+  { value: "team", label: "Team", icon: UserGroup03Icon },
+] as const
+
 export function DashboardPage() {
   const [tab, setTab] = useState("my")
+  const isMobile = useIsMobile()
 
   return (
     <div className="space-y-6">
@@ -23,20 +37,37 @@ export function DashboardPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="my">
-            <HugeiconsIcon icon={UserIcon} strokeWidth={2} className="size-4" />
-            My Work
-          </TabsTrigger>
-          <TabsTrigger value="projects">
-            <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} className="size-4" />
-            Projects
-          </TabsTrigger>
-          <TabsTrigger value="team">
-            <HugeiconsIcon icon={UserGroup03Icon} strokeWidth={2} className="size-4" />
-            Team
-          </TabsTrigger>
-        </TabsList>
+        {isMobile ? (
+          <Select value={tab} onValueChange={setTab}>
+            <SelectTrigger className="w-full">
+              <span className="flex items-center gap-2">
+                <HugeiconsIcon
+                  icon={dashboardTabs.find((t) => t.value === tab)?.icon ?? UserIcon}
+                  strokeWidth={2}
+                  className="size-4"
+                />
+                {dashboardTabs.find((t) => t.value === tab)?.label}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {dashboardTabs.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  <HugeiconsIcon icon={t.icon} strokeWidth={2} className="size-4" />
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <TabsList>
+            {dashboardTabs.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>
+                <HugeiconsIcon icon={t.icon} strokeWidth={2} className="size-4" />
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        )}
 
         <TabsContent value="my" className="mt-4">
           <MyWorkTab />

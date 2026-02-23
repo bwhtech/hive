@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Select,
@@ -82,6 +83,7 @@ const TASK_FIELDS = [
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const isMobile = useIsMobile()
   const { isClient } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
   const [createOpen, setCreateOpen] = useState(false)
@@ -552,36 +554,75 @@ export function ProjectDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList variant="line" className="w-full overflow-x-auto [scrollbar-width:none]">
-          <TabsTrigger value="overview">
-            <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="tasks">
-            <HugeiconsIcon icon={Task01Icon} strokeWidth={2} className="size-4" />
-            Tasks
-            <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1.5">
-              {totalTasks}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="milestones">
-            <HugeiconsIcon icon={Target02Icon} strokeWidth={2} className="size-4" />
-            Milestones
-          </TabsTrigger>
-          <TabsTrigger value="updates">
-            <HugeiconsIcon icon={News01Icon} strokeWidth={2} className="size-4" />
-            Updates
-            {draftCount > 0 && (
-              <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1.5 border-amber-400 text-amber-600">
-                {draftCount} {draftCount === 1 ? "draft" : "drafts"}
+        {isMobile ? (
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <span className="flex items-center gap-2">
+                <HugeiconsIcon
+                  icon={
+                    { overview: DashboardSquare01Icon, tasks: Task01Icon, milestones: Target02Icon, updates: News01Icon, requests: Idea01Icon }[activeTab] ?? DashboardSquare01Icon
+                  }
+                  strokeWidth={2}
+                  className="size-4"
+                />
+                {{ overview: "Overview", tasks: "Tasks", milestones: "Milestones", updates: "Updates", requests: "Requests" }[activeTab]}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="overview">
+                <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
+                Overview
+              </SelectItem>
+              <SelectItem value="tasks">
+                <HugeiconsIcon icon={Task01Icon} strokeWidth={2} className="size-4" />
+                Tasks
+              </SelectItem>
+              <SelectItem value="milestones">
+                <HugeiconsIcon icon={Target02Icon} strokeWidth={2} className="size-4" />
+                Milestones
+              </SelectItem>
+              <SelectItem value="updates">
+                <HugeiconsIcon icon={News01Icon} strokeWidth={2} className="size-4" />
+                Updates
+              </SelectItem>
+              <SelectItem value="requests">
+                <HugeiconsIcon icon={Idea01Icon} strokeWidth={2} className="size-4" />
+                Requests
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <TabsList variant="line" className="w-full">
+            <TabsTrigger value="overview">
+              <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="tasks">
+              <HugeiconsIcon icon={Task01Icon} strokeWidth={2} className="size-4" />
+              Tasks
+              <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1.5">
+                {totalTasks}
               </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="requests">
-            <HugeiconsIcon icon={Idea01Icon} strokeWidth={2} className="size-4" />
-            Requests
-          </TabsTrigger>
-        </TabsList>
+            </TabsTrigger>
+            <TabsTrigger value="milestones">
+              <HugeiconsIcon icon={Target02Icon} strokeWidth={2} className="size-4" />
+              Milestones
+            </TabsTrigger>
+            <TabsTrigger value="updates">
+              <HugeiconsIcon icon={News01Icon} strokeWidth={2} className="size-4" />
+              Updates
+              {draftCount > 0 && (
+                <Badge variant="outline" className="ml-1 text-[10px] h-4 px-1.5 border-amber-400 text-amber-600">
+                  {draftCount} {draftCount === 1 ? "draft" : "drafts"}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="requests">
+              <HugeiconsIcon icon={Idea01Icon} strokeWidth={2} className="size-4" />
+              Requests
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* Overview Tab */}
         <TabsContent value="overview">

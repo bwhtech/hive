@@ -18,6 +18,15 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,6 +66,7 @@ interface TaskAssigneeRow {
 }
 
 export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDetailSheetProps) {
+  const isMobile = useIsMobile()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("Backlog")
@@ -199,6 +209,243 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
 
   const assignedMemberNames = new Set(assignees.map((a) => a.member))
 
+  const formContent = (
+    <ScrollArea className="flex-1 overflow-auto">
+      <div className="grid gap-5 px-6 py-4">
+        {/* Title */}
+        <div className="grid gap-2">
+          <Label htmlFor="task-detail-title">Title</Label>
+          <Input
+            id="task-detail-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+
+        {/* Status, Priority & Size */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="grid gap-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TASK_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+                <SelectItem value="Blocked">Blocked</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label>Priority</Label>
+            <Select value={priority} onValueChange={setPriority}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TASK_PRIORITIES.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label>Size</Label>
+            <Select value={size} onValueChange={setSize}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {TASK_SIZES.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Milestone */}
+        <div className="grid gap-2">
+          <Label>Milestone</Label>
+          <Select value={milestone} onValueChange={setMilestone}>
+            <SelectTrigger className="w-full">
+              <span>{milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">None</SelectItem>
+              {projectMilestones?.map((ms) => (
+                <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Assignees */}
+        <div className="grid gap-2">
+          <Label>Assignees</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            {assignees.map((a) => (
+              <div
+                key={a.member}
+                className="flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 text-sm"
+              >
+                <MemberAvatar size="sm" name={a.member_name || a.member} image={a.user_image} />
+                <span className="truncate max-w-[120px]">{a.member_name || a.member}</span>
+                <button
+                  type="button"
+                  onClick={() => removeAssignee(a.member)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <HugeiconsIcon icon={Cancel02Icon} strokeWidth={2} className="size-3.5" />
+                </button>
+              </div>
+            ))}
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" />
+                }
+              >
+                <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
+                Add
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2" align="start">
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {allMembers?.length ? (
+                    allMembers.map((m) => (
+                      <button
+                        key={m.name}
+                        type="button"
+                        onClick={() => toggleAssignee(m)}
+                        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
+                          assignedMemberNames.has(m.name) ? "bg-muted" : ""
+                        }`}
+                      >
+                        <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
+                        <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
+                        {assignedMemberNames.has(m.name) && (
+                          <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground px-2 py-1">No members found</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        {/* Dates */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label>Start Date</Label>
+            <DatePicker date={startDate} onSelect={setStartDate} />
+          </div>
+          <div className="grid gap-2">
+            <Label>Due Date</Label>
+            <DatePicker date={dueDate} onSelect={setDueDate} />
+          </div>
+        </div>
+
+        {/* PR Link */}
+        <div className="grid gap-2">
+          <Label htmlFor="task-pr-link">PR Link</Label>
+          <div className="relative">
+            <HugeiconsIcon
+              icon={Link04Icon}
+              strokeWidth={2}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+            />
+            <Input
+              id="task-pr-link"
+              placeholder="https://github.com/..."
+              value={prLink}
+              onChange={(e) => setPrLink(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="grid gap-2">
+          <Label>Description</Label>
+          <TiptapEditor
+            key={task.name}
+            content={task.description || ""}
+            onChange={setDescription}
+            placeholder="Add a description..."
+          />
+        </div>
+
+        {/* UAT Section */}
+        <div className="rounded-lg border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">UAT Status</Label>
+            <Badge variant={uatVariant[task.uat_status] ?? "outline"}>
+              {task.uat_status || "Pending"}
+            </Badge>
+          </div>
+          {task.uat_approved_by && (
+            <p className="text-xs text-muted-foreground">
+              {task.uat_status === "Approved" ? "Approved" : "Rejected"} by{" "}
+              {task.uat_approved_by} on {task.uat_date}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleApproveUat}
+              disabled={approvingUat || task.uat_status === "Approved"}
+              className="flex-1"
+            >
+              <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} data-icon="inline-start" />
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRejectUat}
+              disabled={rejectingUat || task.uat_status === "Rejected"}
+              className="flex-1"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} data-icon="inline-start" />
+              Reject
+            </Button>
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+  )
+
+  const saveButton = (
+    <Button onClick={handleSave} disabled={saving || !title.trim()} className="w-full">
+      {saving ? "Saving..." : "Save Changes"}
+    </Button>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle>Task Details</DrawerTitle>
+            <DrawerDescription>{task.name}</DrawerDescription>
+          </DrawerHeader>
+          {formContent}
+          <DrawerFooter>
+            {saveButton}
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-lg">
@@ -206,223 +453,9 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
           <SheetTitle>Task Details</SheetTitle>
           <SheetDescription>{task.name}</SheetDescription>
         </SheetHeader>
-
-        <ScrollArea className="flex-1 overflow-auto">
-          <div className="grid gap-5 px-6 py-4">
-            {/* Title */}
-            <div className="grid gap-2">
-              <Label htmlFor="task-detail-title">Title</Label>
-              <Input
-                id="task-detail-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-
-            {/* Status, Priority & Size */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-2">
-                <Label>Status</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TASK_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                    <SelectItem value="Blocked">Blocked</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Priority</Label>
-                <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TASK_PRIORITIES.map((p) => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Size</Label>
-                <Select value={size} onValueChange={setSize}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {TASK_SIZES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Milestone */}
-            <div className="grid gap-2">
-              <Label>Milestone</Label>
-              <Select value={milestone} onValueChange={setMilestone}>
-                <SelectTrigger className="w-full">
-                  <span>{milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {projectMilestones?.map((ms) => (
-                    <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Assignees */}
-            <div className="grid gap-2">
-              <Label>Assignees</Label>
-              <div className="flex flex-wrap items-center gap-2">
-                {assignees.map((a) => (
-                  <div
-                    key={a.member}
-                    className="flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 text-sm"
-                  >
-                    <MemberAvatar size="sm" name={a.member_name || a.member} image={a.user_image} />
-                    <span className="truncate max-w-[120px]">{a.member_name || a.member}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeAssignee(a.member)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <HugeiconsIcon icon={Cancel02Icon} strokeWidth={2} className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" />
-                    }
-                  >
-                    <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
-                    Add
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2" align="start">
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
-                      {allMembers?.length ? (
-                        allMembers.map((m) => (
-                          <button
-                            key={m.name}
-                            type="button"
-                            onClick={() => toggleAssignee(m)}
-                            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
-                              assignedMemberNames.has(m.name) ? "bg-muted" : ""
-                            }`}
-                          >
-                            <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
-                            <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
-                            {assignedMemberNames.has(m.name) && (
-                              <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
-                            )}
-                          </button>
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted-foreground px-2 py-1">No members found</p>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Start Date</Label>
-                <DatePicker date={startDate} onSelect={setStartDate} />
-              </div>
-              <div className="grid gap-2">
-                <Label>Due Date</Label>
-                <DatePicker date={dueDate} onSelect={setDueDate} />
-              </div>
-            </div>
-
-            {/* PR Link */}
-            <div className="grid gap-2">
-              <Label htmlFor="task-pr-link">PR Link</Label>
-              <div className="relative">
-                <HugeiconsIcon
-                  icon={Link04Icon}
-                  strokeWidth={2}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
-                />
-                <Input
-                  id="task-pr-link"
-                  placeholder="https://github.com/..."
-                  value={prLink}
-                  onChange={(e) => setPrLink(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="grid gap-2">
-              <Label>Description</Label>
-              <TiptapEditor
-                key={task.name}
-                content={task.description || ""}
-                onChange={setDescription}
-                placeholder="Add a description..."
-              />
-            </div>
-
-            {/* UAT Section */}
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">UAT Status</Label>
-                <Badge variant={uatVariant[task.uat_status] ?? "outline"}>
-                  {task.uat_status || "Pending"}
-                </Badge>
-              </div>
-              {task.uat_approved_by && (
-                <p className="text-xs text-muted-foreground">
-                  {task.uat_status === "Approved" ? "Approved" : "Rejected"} by{" "}
-                  {task.uat_approved_by} on {task.uat_date}
-                </p>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleApproveUat}
-                  disabled={approvingUat || task.uat_status === "Approved"}
-                  className="flex-1"
-                >
-                  <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} data-icon="inline-start" />
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRejectUat}
-                  disabled={rejectingUat || task.uat_status === "Rejected"}
-                  className="flex-1"
-                >
-                  <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} data-icon="inline-start" />
-                  Reject
-                </Button>
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-
+        {formContent}
         <SheetFooter>
-          <Button onClick={handleSave} disabled={saving || !title.trim()}>
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
+          {saveButton}
         </SheetFooter>
       </SheetContent>
     </Sheet>

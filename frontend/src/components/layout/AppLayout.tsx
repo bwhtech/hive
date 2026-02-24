@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router"
-import { useFrappeCreateDoc } from "frappe-react-sdk"
+import { useFrappeCreateDoc, useFrappeGetDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
 import { AppSidebar } from "./Sidebar"
 import { Header } from "./Header"
@@ -10,6 +10,7 @@ import { CommandPalette, useCommandPalette } from "@/components/CommandPalette"
 import { ShortcutHelpDialog } from "@/components/ShortcutHelpDialog"
 import { CreateProjectDialog } from "@/components/CreateProjectDialog"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
+import { OnboardingDialog } from "@/components/OnboardingDialog"
 import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
 
 export function AppLayout() {
@@ -22,6 +23,13 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { createDoc } = useFrappeCreateDoc()
+
+  // Onboarding: show dialog if not completed
+  const { data: hiveSettings, mutate: mutateSettings } = useFrappeGetDoc<{
+    onboarding_completed: 0 | 1
+  }>("Hive Settings", "Hive Settings", undefined, { revalidateOnFocus: false })
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  const showOnboarding = hiveSettings != null && !hiveSettings.onboarding_completed && !onboardingDismissed
 
   const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), [])
   useHotkey("?", toggleShortcuts, { capture: true })
@@ -130,6 +138,15 @@ export function AppLayout() {
       <ShortcutHelpDialog
         open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}
+      />
+      <OnboardingDialog
+        open={showOnboarding}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOnboardingDismissed(true)
+            mutateSettings()
+          }
+        }}
       />
     </SidebarProvider>
   )

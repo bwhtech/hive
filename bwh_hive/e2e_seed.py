@@ -9,6 +9,16 @@ import frappe
 def setup_e2e_data():
 	"""Create the client user, client org, projects, and tasks needed by E2E tests."""
 
+	# 0a. Set Administrator's full name (tests expect "Administrator Bhaisaab")
+	frappe.db.set_value(
+		"User",
+		"Administrator",
+		{
+			"first_name": "Administrator",
+			"last_name": "Bhaisaab",
+		},
+	)
+
 	# 1. Ensure the "Hive Client" role exists
 	if not frappe.db.exists("Role", "Hive Client"):
 		frappe.get_doc({"doctype": "Role", "role_name": "Hive Client"}).insert(ignore_permissions=True)

@@ -130,7 +130,7 @@ export async function createTestTask(
 	return createDoc<HiveTask>(request, "Hive Task", {
 		title,
 		project: options.project,
-		status: options.status ?? "Not Started",
+		status: options.status ?? "Backlog",
 		priority: options.priority,
 		size: options.size,
 	});

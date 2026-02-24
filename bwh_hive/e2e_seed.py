@@ -137,7 +137,6 @@ def _ensure_outgoing_email_account():
 			"doctype": "Email Account",
 			"email_account_name": "E2E Test Outgoing",
 			"email_id": "test@example.com",
-			"domain": "example.com",
 			"default_outgoing": 1,
 			"enable_outgoing": 1,
 			"smtp_server": "localhost",
@@ -145,4 +144,5 @@ def _ensure_outgoing_email_account():
 		}
 	)
 	doc.flags.ignore_validate = True
+	doc.flags.ignore_links = True
 	doc.insert(ignore_permissions=True)

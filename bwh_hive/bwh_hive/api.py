@@ -221,9 +221,16 @@ def get_task_assignees(project: str | None = None):
 	assignees = frappe.get_all(
 		"Hive Task Assignee",
 		filters={"parenttype": "Hive Task", "parentfield": "assignees"},
-		fields=["parent", "member", "member_name", "user_image"],
+		fields=["parent", "member"],
 		limit=500,
 	)
+
+	# Resolve names from Hive Member (source of truth) instead of relying on fetch_from cache
+	members = frappe.get_all(
+		"Hive Member",
+		fields=["name", "member_name", "user_image"],
+	)
+	member_map = {m.name: m for m in members}
 
 	# If project specified, filter to only tasks belonging to that project
 	if project:
@@ -243,11 +250,12 @@ def get_task_assignees(project: str | None = None):
 	for row in assignees:
 		if project_tasks is not None and row.parent not in project_tasks:
 			continue
+		member_info = member_map.get(row.member)
 		result.setdefault(row.parent, []).append(
 			{
 				"member": row.member,
-				"member_name": row.member_name,
-				"user_image": row.user_image,
+				"member_name": member_info.member_name if member_info else row.member,
+				"user_image": member_info.user_image if member_info else None,
 			}
 		)
 

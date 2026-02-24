@@ -58,6 +58,7 @@ import {
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
 import { useUser } from "@/context/UserContext"
+import { TaskCommentsSection } from "@/components/TaskCommentsSection"
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember, type HiveMilestone } from "@/types"
 
 interface TaskDetailSheetProps {
@@ -505,6 +506,9 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             </Button>
           </div>
         </div>
+
+        {/* Comments Section */}
+        <TaskCommentsSection taskName={task.name} members={allMembers} />
       </div>
     </ScrollArea>
   )

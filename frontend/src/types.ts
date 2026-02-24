@@ -107,6 +107,15 @@ export interface HiveProjectUpdate {
   modified: string
 }
 
+export interface HiveTaskComment {
+  name: string
+  task: string
+  posted_by: string
+  content: string
+  creation: string
+  modified: string
+}
+
 export const TASK_STATUSES = ["Backlog", "To Do", "In Progress", "Done"] as const
 export const TASK_PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const
 export const TASK_SIZES = ["Small", "Medium", "Large"] as const

@@ -42,7 +42,7 @@
    "reqd": 1
   },
   {
-   "default": "Backlog",
+   "default": "To Do",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,

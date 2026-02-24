@@ -60,7 +60,7 @@ interface CreateTaskDialogProps {
 export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("")
   const [priority, setPriority] = useState("Medium")
-  const [status, setStatus] = useState("Backlog")
+  const [status, setStatus] = useState("To Do")
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
   const [isInternal, setIsInternal] = useState(false)
@@ -120,7 +120,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     })
     setTitle("")
     setPriority("Medium")
-    setStatus("Backlog")
+    setStatus("To Do")
     setDueDate(undefined)
     setStartDate(undefined)
     setIsInternal(false)

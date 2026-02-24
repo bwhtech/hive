@@ -116,7 +116,7 @@ def _create_project(title: str, client: str | None = None) -> str | None:
 	return doc.name
 
 
-def _create_task(title: str, project: str, status: str = "Backlog") -> str | None:
+def _create_task(title: str, project: str, status: str = "To Do") -> str | None:
 	"""Create a Hive Task if one with the same title+project doesn't already exist."""
 	existing = frappe.db.get_value("Hive Task", {"title": title, "project": project}, "name")
 	if existing:

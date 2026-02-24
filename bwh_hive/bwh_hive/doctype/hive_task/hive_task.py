@@ -6,11 +6,11 @@ from frappe.model.document import Document
 from frappe.utils import today
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
-	"Backlog": {"To Do", "In Progress", "Blocked"},
-	"To Do": {"Backlog", "In Progress", "Blocked"},
+	"Backlog": {"To Do", "In Progress", "Done", "Blocked"},
+	"To Do": {"Backlog", "In Progress", "Done", "Blocked"},
 	"In Progress": {"To Do", "Done", "Blocked"},
 	"Done": {"To Do", "In Progress"},
-	"Blocked": {"Backlog", "To Do", "In Progress"},
+	"Blocked": {"Backlog", "To Do", "In Progress", "Done"},
 }
 
 

@@ -199,6 +199,7 @@ export function TasksPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [projectFilter, setProjectFilter] = useState("all")
+  const [assigneeFilter, setAssigneeFilter] = useState("all")
   const [sorting, setSorting] = useState<SortingState>([])
   const [createOpen, setCreateOpen] = useState(false)
   const { createDoc } = useFrappeCreateDoc()
@@ -279,6 +280,20 @@ export function TasksPage() {
     return map
   }, [milestones])
 
+  const uniqueAssignees = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const assignees of Object.values(assigneesByTask)) {
+      for (const a of assignees) {
+        if (!seen.has(a.member)) {
+          seen.set(a.member, a.member_name || a.member)
+        }
+      }
+    }
+    return Array.from(seen.entries())
+      .map(([member, name]) => ({ member, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [assigneesByTask])
+
   const tableData = useMemo<TaskRow[]>(() => {
     if (!tasks) return []
     return tasks
@@ -293,6 +308,10 @@ export function TasksPage() {
         if (statusFilter !== "all" && task.status !== statusFilter) return false
         if (priorityFilter !== "all" && task.priority !== priorityFilter) return false
         if (projectFilter !== "all" && task.project !== projectFilter) return false
+        if (assigneeFilter !== "all") {
+          const taskAssignees = assigneesByTask[task.name] ?? []
+          if (!taskAssignees.some((a) => a.member === assigneeFilter)) return false
+        }
         return true
       })
       .map((task) => ({
@@ -301,7 +320,7 @@ export function TasksPage() {
         milestoneTitle: task.milestone ? (milestoneMap[task.milestone] ?? "") : "",
         assignees: assigneesByTask[task.name] ?? [],
       }))
-  }, [tasks, search, statusFilter, priorityFilter, projectFilter, projectMap, milestoneMap, assigneesByTask])
+  }, [tasks, search, statusFilter, priorityFilter, projectFilter, assigneeFilter, projectMap, milestoneMap, assigneesByTask])
 
   const table = useReactTable({
     data: tableData,
@@ -314,7 +333,7 @@ export function TasksPage() {
     initialState: { pagination: { pageSize: 20 } },
   })
 
-  const activeFilterCount = [statusFilter, priorityFilter, projectFilter].filter(f => f !== "all").length
+  const activeFilterCount = [statusFilter, priorityFilter, projectFilter, assigneeFilter].filter(f => f !== "all").length
 
   return (
     <div className="space-y-6">
@@ -390,6 +409,18 @@ export function TasksPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-fit">
+              <span className="text-muted-foreground">Assignee:</span>
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {uniqueAssignees.map((a) => (
+                <SelectItem key={a.member} value={a.member}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -427,17 +458,17 @@ export function TasksPage() {
               <HugeiconsIcon icon={TaskDaily01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
             </EmptyMedia>
             <EmptyTitle>
-              {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all"
+              {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all"
                 ? "No tasks match your filters"
                 : "No tasks yet"}
             </EmptyTitle>
             <EmptyDescription>
-              {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all"
+              {search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all"
                 ? "Try adjusting your search or filters."
                 : "Tasks will appear here once created in a project."}
             </EmptyDescription>
           </EmptyHeader>
-          {!(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all") && (
+          {!(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && (
             <Button onClick={() => setCreateOpen(true)} className="mt-4">
               <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
               Add Task
@@ -481,7 +512,7 @@ export function TasksPage() {
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               {tableData.length} task{tableData.length !== 1 ? "s" : ""}
-              {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all") && " matching filters"}
+              {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && " matching filters"}
             </p>
             {table.getPageCount() > 1 && (
               <div className="flex items-center gap-2">

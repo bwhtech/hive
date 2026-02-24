@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc } from "frappe-react-sdk"
-import { useNavigate } from "react-router"
+import { useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -195,11 +195,32 @@ const columns: ColumnDef<TaskRow>[] = [
 
 export function TasksPage() {
   const navigate = useNavigate()
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [priorityFilter, setPriorityFilter] = useState("all")
-  const [projectFilter, setProjectFilter] = useState("all")
-  const [assigneeFilter, setAssigneeFilter] = useState("all")
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const search = searchParams.get("q") ?? ""
+  const statusFilter = searchParams.get("status") ?? "all"
+  const priorityFilter = searchParams.get("priority") ?? "all"
+  const projectFilter = searchParams.get("project") ?? "all"
+  const assigneeFilter = searchParams.get("assignee") ?? "all"
+
+  const setFilter = useCallback((key: string, value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (value === "all" || value === "") {
+        next.delete(key)
+      } else {
+        next.set(key, value)
+      }
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
+
+  const setSearch = useCallback((value: string) => setFilter("q", value), [setFilter])
+  const setStatusFilter = useCallback((value: string) => setFilter("status", value), [setFilter])
+  const setPriorityFilter = useCallback((value: string) => setFilter("priority", value), [setFilter])
+  const setProjectFilter = useCallback((value: string) => setFilter("project", value), [setFilter])
+  const setAssigneeFilter = useCallback((value: string) => setFilter("assignee", value), [setFilter])
+
   const [sorting, setSorting] = useState<SortingState>([])
   const [createOpen, setCreateOpen] = useState(false)
   const { createDoc } = useFrappeCreateDoc()

@@ -162,8 +162,8 @@ test.describe("Tasks", () => {
 		await titleInput.clear();
 		await titleInput.fill(updatedTitle);
 
-		// Save
-		await sheet.getByRole("button", { name: "Save Changes" }).click();
+		// Save via Ctrl+Enter (task detail sheet uses autosave, no Save button)
+		await page.keyboard.press("Control+Enter");
 
 		// Verify success toast (exact match to avoid matching the updated title)
 		await expect(
@@ -230,8 +230,8 @@ test.describe("Tasks", () => {
 		// Wait for the trigger to reflect the new value
 		await expect(priorityTrigger).toContainText("High");
 
-		// Save
-		await sheet.getByRole("button", { name: "Save Changes" }).click();
+		// Save via Ctrl+Enter (task detail sheet uses autosave, no Save button)
+		await page.keyboard.press("Control+Enter");
 
 		// Verify success toast (exact match to avoid matching task card titles)
 		await expect(

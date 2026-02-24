@@ -1,5 +1,5 @@
 import { APIRequestContext } from "@playwright/test";
-import { createDoc, deleteDoc, getDoc, getList, updateDoc } from "./frappe";
+import { createDoc, deleteDoc, getDoc, getList, updateDoc, callMethod } from "./frappe";
 
 /**
  * Hive Feature Request document interface.
@@ -279,6 +279,87 @@ export async function cleanupTestMilestones(
 			await deleteDoc(request, "Hive Milestone", ms.name);
 		} catch (error) {
 			console.warn(`Failed to delete milestone ${ms.name}:`, error);
+		}
+	}
+}
+
+/**
+ * Hive Project Update document interface.
+ */
+export interface HiveProjectUpdate {
+	name: string;
+	project: string;
+	posted_by: string;
+	content: string;
+	is_draft: 0 | 1;
+	creation?: string;
+	modified?: string;
+}
+
+/**
+ * Create a test Hive Project Update via API.
+ */
+export async function createTestUpdate(
+	request: APIRequestContext,
+	options: {
+		project: string;
+		content?: string;
+		is_draft?: 0 | 1;
+	},
+): Promise<HiveProjectUpdate> {
+	const content = options.content || `<p>E2E test update ${Date.now()}</p>`;
+
+	return createDoc<HiveProjectUpdate>(request, "Hive Project Update", {
+		project: options.project,
+		content,
+		is_draft: options.is_draft ?? 0,
+	});
+}
+
+/**
+ * Delete a test Hive Project Update via API.
+ */
+export async function deleteTestUpdate(
+	request: APIRequestContext,
+	name: string,
+): Promise<void> {
+	await deleteDoc(request, "Hive Project Update", name);
+}
+
+/**
+ * Publish a draft update via API.
+ */
+export async function publishUpdate(
+	request: APIRequestContext,
+	updateName: string,
+): Promise<void> {
+	await callMethod(request, "bwh_hive.bwh_hive.api.publish_update", {
+		update_name: updateName,
+	});
+}
+
+/**
+ * Cleanup test updates for a given project.
+ */
+export async function cleanupTestUpdates(
+	request: APIRequestContext,
+	projectName: string,
+): Promise<void> {
+	const updates = await getList<HiveProjectUpdate>(
+		request,
+		"Hive Project Update",
+		{
+			fields: ["name"],
+			filters: { project: projectName },
+			limit: 100,
+		},
+	);
+
+	for (const update of updates) {
+		try {
+			await deleteDoc(request, "Hive Project Update", update.name);
+		} catch (error) {
+			console.warn(`Failed to delete update ${update.name}:`, error);
 		}
 	}
 }

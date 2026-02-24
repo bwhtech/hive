@@ -585,7 +585,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-lg">
+      <SheetContent side="right" className="data-[side=right]:sm:w-[40vw] data-[side=right]:sm:max-w-[40vw]">
         <SheetHeader>
           <SheetTitle>Task Details</SheetTitle>
           <SheetDescription>{task.name}</SheetDescription>

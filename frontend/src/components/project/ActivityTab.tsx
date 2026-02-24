@@ -102,20 +102,20 @@ function getIcon(type: string) {
   }
 }
 
-function getIconColor(type: string) {
+function getIconClasses(type: string) {
   switch (type) {
     case "project_changed":
-      return "text-blue-500"
+      return "text-blue-500 bg-blue-500/15"
     case "task_created":
-      return "text-green-500"
+      return "text-green-500 bg-green-500/15"
     case "task_changed":
-      return "text-amber-500"
+      return "text-amber-500 bg-amber-500/15"
     case "milestone_created":
-      return "text-purple-500"
+      return "text-purple-500 bg-purple-500/15"
     case "milestone_changed":
-      return "text-purple-500"
+      return "text-purple-500 bg-purple-500/15"
     default:
-      return "text-muted-foreground"
+      return "text-muted-foreground bg-muted"
   }
 }
 
@@ -166,11 +166,11 @@ function ActivityDescription({ activity }: { activity: ActivityItem }) {
 
 function ActivityEntry({ activity }: { activity: ActivityItem }) {
   const icon = getIcon(activity.type)
-  const iconColor = getIconColor(activity.type)
+  const iconClasses = getIconClasses(activity.type)
 
   return (
     <div className="flex gap-3 py-2">
-      <div className={`mt-0.5 flex-shrink-0 rounded-full bg-muted p-1.5 ${iconColor}`}>
+      <div className={`mt-0.5 flex-shrink-0 rounded-full p-1.5 ${iconClasses}`}>
         <HugeiconsIcon icon={icon} className="size-3.5" strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">

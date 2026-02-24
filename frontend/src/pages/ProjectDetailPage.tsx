@@ -21,6 +21,7 @@ import {
   PencilEdit01Icon,
   ArrowUpRight01Icon,
   FilterIcon,
+  Clock01Icon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -54,6 +55,7 @@ import { MilestoneSection } from "@/components/MilestoneSection"
 import { FeatureRequestSection } from "@/components/FeatureRequestSection"
 import { UpdatesSection } from "@/components/UpdatesSection"
 import { OverviewTab } from "@/components/project/OverviewTab"
+import { ActivityTab } from "@/components/project/ActivityTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
 import { useHotkey } from "@/hooks/use-hotkey"
@@ -103,7 +105,7 @@ export function ProjectDetailPage() {
   const taskParam = searchParams.get("task")
   const [activeTab, setActiveTab] = useState(() => {
     if (taskParam) return "tasks"
-    if (tabParam && ["overview", "tasks", "milestones", "updates", "requests"].includes(tabParam))
+    if (tabParam && ["overview", "tasks", "milestones", "updates", "requests", "activity"].includes(tabParam))
       return tabParam
     return "overview"
   })
@@ -602,12 +604,12 @@ export function ProjectDetailPage() {
               <span className="flex items-center gap-2">
                 <HugeiconsIcon
                   icon={
-                    { overview: DashboardSquare01Icon, tasks: Task01Icon, milestones: Target02Icon, updates: News01Icon, requests: Idea01Icon }[activeTab] ?? DashboardSquare01Icon
+                    { overview: DashboardSquare01Icon, tasks: Task01Icon, milestones: Target02Icon, updates: News01Icon, requests: Idea01Icon, activity: Clock01Icon }[activeTab] ?? DashboardSquare01Icon
                   }
                   strokeWidth={2}
                   className="size-4"
                 />
-                {{ overview: "Overview", tasks: "Tasks", milestones: "Milestones", updates: "Updates", requests: "Requests" }[activeTab]}
+                {{ overview: "Overview", tasks: "Tasks", milestones: "Milestones", updates: "Updates", requests: "Requests", activity: "Activity" }[activeTab]}
               </span>
             </SelectTrigger>
             <SelectContent>
@@ -630,6 +632,10 @@ export function ProjectDetailPage() {
               <SelectItem value="requests">
                 <HugeiconsIcon icon={Idea01Icon} strokeWidth={2} className="size-4" />
                 Requests
+              </SelectItem>
+              <SelectItem value="activity">
+                <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} className="size-4" />
+                Activity
               </SelectItem>
             </SelectContent>
           </Select>
@@ -662,6 +668,10 @@ export function ProjectDetailPage() {
             <TabsTrigger value="requests">
               <HugeiconsIcon icon={Idea01Icon} strokeWidth={2} className="size-4" />
               Requests
+            </TabsTrigger>
+            <TabsTrigger value="activity">
+              <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} className="size-4" />
+              Activity
             </TabsTrigger>
           </TabsList>
         )}
@@ -757,6 +767,13 @@ export function ProjectDetailPage() {
                 onCreateOpenChange={setCreateFeatureRequestOpen}
               />
             )}
+          </div>
+        </TabsContent>
+
+        {/* Activity Tab */}
+        <TabsContent value="activity">
+          <div className="pt-2">
+            {id && <ActivityTab projectId={id} />}
           </div>
         </TabsContent>
       </Tabs>

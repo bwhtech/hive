@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 import frappe
@@ -655,3 +656,185 @@ def get_project_dashboard(project: str):
 		"milestone_counts": milestone_counts,
 		"members": members,
 	}
+
+
+@frappe.whitelist()
+def get_project_activity(project: str, limit: int = 100):
+	"""Return activity feed for a project using Version Log and creation events."""
+	if not frappe.db.exists("Hive Project", project):
+		frappe.throw("Project not found")
+
+	limit = min(int(limit), 200)
+	activities: list[dict] = []
+
+	# --- 1. Version logs for the project itself ---
+	project_versions = frappe.get_all(
+		"Version",
+		filters={"ref_doctype": "Hive Project", "docname": project},
+		fields=["name", "data", "owner", "creation"],
+		order_by="creation desc",
+		limit=limit,
+	)
+	project_doc = frappe.get_doc("Hive Project", project)
+
+	for v in project_versions:
+		data = json.loads(v.data)
+		changes = data.get("changed", [])
+		for change in changes:
+			if len(change) >= 3:
+				activities.append(
+					{
+						"type": "project_changed",
+						"doctype": "Hive Project",
+						"docname": project,
+						"label": project_doc.title,
+						"field": change[0],
+						"old_value": change[1],
+						"new_value": change[2],
+						"user": v.owner,
+						"datetime": str(v.creation),
+					}
+				)
+
+	# --- 2. Get tasks belonging to this project ---
+	project_tasks = frappe.get_all(
+		"Hive Task",
+		filters={"project": project},
+		fields=["name", "title", "creation", "owner"],
+		limit=500,
+	)
+	task_map = {t.name: t for t in project_tasks}
+	task_names = list(task_map.keys())
+
+	# Task creation events
+	for t in project_tasks:
+		activities.append(
+			{
+				"type": "task_created",
+				"doctype": "Hive Task",
+				"docname": t.name,
+				"label": t.title,
+				"user": t.owner,
+				"datetime": str(t.creation),
+			}
+		)
+
+	# Task version logs (field changes)
+	if task_names:
+		task_versions = frappe.get_all(
+			"Version",
+			filters={"ref_doctype": "Hive Task", "docname": ["in", task_names]},
+			fields=["name", "docname", "data", "owner", "creation"],
+			order_by="creation desc",
+			limit=limit,
+		)
+		for v in task_versions:
+			data = json.loads(v.data)
+			task_info = task_map.get(v.docname)
+			task_title = task_info.title if task_info else v.docname
+
+			for change in data.get("changed", []):
+				if len(change) >= 3:
+					field = change[0]
+					# Only surface interesting fields
+					if field in (
+						"status",
+						"priority",
+						"title",
+						"milestone",
+						"assigned_to",
+						"due_date",
+						"start_date",
+						"completed_on",
+						"size",
+						"uat_status",
+					):
+						activities.append(
+							{
+								"type": "task_changed",
+								"doctype": "Hive Task",
+								"docname": v.docname,
+								"label": task_title,
+								"field": field,
+								"old_value": change[1],
+								"new_value": change[2],
+								"user": v.owner,
+								"datetime": str(v.creation),
+							}
+						)
+
+	# --- 3. Milestones ---
+	project_milestones = frappe.get_all(
+		"Hive Milestone",
+		filters={"project": project},
+		fields=["name", "title", "creation", "owner"],
+		limit=100,
+	)
+	milestone_map = {m.name: m for m in project_milestones}
+	milestone_names = list(milestone_map.keys())
+
+	# Milestone creation events
+	for m in project_milestones:
+		activities.append(
+			{
+				"type": "milestone_created",
+				"doctype": "Hive Milestone",
+				"docname": m.name,
+				"label": m.title,
+				"user": m.owner,
+				"datetime": str(m.creation),
+			}
+		)
+
+	# Milestone version logs
+	if milestone_names:
+		ms_versions = frappe.get_all(
+			"Version",
+			filters={"ref_doctype": "Hive Milestone", "docname": ["in", milestone_names]},
+			fields=["name", "docname", "data", "owner", "creation"],
+			order_by="creation desc",
+			limit=limit,
+		)
+		for v in ms_versions:
+			data = json.loads(v.data)
+			ms_info = milestone_map.get(v.docname)
+			ms_title = ms_info.title if ms_info else v.docname
+
+			for change in data.get("changed", []):
+				if len(change) >= 3:
+					activities.append(
+						{
+							"type": "milestone_changed",
+							"doctype": "Hive Milestone",
+							"docname": v.docname,
+							"label": ms_title,
+							"field": change[0],
+							"old_value": change[1],
+							"new_value": change[2],
+							"user": v.owner,
+							"datetime": str(v.creation),
+						}
+					)
+
+	# --- 4. Sort by datetime descending ---
+	activities.sort(key=lambda a: a["datetime"], reverse=True)
+
+	# --- 5. Resolve user names ---
+	user_emails = list({a["user"] for a in activities})
+	user_name_map = {}
+	user_image_map = {}
+	if user_emails:
+		users = frappe.get_all(
+			"User",
+			filters={"name": ["in", user_emails]},
+			fields=["name", "full_name", "user_image"],
+		)
+		for u in users:
+			user_name_map[u.name] = u.full_name or u.name
+			user_image_map[u.name] = u.user_image
+
+	for a in activities:
+		a["user_name"] = user_name_map.get(a["user"], a["user"])
+		a["user_image"] = user_image_map.get(a["user"])
+
+	return activities[:limit]

@@ -2,16 +2,18 @@ import frappe
 
 
 def after_install():
-	"""Bootstrap Hive roles and create Hive Members for all System Managers."""
+	"""Bootstrap Hive roles, members, and default project types."""
 	_ensure_roles()
 	_bootstrap_system_managers()
+	_ensure_default_project_types()
 	frappe.db.commit()
 
 
 def after_migrate():
-	"""Ensure roles exist after every migrate (covers upgrades on existing sites)."""
+	"""Ensure roles and defaults exist after every migrate (covers upgrades on existing sites)."""
 	_ensure_roles()
 	_bootstrap_system_managers()
+	_ensure_default_project_types()
 	frappe.db.commit()
 
 
@@ -50,3 +52,14 @@ def _bootstrap_system_managers():
 					"is_active": 1,
 				}
 			).insert(ignore_permissions=True)
+
+
+DEFAULT_PROJECT_TYPES = ["Development", "Implementation", "Retainer", "Internal"]
+
+
+def _ensure_default_project_types():
+	for type_name in DEFAULT_PROJECT_TYPES:
+		if not frappe.db.exists("Hive Project Type", type_name):
+			frappe.get_doc({"doctype": "Hive Project Type", "type_name": type_name}).insert(
+				ignore_permissions=True
+			)

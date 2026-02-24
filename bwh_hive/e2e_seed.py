@@ -10,18 +10,25 @@ def setup_e2e_data():
 	"""Create the client user, client org, projects, and tasks needed by E2E tests."""
 
 	# 0a. Set Administrator's full name (tests expect "Administrator Bhaisaab")
-	frappe.db.set_value(
-		"User",
-		"Administrator",
-		{
-			"first_name": "Administrator",
-			"last_name": "Bhaisaab",
-		},
-	)
+	admin_user = frappe.get_doc("User", "Administrator")
+	admin_user.first_name = "Administrator"
+	admin_user.last_name = "Bhaisaab"
+	admin_user.save(ignore_permissions=True)
 
-	# 0b. Sync the Hive Member record (created at install time with the old name)
+	# 0b. Ensure a Hive Member exists for Administrator with the correct name.
+	#     after_install may have created it with the old name, or it may not exist.
 	if frappe.db.exists("Hive Member", "Administrator"):
-		frappe.db.set_value("Hive Member", "Administrator", "member_name", "Administrator Bhaisaab")
+		member = frappe.get_doc("Hive Member", "Administrator")
+		member.save(ignore_permissions=True)  # triggers fetch_from to refresh member_name
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Hive Member",
+				"user": "Administrator",
+				"type": "Team",
+				"is_active": 1,
+			}
+		).insert(ignore_permissions=True)
 
 	# 0c. Ensure a default outgoing Email Account exists so invite_by_email
 	#     doesn't crash even though mute_emails=1 in CI (Frappe resolves the

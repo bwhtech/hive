@@ -53,7 +53,10 @@ def setup_e2e_data():
 			}
 		).insert(ignore_permissions=True)
 
-	# 5. Create projects
+	# 5. Mark onboarding as completed so the dialog doesn't block E2E tests
+	frappe.db.set_single_value("Hive Settings", "onboarding_completed", 1)
+
+	# 6. Create projects
 	# Project visible to client
 	website_project = _create_project("Website Redesign", client=client_name)
 
@@ -61,7 +64,7 @@ def setup_e2e_data():
 	_create_project("Mobile App MVP")
 	_create_project("Infrastructure Migration")
 
-	# 6. Create a task in the client's project (tests expect kanban columns)
+	# 7. Create a task in the client's project (tests expect kanban columns)
 	if website_project:
 		_create_task("Design homepage mockup", website_project, status="In Progress")
 		_create_task("Implement responsive layout", website_project, status="Backlog")

@@ -20,7 +20,6 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { ProfileSection } from "@/components/settings/ProfileSection"
 import { GeneralSection } from "@/components/settings/GeneralSection"
@@ -50,7 +49,7 @@ function SettingsContent({
       orientation={isMobile ? "horizontal" : "vertical"}
       className={
         isMobile
-          ? "flex flex-col h-full gap-0"
+          ? "flex flex-col min-h-0 flex-1 gap-0"
           : "flex flex-row h-[min(85vh,750px)] gap-0"
       }
     >
@@ -107,7 +106,7 @@ function SettingsContent({
       )}
 
       {isMobile ? (
-        <ScrollArea className="h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <TabsContent value="profile" className="flex flex-col m-0">
             <ProfileSection />
           </TabsContent>
@@ -120,7 +119,7 @@ function SettingsContent({
           <TabsContent value="clients" className="flex flex-col m-0">
             <ClientsSection />
           </TabsContent>
-        </ScrollArea>
+        </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsContent value="profile" className="flex flex-1 flex-col overflow-hidden m-0">
@@ -164,13 +163,11 @@ export function SettingsDialog({
               Application settings
             </DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <SettingsContent
-              activeTab={activeTab}
-              onTabChange={onTabChange}
-              isMobile={true}
-            />
-          </div>
+          <SettingsContent
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            isMobile={true}
+          />
         </DrawerContent>
       </Drawer>
     )

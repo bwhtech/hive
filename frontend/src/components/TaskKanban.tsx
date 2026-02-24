@@ -26,9 +26,10 @@ interface TaskKanbanProps {
   onStatusChange: (taskName: string, newStatus: string) => void
   onTaskClick?: (task: HiveTask) => void
   assigneesByTask?: Record<string, HiveTaskAssignee[]>
+  hasClient?: boolean
 }
 
-export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigneesByTask }: TaskKanbanProps) {
+export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigneesByTask, hasClient = true }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<HiveTask | null>(null)
 
   const sensors = useSensors(
@@ -85,11 +86,12 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
             tasks={tasksByStatus[status] ?? []}
             onTaskClick={onTaskClick}
             assigneesByTask={assigneesByTask}
+            hasClient={hasClient}
           />
         ))}
       </div>
       <DragOverlay dropAnimation={null}>
-        {activeTask ? <TaskCard task={activeTask} isDragOverlay assignees={assigneesByTask?.[activeTask.name]} /> : null}
+        {activeTask ? <TaskCard task={activeTask} isDragOverlay assignees={assigneesByTask?.[activeTask.name]} hasClient={hasClient} /> : null}
       </DragOverlay>
     </DndContext>
   )
@@ -100,11 +102,13 @@ function KanbanColumn({
   tasks,
   onTaskClick,
   assigneesByTask,
+  hasClient,
 }: {
   status: string
   tasks: HiveTask[]
   onTaskClick?: (task: HiveTask) => void
   assigneesByTask?: Record<string, HiveTaskAssignee[]>
+  hasClient?: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -125,7 +129,7 @@ function KanbanColumn({
       </div>
       <div className="flex flex-col gap-2 min-h-[60px]">
         {tasks.map((task) => (
-          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} assignees={assigneesByTask?.[task.name]} />
+          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} assignees={assigneesByTask?.[task.name]} hasClient={hasClient} />
         ))}
       </div>
     </div>
@@ -136,10 +140,12 @@ function DraggableTaskCard({
   task,
   onTaskClick,
   assignees,
+  hasClient,
 }: {
   task: HiveTask
   onTaskClick?: (task: HiveTask) => void
   assignees?: HiveTaskAssignee[]
+  hasClient?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.name,
@@ -158,12 +164,12 @@ function DraggableTaskCard({
       className={isDragging ? "opacity-0" : ""}
       onClick={() => onTaskClick?.(task)}
     >
-      <TaskCard task={task} assignees={assignees} />
+      <TaskCard task={task} assignees={assignees} hasClient={hasClient} />
     </div>
   )
 }
 
-function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[] }) {
+function TaskCard({ task, isDragOverlay, assignees, hasClient }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[]; hasClient?: boolean }) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
 
   // Use new assignees if available, fall back to legacy assigned_to
@@ -194,7 +200,7 @@ function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOv
               PR
             </Badge>
           )}
-          {task.uat_status && task.uat_status !== "Pending" && (
+          {hasClient && task.uat_status && task.uat_status !== "Pending" && (
             <Badge
               variant={task.uat_status === "Approved" ? "default" : "destructive"}
               className="text-[10px] h-4 px-1.5"

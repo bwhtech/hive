@@ -685,6 +685,7 @@ export function ProjectDetailPage() {
                 onStatusChange={handleStatusChange}
                 onTaskClick={handleTaskClick}
                 assigneesByTask={assigneesByTask}
+                hasClient={!!project?.client}
               />
             )}
           </div>
@@ -732,6 +733,7 @@ export function ProjectDetailPage() {
         open={sheetOpen}
         onOpenChange={handleSheetOpenChange}
         onUpdated={handleTaskUpdated}
+        hasClient={!!project?.client}
       />
 
       {/* Manage Links Dialog */}

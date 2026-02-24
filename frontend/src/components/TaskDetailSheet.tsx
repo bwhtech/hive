@@ -66,6 +66,7 @@ interface TaskDetailSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpdated: () => void
+  hasClient?: boolean
 }
 
 const uatVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -80,7 +81,7 @@ interface TaskAssigneeRow {
   user_image?: string
 }
 
-export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDetailSheetProps) {
+export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient = true }: TaskDetailSheetProps) {
   const isMobile = useIsMobile()
   const { isClient } = useUser()
   const [title, setTitle] = useState("")
@@ -556,43 +557,45 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
           )}
         </div>
 
-        {/* UAT Section */}
-        <div className="rounded-lg border p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">UAT Status</Label>
-            <Badge variant={uatVariant[task.uat_status] ?? "outline"}>
-              {task.uat_status || "Pending"}
-            </Badge>
+        {/* UAT Section — only shown for projects with a client */}
+        {hasClient && (
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">UAT Status</Label>
+              <Badge variant={uatVariant[task.uat_status] ?? "outline"}>
+                {task.uat_status || "Pending"}
+              </Badge>
+            </div>
+            {task.uat_approved_by && (
+              <p className="text-xs text-muted-foreground">
+                {task.uat_status === "Approved" ? "Approved" : "Rejected"} by{" "}
+                {task.uat_approved_by} on {task.uat_date}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleApproveUat}
+                disabled={approvingUat || task.uat_status === "Approved"}
+                className="flex-1"
+              >
+                <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} data-icon="inline-start" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRejectUat}
+                disabled={rejectingUat || task.uat_status === "Rejected"}
+                className="flex-1"
+              >
+                <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} data-icon="inline-start" />
+                Reject
+              </Button>
+            </div>
           </div>
-          {task.uat_approved_by && (
-            <p className="text-xs text-muted-foreground">
-              {task.uat_status === "Approved" ? "Approved" : "Rejected"} by{" "}
-              {task.uat_approved_by} on {task.uat_date}
-            </p>
-          )}
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleApproveUat}
-              disabled={approvingUat || task.uat_status === "Approved"}
-              className="flex-1"
-            >
-              <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} data-icon="inline-start" />
-              Approve
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRejectUat}
-              disabled={rejectingUat || task.uat_status === "Rejected"}
-              className="flex-1"
-            >
-              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} data-icon="inline-start" />
-              Reject
-            </Button>
-          </div>
-        </div>
+        )}
 
         {/* Comments Section */}
         <TaskCommentsSection taskName={task.name} members={allMembers} />

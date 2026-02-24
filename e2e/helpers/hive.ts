@@ -1,5 +1,5 @@
 import { APIRequestContext } from "@playwright/test";
-import { createDoc, deleteDoc, getDoc, getList } from "./frappe";
+import { createDoc, deleteDoc, getDoc, getList, updateDoc } from "./frappe";
 
 /**
  * Hive Feature Request document interface.
@@ -25,6 +25,20 @@ export interface HiveProject {
 	status: string;
 	project_type?: string;
 	client?: string;
+	creation?: string;
+	modified?: string;
+}
+
+/**
+ * Hive Milestone document interface.
+ */
+export interface HiveMilestone {
+	name: string;
+	title: string;
+	project: string;
+	status: string;
+	target_date?: string | null;
+	description?: string;
 	creation?: string;
 	modified?: string;
 }
@@ -190,6 +204,81 @@ export async function cleanupTestFeatureRequests(
 			await deleteTestFeatureRequest(request, req.name);
 		} catch (error) {
 			console.warn(`Failed to delete feature request ${req.name}:`, error);
+		}
+	}
+}
+
+/**
+ * Create a test Hive Milestone via API.
+ */
+export async function createTestMilestone(
+	request: APIRequestContext,
+	options: {
+		title?: string;
+		project: string;
+		status?: string;
+		target_date?: string | null;
+		description?: string;
+	},
+): Promise<HiveMilestone> {
+	const title = options.title || `E2E Test Milestone ${Date.now()}`;
+
+	return createDoc<HiveMilestone>(request, "Hive Milestone", {
+		title,
+		project: options.project,
+		status: options.status ?? "Upcoming",
+		target_date: options.target_date ?? null,
+		description: options.description,
+	});
+}
+
+/**
+ * Delete a test Hive Milestone via API.
+ */
+export async function deleteTestMilestone(
+	request: APIRequestContext,
+	name: string,
+): Promise<void> {
+	await deleteDoc(request, "Hive Milestone", name);
+}
+
+/**
+ * Cleanup test milestones matching a title pattern.
+ * Unlinks tasks first, then deletes the milestones.
+ */
+export async function cleanupTestMilestones(
+	request: APIRequestContext,
+	titlePattern = "E2E Test Milestone",
+): Promise<void> {
+	const milestones = await getList<HiveMilestone>(request, "Hive Milestone", {
+		fields: ["name"],
+		filters: { title: ["like", `${titlePattern}%`] },
+		limit: 100,
+	});
+
+	for (const ms of milestones) {
+		// Unlink tasks referencing this milestone before deleting
+		const tasks = await getList<HiveTask>(request, "Hive Task", {
+			fields: ["name"],
+			filters: { milestone: ms.name },
+			limit: 500,
+		});
+		for (const task of tasks) {
+			try {
+				await updateDoc(request, "Hive Task", task.name, {
+					milestone: null,
+				});
+			} catch (e) {
+				console.warn(
+					`Failed to unlink task ${task.name} from milestone:`,
+					e,
+				);
+			}
+		}
+		try {
+			await deleteDoc(request, "Hive Milestone", ms.name);
+		} catch (error) {
+			console.warn(`Failed to delete milestone ${ms.name}:`, error);
 		}
 	}
 }

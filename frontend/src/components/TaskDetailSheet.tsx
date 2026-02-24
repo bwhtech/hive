@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc } from "frappe-react-sdk"
+import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc, useFrappeDeleteDoc } from "frappe-react-sdk"
 import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -10,6 +10,7 @@ import {
   Link04Icon,
   UserAdd01Icon,
   Cancel02Icon,
+  Delete02Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Sheet,
@@ -43,6 +44,17 @@ import {
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
 import { useUser } from "@/context/UserContext"
@@ -83,6 +95,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   const [saving, setSaving] = useState(false)
 
   const { updateDoc } = useFrappeUpdateDoc()
+  const { deleteDoc } = useFrappeDeleteDoc()
   const { call: approveUat, loading: approvingUat } = useFrappePostCall("frappe.client.run_doc_method")
   const { call: rejectUat, loading: rejectingUat } = useFrappePostCall("frappe.client.run_doc_method")
 
@@ -193,6 +206,17 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       onUpdated()
     } catch {
       toast.error("Failed to reject UAT")
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      await deleteDoc("Hive Task", task.name)
+      toast.success("Task deleted")
+      onOpenChange(false)
+      onUpdated()
+    } catch {
+      toast.error("Failed to delete task")
     }
   }
 
@@ -485,10 +509,31 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
     </ScrollArea>
   )
 
-  const saveButton = isClient ? null : (
-    <Button onClick={handleSave} disabled={saving || !title.trim()} className="w-full">
-      {saving ? <><Spinner className="mr-1.5" /> Saving...</> : "Save Changes"}
-    </Button>
+  const footerButtons = isClient ? null : (
+    <div className="flex gap-2 w-full">
+      <AlertDialog>
+        <AlertDialogTrigger render={<Button variant="outline" size="icon" className="shrink-0 text-destructive hover:text-destructive" />}>
+          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-4" />
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This task will be permanently deleted. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Button onClick={handleSave} disabled={saving || !title.trim()} className="flex-1">
+        {saving ? <><Spinner className="mr-1.5" /> Saving...</> : "Save Changes"}
+      </Button>
+    </div>
   )
 
   if (isMobile) {
@@ -500,9 +545,9 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             <DrawerDescription>{task.name}</DrawerDescription>
           </DrawerHeader>
           {formContent}
-          {saveButton && (
+          {footerButtons && (
             <DrawerFooter>
-              {saveButton}
+              {footerButtons}
             </DrawerFooter>
           )}
         </DrawerContent>
@@ -518,9 +563,9 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
           <SheetDescription>{task.name}</SheetDescription>
         </SheetHeader>
         {formContent}
-        {saveButton && (
+        {footerButtons && (
           <SheetFooter>
-            {saveButton}
+            {footerButtons}
           </SheetFooter>
         )}
       </SheetContent>

@@ -17,6 +17,7 @@
   "is_internal",
   "start_date",
   "due_date",
+  "completed_on",
   "pr_link",
   "description",
   "uat_section",
@@ -105,6 +106,11 @@
    "fieldname": "due_date",
    "fieldtype": "Date",
    "label": "Due Date"
+  },
+  {
+   "fieldname": "completed_on",
+   "fieldtype": "Date",
+   "label": "Completed On"
   },
   {
    "fieldname": "pr_link",

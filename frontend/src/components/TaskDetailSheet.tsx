@@ -92,6 +92,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   const [prLink, setPrLink] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
+  const [completedOn, setCompletedOn] = useState<Date | undefined>()
   const [assignees, setAssignees] = useState<TaskAssigneeRow[]>([])
   const [saving, setSaving] = useState(false)
 
@@ -140,6 +141,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       setPrLink(task.pr_link || "")
       setDueDate(task.due_date ? new Date(task.due_date) : undefined)
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
+      setCompletedOn(task.completed_on ? new Date(task.completed_on) : undefined)
     }
   }, [task])
 
@@ -158,6 +160,15 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
 
   if (!task) return null
 
+  const handleStatusChange = (newStatus: string) => {
+    setStatus(newStatus)
+    if (newStatus === "Done" && !completedOn) {
+      setCompletedOn(new Date())
+    } else if (newStatus !== "Done") {
+      setCompletedOn(undefined)
+    }
+  }
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -171,6 +182,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         pr_link: prLink || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
+        completed_on: completedOn ? format(completedOn, "yyyy-MM-dd") : null,
         assignees: assignees.map((a) => ({ member: a.member })),
       })
       toast.success("Task updated")
@@ -261,7 +273,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             {isClient ? (
               <Badge variant="outline" className="w-fit">{status}</Badge>
             ) : (
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={handleStatusChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -398,7 +410,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className={`grid gap-4 ${status === "Done" ? "grid-cols-3" : "grid-cols-2"}`}>
           <div className="grid gap-2">
             <Label>Start Date</Label>
             {isClient ? (
@@ -419,6 +431,18 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
               <DatePicker date={dueDate} onSelect={setDueDate} />
             )}
           </div>
+          {status === "Done" && (
+            <div className="grid gap-2">
+              <Label>Completed On</Label>
+              {isClient ? (
+                <p className="text-sm text-muted-foreground py-1">
+                  {completedOn ? format(completedOn, "MMM d, yyyy") : "Not set"}
+                </p>
+              ) : (
+                <DatePicker date={completedOn} onSelect={setCompletedOn} />
+              )}
+            </div>
+          )}
         </div>
 
         {/* PR Link */}

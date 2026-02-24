@@ -23,6 +23,7 @@ export interface HiveTask {
   description: string
   due_date: string | null
   start_date: string | null
+  completed_on: string | null
   pr_link: string | null
   uat_status: "Pending" | "Approved" | "Rejected"
   uat_approved_by: string | null

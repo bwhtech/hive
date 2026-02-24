@@ -24,6 +24,7 @@ class HiveTask(Document):
 		from frappe.types import DF
 
 		assigned_to: DF.Link | None
+		completed_on: DF.Date | None
 		description: DF.TextEditor | None
 		due_date: DF.Date | None
 		is_internal: DF.Check
@@ -43,6 +44,7 @@ class HiveTask(Document):
 	def validate(self):
 		self._validate_status_transition()
 		self._validate_dates()
+		self._set_completed_on()
 
 	def _validate_status_transition(self):
 		if self.is_new():
@@ -59,6 +61,12 @@ class HiveTask(Document):
 	def _validate_dates(self):
 		if self.start_date and self.due_date and self.start_date > self.due_date:
 			frappe.throw("Start date cannot be after due date")
+
+	def _set_completed_on(self):
+		if self.status == "Done" and not self.completed_on:
+			self.completed_on = today()
+		elif self.status != "Done":
+			self.completed_on = None
 
 	@frappe.whitelist()
 	def approve_uat(self):

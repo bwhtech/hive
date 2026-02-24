@@ -19,6 +19,15 @@ def setup_e2e_data():
 		},
 	)
 
+	# 0b. Sync the Hive Member record (created at install time with the old name)
+	if frappe.db.exists("Hive Member", "Administrator"):
+		frappe.db.set_value("Hive Member", "Administrator", "member_name", "Administrator Bhaisaab")
+
+	# 0c. Ensure a default outgoing Email Account exists so invite_by_email
+	#     doesn't crash even though mute_emails=1 in CI (Frappe resolves the
+	#     account before checking the mute flag).
+	_ensure_outgoing_email_account()
+
 	# 1. Ensure the "Hive Client" role exists
 	if not frappe.db.exists("Role", "Hive Client"):
 		frappe.get_doc({"doctype": "Role", "role_name": "Hive Client"}).insert(ignore_permissions=True)
@@ -116,3 +125,24 @@ def _create_task(title: str, project: str, status: str = "Backlog") -> str | Non
 	)
 	doc.insert(ignore_permissions=True)
 	return doc.name
+
+
+def _ensure_outgoing_email_account():
+	"""Create a dummy outgoing Email Account for CI so Frappe's sendmail doesn't crash."""
+	if frappe.db.exists("Email Account", {"default_outgoing": 1}):
+		return
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Email Account",
+			"email_account_name": "E2E Test Outgoing",
+			"email_id": "test@example.com",
+			"domain": "example.com",
+			"default_outgoing": 1,
+			"enable_outgoing": 1,
+			"smtp_server": "localhost",
+			"smtp_port": 25,
+		}
+	)
+	doc.flags.ignore_validate = True
+	doc.insert(ignore_permissions=True)

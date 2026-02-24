@@ -111,12 +111,10 @@ test.describe("Members", () => {
 		const inviteEmail = `e2e-invite-cancel-${Date.now()}@example.com`;
 		await callMethod(
 			request,
-			"frappe.core.api.user_invitation.invite_by_email",
+			"bwh_hive.bwh_hive.api.invite_member",
 			{
-				emails: inviteEmail,
-				roles: ["Hive Team"],
-				redirect_to_path: "/hive",
-				app_name: "bwh_hive",
+				email: inviteEmail,
+				role: "Hive Team",
 			},
 		);
 

@@ -65,7 +65,7 @@ const STEPS = [
 
 function InviteMembersStep() {
   const { call: inviteByEmail, loading: inviting } = useFrappePostCall(
-    "frappe.core.api.user_invitation.invite_by_email",
+    "bwh_hive.bwh_hive.api.invite_member",
   )
   const {
     data: invitesData,
@@ -82,12 +82,7 @@ function InviteMembersStep() {
     const trimmed = email.trim()
     if (!trimmed) return
     try {
-      await inviteByEmail({
-        emails: trimmed,
-        roles: ["Hive Team"],
-        redirect_to_path: "/hive",
-        app_name: "bwh_hive",
-      })
+      await inviteByEmail({ email: trimmed, role: "Hive Team" })
       toast.success(`Invitation sent to ${trimmed}`)
       setEmail("")
       mutateInvites()

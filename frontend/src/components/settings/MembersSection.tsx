@@ -74,7 +74,7 @@ export function MembersSection() {
   })
 
   const { call: inviteByEmail, loading: inviting } = useFrappePostCall(
-    "frappe.core.api.user_invitation.invite_by_email",
+    "bwh_hive.bwh_hive.api.invite_member",
   )
   const { call: cancelInvitation } = useFrappePostCall(
     "frappe.core.api.user_invitation.cancel_invitation",
@@ -106,12 +106,7 @@ export function MembersSection() {
     const trimmed = email.trim()
     if (!trimmed) return
     try {
-      await inviteByEmail({
-        emails: trimmed,
-        roles: [role],
-        redirect_to_path: "/hive",
-        app_name: "bwh_hive",
-      })
+      await inviteByEmail({ email: trimmed, role })
       toast.success(`Invitation sent to ${trimmed}`)
       setEmail("")
       refreshAll()

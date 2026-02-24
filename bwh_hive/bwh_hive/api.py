@@ -5,6 +5,39 @@ from frappe.utils import getdate, nowdate
 
 
 @frappe.whitelist(methods=["POST"])
+def invite_member(email: str, role: str = "Hive Team"):
+	"""Create a User Invitation. Email delivery is best-effort."""
+	email = email.strip()
+	if not email:
+		frappe.throw("Email is required")
+
+	try:
+		from frappe.core.api.user_invitation import invite_by_email
+
+		return invite_by_email(
+			emails=email,
+			roles=[role],
+			redirect_to_path="/hive",
+			app_name="bwh_hive",
+		)
+	except frappe.OutgoingEmailError:
+		# No outgoing email account configured — create invitation without email
+		frappe.flags.mute_emails = True
+		try:
+			frappe.get_doc(
+				{
+					"doctype": "User Invitation",
+					"email": email,
+					"roles": [{"role": role}],
+					"redirect_to_path": "/hive",
+					"app_name": "bwh_hive",
+				}
+			).insert(ignore_permissions=True)
+		finally:
+			frappe.flags.mute_emails = False
+
+
+@frappe.whitelist(methods=["POST"])
 def invite_client_member(email: str, client: str):
 	"""Invite a user as a Hive Client member and pre-link them to a client org.
 
@@ -12,28 +45,19 @@ def invite_client_member(email: str, client: str):
 	with the hive_client field so the on_update hook auto-assigns the client
 	when the invitation is accepted.
 	"""
-	from frappe.core.api.user_invitation import invite_by_email
-
 	if not frappe.db.exists("Hive Client", client):
 		frappe.throw(f"Client '{client}' does not exist")
 
-	result = invite_by_email(
-		emails=email,
-		roles=["Hive Client"],
-		redirect_to_path="/hive",
-		app_name="bwh_hive",
-	)
+	result = invite_member(email=email, role="Hive Client")
 
 	# Stamp hive_client on the newly created invitation
-	invited = result.get("invited_emails") or []
-	if invited:
-		inv_name = frappe.db.get_value(
-			"User Invitation",
-			{"email": email, "status": "Pending", "app_name": "bwh_hive"},
-			"name",
-		)
-		if inv_name:
-			frappe.db.set_value("User Invitation", inv_name, "hive_client", client)
+	inv_name = frappe.db.get_value(
+		"User Invitation",
+		{"email": email, "status": "Pending", "app_name": "bwh_hive"},
+		"name",
+	)
+	if inv_name:
+		frappe.db.set_value("User Invitation", inv_name, "hive_client", client)
 
 	return result
 

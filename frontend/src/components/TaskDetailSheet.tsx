@@ -29,7 +29,6 @@ import {
   DrawerFooter,
 } from "@/components/ui/drawer"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -314,7 +313,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const assignedMemberNames = new Set(assignees.map((a) => a.member))
 
   const formContent = (
-    <ScrollArea className="h-0 flex-1">
+    <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="grid gap-5 px-6 py-4">
         {/* Title */}
         <div className="grid gap-2">
@@ -600,7 +599,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         {/* Comments Section */}
         <TaskCommentsSection taskName={task.name} members={allMembers} />
       </div>
-    </ScrollArea>
+    </div>
   )
 
   const footerButtons = isClient ? null : (

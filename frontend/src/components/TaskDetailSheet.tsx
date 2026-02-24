@@ -95,6 +95,15 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   const [completedOn, setCompletedOn] = useState<Date | undefined>()
   const [assignees, setAssignees] = useState<TaskAssigneeRow[]>([])
   const [saving, setSaving] = useState(false)
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const userEditedRef = useRef(false)
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const autosaveRef = useRef<() => void>(() => {})
+
+  const markEdited = () => {
+    userEditedRef.current = true
+    setAutosaveStatus("idle")
+  }
 
   const { updateDoc } = useFrappeUpdateDoc()
   const { deleteDoc } = useFrappeDeleteDoc()
@@ -130,8 +139,12 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
     },
   )
 
+  // Only reset form when a different task opens (not on refetch of same task)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (task) {
+      userEditedRef.current = false
+      setAutosaveStatus("idle")
       setTitle(task.title)
       setDescription(task.description || "")
       setStatus(task.status)
@@ -143,7 +156,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
       setCompletedOn(task.completed_on ? new Date(task.completed_on) : undefined)
     }
-  }, [task])
+  }, [task?.name])
 
   // Sync assignees from fetched task doc
   useEffect(() => {
@@ -174,6 +187,23 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [open, isClient])
 
+  // Autosave: debounce 1.5s after user edits
+  useEffect(() => {
+    if (!open || isClient || !userEditedRef.current) return
+
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveRef.current()
+    }, 1500)
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = undefined
+      }
+    }
+  }, [title, description, status, priority, size, milestone, prLink, dueDate, startDate, completedOn, assignees, open, isClient])
+
   if (!task) return null
 
   const handleStatusChange = (newStatus: string) => {
@@ -185,9 +215,14 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
     }
   }
 
-  const handleSave = async () => {
+  const handleSave = async (silent = false) => {
     if (saving || !title.trim()) return
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current)
+      autosaveTimerRef.current = undefined
+    }
     setSaving(true)
+    if (silent) setAutosaveStatus("saving")
     try {
       await updateDoc("Hive Task", task.name, {
         title,
@@ -202,16 +237,23 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
         completed_on: completedOn ? format(completedOn, "yyyy-MM-dd") : null,
         assignees: assignees.map((a) => ({ member: a.member })),
       })
-      toast.success("Task updated")
+      userEditedRef.current = false
+      if (silent) {
+        setAutosaveStatus("saved")
+      } else {
+        toast.success("Task updated")
+      }
       onUpdated()
     } catch {
-      toast.error("Failed to update task")
+      toast.error("Failed to save task")
+      if (silent) setAutosaveStatus("idle")
     } finally {
       setSaving(false)
     }
   }
 
   saveRef.current = handleSave
+  autosaveRef.current = () => handleSave(true)
 
   const handleApproveUat = async () => {
     try {
@@ -260,10 +302,12 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       }
       return [...prev, { member: member.name, member_name: member.member_name, user_image: member.user_image }]
     })
+    markEdited()
   }
 
   const removeAssignee = (memberName: string) => {
     setAssignees((prev) => prev.filter((a) => a.member !== memberName))
+    markEdited()
   }
 
   const assignedMemberNames = new Set(assignees.map((a) => a.member))
@@ -280,7 +324,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             <Input
               id="task-detail-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); markEdited() }}
             />
           )}
         </div>
@@ -292,7 +336,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             {isClient ? (
               <Badge variant="outline" className="w-fit">{status}</Badge>
             ) : (
-              <Select value={status} onValueChange={handleStatusChange}>
+              <Select value={status} onValueChange={(v) => { handleStatusChange(v); markEdited() }}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -310,7 +354,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             {isClient ? (
               <Badge variant="outline" className="w-fit">{priority}</Badge>
             ) : (
-              <Select value={priority} onValueChange={setPriority}>
+              <Select value={priority} onValueChange={(v) => { setPriority(v); markEdited() }}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -327,7 +371,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             {isClient ? (
               <Badge variant="outline" className="w-fit">{size || "None"}</Badge>
             ) : (
-              <Select value={size} onValueChange={setSize}>
+              <Select value={size} onValueChange={(v) => { setSize(v); markEdited() }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
@@ -350,7 +394,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
               {milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}
             </p>
           ) : (
-            <Select value={milestone} onValueChange={setMilestone}>
+            <Select value={milestone} onValueChange={(v) => { setMilestone(v); markEdited() }}>
               <SelectTrigger className="w-full">
                 <span>{milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}</span>
               </SelectTrigger>
@@ -437,7 +481,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
                 {startDate ? format(startDate, "MMM d, yyyy") : "Not set"}
               </p>
             ) : (
-              <DatePicker date={startDate} onSelect={setStartDate} />
+              <DatePicker date={startDate} onSelect={(d) => { setStartDate(d); markEdited() }} />
             )}
           </div>
           <div className="grid gap-2">
@@ -447,7 +491,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
                 {dueDate ? format(dueDate, "MMM d, yyyy") : "Not set"}
               </p>
             ) : (
-              <DatePicker date={dueDate} onSelect={setDueDate} />
+              <DatePicker date={dueDate} onSelect={(d) => { setDueDate(d); markEdited() }} />
             )}
           </div>
           {status === "Done" && (
@@ -458,7 +502,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
                   {completedOn ? format(completedOn, "MMM d, yyyy") : "Not set"}
                 </p>
               ) : (
-                <DatePicker date={completedOn} onSelect={setCompletedOn} />
+                <DatePicker date={completedOn} onSelect={(d) => { setCompletedOn(d); markEdited() }} />
               )}
             </div>
           )}
@@ -486,7 +530,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
                 id="task-pr-link"
                 placeholder="https://github.com/..."
                 value={prLink}
-                onChange={(e) => setPrLink(e.target.value)}
+                onChange={(e) => { setPrLink(e.target.value); markEdited() }}
                 className="pl-8"
               />
             </div>
@@ -506,7 +550,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
             <TiptapEditor
               key={task.name}
               content={task.description || ""}
-              onChange={setDescription}
+              onChange={(v) => { setDescription(v); markEdited() }}
               placeholder="Add a description..."
             />
           )}
@@ -577,9 +621,14 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Button onClick={handleSave} disabled={saving || !title.trim()} className="flex-1">
-        {saving ? <><Spinner className="mr-1.5" /> Saving...</> : "Save Changes"}
-      </Button>
+      <div className="flex-1 flex items-center justify-end gap-1.5 text-sm text-muted-foreground">
+        {autosaveStatus === "saving" && (
+          <><Spinner className="size-3" /> <span>Saving...</span></>
+        )}
+        {autosaveStatus === "saved" && (
+          <><HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-green-600" /> <span>Saved</span></>
+        )}
+      </div>
     </div>
   )
 

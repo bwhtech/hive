@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router"
 import { useFrappeCreateDoc, useFrappeGetDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
@@ -45,6 +45,11 @@ export function AppLayout() {
     [navigate],
   )
   useChordHotkey("g", navChords)
+
+  // Close modals on route change (browser back/forward)
+  useEffect(() => {
+    setSettingsOpen(false)
+  }, [location.pathname])
 
   const openSettings = (tab?: string) => {
     if (tab) setSettingsTab(tab)

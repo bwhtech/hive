@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc, useFrappeDeleteDoc } from "frappe-react-sdk"
 import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
@@ -158,6 +158,22 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
     }
   }, [taskDoc])
 
+  // Ref to hold latest save function for keyboard shortcut
+  const saveRef = useRef<() => void>(() => {})
+
+  // Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux) to save
+  useEffect(() => {
+    if (!open || isClient) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        saveRef.current()
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open, isClient])
+
   if (!task) return null
 
   const handleStatusChange = (newStatus: string) => {
@@ -170,6 +186,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
   }
 
   const handleSave = async () => {
+    if (saving || !title.trim()) return
     setSaving(true)
     try {
       await updateDoc("Hive Task", task.name, {
@@ -193,6 +210,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated }: TaskDet
       setSaving(false)
     }
   }
+
+  saveRef.current = handleSave
 
   const handleApproveUat = async () => {
     try {

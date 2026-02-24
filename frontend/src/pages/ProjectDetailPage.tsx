@@ -158,6 +158,8 @@ export function ProjectDetailPage() {
   const [linksDialogOpen, setLinksDialogOpen] = useState(false)
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [newClientName, setNewClientName] = useState("")
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState("")
 
   const { data: project, isLoading: projectLoading, mutate: mutateProject } = useFrappeGetDoc<HiveProject>(
     "Hive Project",
@@ -366,6 +368,22 @@ export function ProjectDetailPage() {
     }
   }
 
+  const handleTitleSave = async () => {
+    const trimmed = titleDraft.trim()
+    if (!trimmed || trimmed === project?.title) {
+      setEditingTitle(false)
+      return
+    }
+    try {
+      await updateDoc("Hive Project", id!, { title: trimmed })
+      mutateProject()
+      toast.success("Project renamed")
+    } catch {
+      toast.error("Failed to rename project")
+    }
+    setEditingTitle(false)
+  }
+
   if (projectLoading) {
     return (
       <div className="space-y-6">
@@ -429,7 +447,31 @@ export function ProjectDetailPage() {
             <HugeiconsIcon icon={ArrowLeft02Icon} strokeWidth={2} />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight truncate">{project.title}</h1>
+            {editingTitle && !isClient ? (
+              <input
+                className="text-2xl font-bold tracking-tight bg-transparent border-b border-foreground/20 focus:border-foreground/50 outline-none w-full"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleTitleSave()
+                  if (e.key === "Escape") setEditingTitle(false)
+                }}
+                autoFocus
+              />
+            ) : (
+              <h1
+                className={`text-2xl font-bold tracking-tight truncate ${!isClient ? "cursor-pointer hover:text-foreground/80" : ""}`}
+                onClick={() => {
+                  if (!isClient) {
+                    setTitleDraft(project.title)
+                    setEditingTitle(true)
+                  }
+                }}
+              >
+                {project.title}
+              </h1>
+            )}
             <div className="mt-1 flex items-center gap-2">
               <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                 {project.status}

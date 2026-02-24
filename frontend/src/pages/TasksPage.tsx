@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from "react"
-import { useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk"
+import { useState, useMemo, useEffect, useCallback } from "react"
+import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc } from "frappe-react-sdk"
 import { useNavigate } from "react-router"
+import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   TaskDaily01Icon,
@@ -9,6 +10,7 @@ import {
   ArrowUp01Icon,
   ArrowDown01Icon,
   SortingIcon,
+  Add01Icon,
 } from "@hugeicons/core-free-icons"
 import { format } from "date-fns"
 import {
@@ -50,6 +52,7 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@/components/ui/empty"
+import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 
 interface TaskRow {
   task: HiveTask
@@ -197,8 +200,10 @@ export function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [projectFilter, setProjectFilter] = useState("all")
   const [sorting, setSorting] = useState<SortingState>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const { createDoc } = useFrappeCreateDoc()
 
-  const { data: tasks, isLoading: tasksLoading } = useFrappeGetDocList<HiveTask>(
+  const { data: tasks, isLoading: tasksLoading, mutate: tasksMutate } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
     {
       fields: [
@@ -236,6 +241,23 @@ export function TasksPage() {
   }, [callAssignees])
 
   const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
+
+  const handleCreateTask = useCallback(async (values: {
+    title: string; priority: string; status: string;
+    due_date?: string | null; start_date?: string | null;
+    is_internal?: 0 | 1; assignees?: { member: string }[];
+    project?: string; milestone?: string | null;
+  }) => {
+    try {
+      await createDoc("Hive Task", values)
+      setCreateOpen(false)
+      toast.success("Task created")
+      tasksMutate()
+      callAssignees({})
+    } catch {
+      toast.error("Failed to create task")
+    }
+  }, [createDoc, callAssignees, tasksMutate])
 
   const projectMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -296,11 +318,17 @@ export function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-        <p className="mt-1 text-muted-foreground">
-          All tasks across your projects.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+          <p className="mt-1 text-muted-foreground">
+            All tasks across your projects.
+          </p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
+          Add Task
+        </Button>
       </div>
 
       {/* Search & Filters */}
@@ -409,6 +437,12 @@ export function TasksPage() {
                 : "Tasks will appear here once created in a project."}
             </EmptyDescription>
           </EmptyHeader>
+          {!(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all") && (
+            <Button onClick={() => setCreateOpen(true)} className="mt-4">
+              <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
+              Add Task
+            </Button>
+          )}
         </Empty>
       ) : (
         <div className="space-y-4">
@@ -475,6 +509,12 @@ export function TasksPage() {
           </div>
         </div>
       )}
+
+      <CreateTaskDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSubmit={handleCreateTask}
+      />
     </div>
   )
 }

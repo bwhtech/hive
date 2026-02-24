@@ -170,7 +170,7 @@ function ActivityEntry({ activity }: { activity: ActivityItem }) {
 
   return (
     <div className="flex gap-3 py-2">
-      <div className={`mt-0.5 flex-shrink-0 rounded-full p-1.5 ${iconClasses}`}>
+      <div className={`mt-0.5 flex-shrink-0 size-7 rounded-full flex items-center justify-center ${iconClasses}`}>
         <HugeiconsIcon icon={icon} className="size-3.5" strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">

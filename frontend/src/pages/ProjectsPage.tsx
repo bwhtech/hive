@@ -32,6 +32,7 @@ export function ProjectsPage() {
 
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
     fields: ["name", "title", "status", "project_type", "client", "description", "creation", "modified"],
+    filters: [["is_archived", "=", 0]],
     orderBy: { field: "modified", order: "desc" },
     limit: 100,
   })

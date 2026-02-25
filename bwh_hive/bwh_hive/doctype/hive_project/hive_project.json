@@ -14,7 +14,8 @@
   "members_section",
   "members",
   "links_section",
-  "links"
+  "links",
+  "is_archived"
  ],
  "fields": [
   {
@@ -77,6 +78,13 @@
    "fieldtype": "Table",
    "label": "Links",
    "options": "Hive Project Link"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_archived",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Archived"
   }
  ],
  "grid_page_length": 50,

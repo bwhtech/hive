@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { useParams, useSearchParams, Link } from "react-router"
+import { useParams, useSearchParams, Link, useNavigate } from "react-router"
 import {
   useFrappeAuth,
   useFrappeGetDoc,
@@ -22,6 +22,7 @@ import {
   ArrowUpRight01Icon,
   FilterIcon,
   Clock01Icon,
+  Delete02Icon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -85,6 +86,7 @@ const TASK_FIELDS = [
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const isMobile = useIsMobile()
   const { isClient } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -386,6 +388,29 @@ export function ProjectDetailPage() {
     setEditingTitle(false)
   }
 
+  const handleArchiveProject = async () => {
+    try {
+      await updateDoc("Hive Project", id!, { is_archived: 1 })
+      navigate("/projects")
+      toast("Project deleted", {
+        duration: 6000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await updateDoc("Hive Project", id!, { is_archived: 0 })
+              navigate(`/projects/${id}`)
+            } catch {
+              toast.error("Failed to restore project")
+            }
+          },
+        },
+      })
+    } catch {
+      toast.error("Failed to delete project")
+    }
+  }
+
   if (projectLoading) {
     return (
       <div className="space-y-6">
@@ -581,18 +606,30 @@ export function ProjectDetailPage() {
           </div>
         </div>
         {!isClient && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button onClick={() => setCreateOpen(true)} />
-            }
-          >
-            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
-            <span className="hidden sm:inline">Add Task</span>
-            <Kbd keys={["T"]} className="pointer-events-none ml-1 hidden sm:inline-flex" />
-          </TooltipTrigger>
-          <TooltipContent>Create a new task (T)</TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={handleArchiveProject} />
+              }
+            >
+              <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-4" />
+            </TooltipTrigger>
+            <TooltipContent>Delete project</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button onClick={() => setCreateOpen(true)} />
+              }
+            >
+              <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
+              <span className="hidden sm:inline">Add Task</span>
+              <Kbd keys={["T"]} className="pointer-events-none ml-1 hidden sm:inline-flex" />
+            </TooltipTrigger>
+            <TooltipContent>Create a new task (T)</TooltipContent>
+          </Tooltip>
+        </div>
         )}
       </div>
 

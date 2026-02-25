@@ -14,6 +14,7 @@ export function ProjectsTab() {
     "Hive Project",
     {
       fields: ["name", "title", "status", "project_type", "client", "creation", "modified"],
+      filters: [["is_archived", "=", 0]],
       orderBy: { field: "modified", order: "desc" },
       limit: 100,
     },

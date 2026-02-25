@@ -5,6 +5,7 @@ export interface HiveProject {
   project_type: string
   client: string
   description: string
+  is_archived: 0 | 1
   links?: HiveProjectLink[]
   creation: string
   modified: string

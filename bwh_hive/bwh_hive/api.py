@@ -143,7 +143,7 @@ def get_my_dashboard():
 	if all_my_project_ids:
 		my_projects = frappe.get_all(
 			"Hive Project",
-			filters={"name": ["in", list(all_my_project_ids)]},
+			filters={"name": ["in", list(all_my_project_ids)], "is_archived": 0},
 			fields=["name", "title", "status", "project_type", "client", "modified"],
 			order_by="modified desc",
 		)
@@ -329,7 +329,7 @@ def _search_like(query: str, project: str | None, limit: int) -> dict:
 
 	projects = frappe.get_all(
 		"Hive Project",
-		filters={"title": ["like", like]},
+		filters={"title": ["like", like], "is_archived": 0},
 		fields=["name", "title", "status"],
 		order_by="modified desc",
 		limit=limit,

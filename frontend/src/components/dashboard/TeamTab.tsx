@@ -26,7 +26,7 @@ export function TeamTab() {
     "Hive Task",
     {
       fields: ["name", "title", "project", "status", "priority", "assigned_to"],
-      filters: [["status", "not in", ["Done"]]],
+      filters: [["status", "not in", ["Done"]], ["is_archived", "=", 0]],
       orderBy: { field: "modified", order: "desc" },
       limit: 500,
     },

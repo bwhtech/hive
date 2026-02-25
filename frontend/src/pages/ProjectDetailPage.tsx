@@ -177,7 +177,7 @@ export function ProjectDetailPage() {
     "Hive Task",
     {
       fields: TASK_FIELDS as unknown as (keyof HiveTask)[],
-      filters: [["project", "=", id ?? ""]],
+      filters: [["project", "=", id ?? ""], ["is_archived", "=", 0]],
       orderBy: { field: "modified", order: "desc" },
       limit: 200,
     },

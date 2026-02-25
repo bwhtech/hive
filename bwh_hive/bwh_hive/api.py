@@ -71,7 +71,7 @@ def get_my_dashboard():
 	# My tasks grouped by project (legacy assigned_to)
 	my_tasks = frappe.get_all(
 		"Hive Task",
-		filters={"assigned_to": user, "status": ["not in", ["Done"]]},
+		filters={"assigned_to": user, "status": ["not in", ["Done"]], "is_archived": 0},
 		fields=["name", "title", "project", "status", "priority", "due_date", "is_internal"],
 		order_by="priority desc, modified desc",
 		limit=50,
@@ -89,7 +89,11 @@ def get_my_dashboard():
 	if extra_task_names:
 		extra_tasks = frappe.get_all(
 			"Hive Task",
-			filters={"name": ["in", list(extra_task_names)], "status": ["not in", ["Done"]]},
+			filters={
+				"name": ["in", list(extra_task_names)],
+				"status": ["not in", ["Done"]],
+				"is_archived": 0,
+			},
 			fields=["name", "title", "project", "status", "priority", "due_date", "is_internal"],
 			order_by="priority desc, modified desc",
 		)
@@ -239,7 +243,7 @@ def get_task_assignees(project: str | None = None):
 			t.name
 			for t in frappe.get_all(
 				"Hive Task",
-				filters={"project": project},
+				filters={"project": project, "is_archived": 0},
 				fields=["name"],
 				limit=500,
 			)
@@ -331,7 +335,7 @@ def _search_like(query: str, project: str | None, limit: int) -> dict:
 		limit=limit,
 	)
 
-	task_filters: dict = {"title": ["like", like]}
+	task_filters: dict = {"title": ["like", like], "is_archived": 0}
 	if project:
 		task_filters["project"] = project
 
@@ -394,7 +398,7 @@ def get_team_dashboard():
 	# Get all non-Done tasks
 	tasks = frappe.get_all(
 		"Hive Task",
-		filters={"status": ["not in", ["Done"]]},
+		filters={"status": ["not in", ["Done"]], "is_archived": 0},
 		fields=["name", "status", "assigned_to"],
 		limit=500,
 	)
@@ -427,7 +431,7 @@ def get_team_dashboard():
 	# Tasks completed (moved to Done) in last 7 days
 	done_tasks = frappe.get_all(
 		"Hive Task",
-		filters={"status": "Done", "modified": [">=", cutoff]},
+		filters={"status": "Done", "modified": [">=", cutoff], "is_archived": 0},
 		fields=["name", "assigned_to"],
 		limit=500,
 	)
@@ -452,7 +456,7 @@ def get_team_dashboard():
 	# Tasks created in last 7 days (any status)
 	new_tasks = frappe.get_all(
 		"Hive Task",
-		filters={"creation": [">=", cutoff]},
+		filters={"creation": [">=", cutoff], "is_archived": 0},
 		fields=["name", "assigned_to"],
 		limit=500,
 	)
@@ -524,7 +528,7 @@ def get_member_tasks(user: str):
 	# Get tasks via legacy assigned_to
 	legacy_tasks = frappe.get_all(
 		"Hive Task",
-		filters={"assigned_to": user, "status": ["not in", ["Done"]]},
+		filters={"assigned_to": user, "status": ["not in", ["Done"]], "is_archived": 0},
 		fields=["name", "title", "project", "status", "priority", "due_date"],
 		limit=100,
 	)
@@ -542,7 +546,11 @@ def get_member_tasks(user: str):
 	if extra_task_names:
 		extra_tasks = frappe.get_all(
 			"Hive Task",
-			filters={"name": ["in", list(extra_task_names)], "status": ["not in", ["Done"]]},
+			filters={
+				"name": ["in", list(extra_task_names)],
+				"status": ["not in", ["Done"]],
+				"is_archived": 0,
+			},
 			fields=["name", "title", "project", "status", "priority", "due_date"],
 		)
 		for t in extra_tasks:
@@ -614,7 +622,7 @@ def get_project_dashboard(project: str):
 	"""Return aggregated stats for a project: task counts by status, milestone progress, team members."""
 	tasks = frappe.get_all(
 		"Hive Task",
-		filters={"project": project},
+		filters={"project": project, "is_archived": 0},
 		fields=["status"],
 		limit=500,
 	)

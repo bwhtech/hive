@@ -15,6 +15,7 @@
   "assigned_to",
   "assignees",
   "is_internal",
+  "is_archived",
   "start_date",
   "due_date",
   "completed_on",
@@ -96,6 +97,13 @@
    "fieldtype": "Check",
    "in_standard_filter": 1,
    "label": "Internal"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_archived",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Archived"
   },
   {
    "fieldname": "start_date",

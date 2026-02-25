@@ -20,6 +20,7 @@ export interface HiveTask {
   milestone: string | null
   assigned_to: string
   is_internal: 0 | 1
+  is_archived: 0 | 1
   description: string
   due_date: string | null
   start_date: string | null

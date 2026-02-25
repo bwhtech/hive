@@ -233,6 +233,7 @@ export function TasksPage() {
         "assigned_to", "is_internal", "due_date", "pr_link",
         "uat_status", "creation", "modified",
       ],
+      filters: [["is_archived", "=", 0]],
       orderBy: { field: "modified", order: "desc" },
       limit: 500,
     },

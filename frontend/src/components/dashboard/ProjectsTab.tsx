@@ -23,6 +23,7 @@ export function ProjectsTab() {
     "Hive Task",
     {
       fields: ["name", "project", "status", "is_internal"],
+      filters: [["is_archived", "=", 0]],
       limit: 500,
     },
   )

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react"
-import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc, useFrappeDeleteDoc } from "frappe-react-sdk"
+import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc } from "frappe-react-sdk"
 import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -43,17 +43,6 @@ import {
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
 import { useUser } from "@/context/UserContext"
@@ -106,7 +95,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   }
 
   const { updateDoc } = useFrappeUpdateDoc()
-  const { deleteDoc } = useFrappeDeleteDoc()
   const { call: approveUat, loading: approvingUat } = useFrappePostCall("frappe.client.run_doc_method")
   const { call: rejectUat, loading: rejectingUat } = useFrappePostCall("frappe.client.run_doc_method")
 
@@ -303,12 +291,25 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }
 
-  const handleDelete = async () => {
+  const handleArchive = async () => {
     try {
-      await deleteDoc("Hive Task", task.name)
-      toast.success("Task deleted")
+      await updateDoc("Hive Task", task.name, { is_archived: 1 })
       onOpenChange(false)
       onUpdated()
+      toast("Task deleted", {
+        duration: 6000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await updateDoc("Hive Task", task.name, { is_archived: 0 })
+              onUpdated()
+            } catch {
+              toast.error("Failed to restore task")
+            }
+          },
+        },
+      })
     } catch {
       toast.error("Failed to delete task")
     }
@@ -627,25 +628,14 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
 
   const footerButtons = isClient ? null : (
     <div className="flex gap-2 w-full">
-      <AlertDialog>
-        <AlertDialogTrigger render={<Button variant="outline" size="icon" className="shrink-0 text-destructive hover:text-destructive" />}>
-          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-4" />
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete task?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This task will be permanently deleted. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Button
+        variant="outline"
+        size="icon"
+        className="shrink-0 text-destructive hover:text-destructive"
+        onClick={handleArchive}
+      >
+        <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-4" />
+      </Button>
       <div className="flex-1 flex items-center justify-end gap-1.5 text-sm text-muted-foreground">
         {autosaveStatus === "saving" && (
           <><Spinner className="size-3" /> <span>Saving...</span></>

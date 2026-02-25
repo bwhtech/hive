@@ -15,10 +15,22 @@ import {
   SourceCodeIcon,
   GoogleSheetIcon,
   DocumentAttachmentIcon,
+  SquareLock02Icon,
 } from "@hugeicons/core-free-icons"
 import type { IconSvgElement } from "@hugeicons/react"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 
 interface FrappeFile {
   name: string
@@ -99,6 +111,9 @@ export function TaskAttachments({
 }) {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [showUploadDialog, setShowUploadDialog] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { upload } = useFrappeFileUpload()
@@ -114,8 +129,8 @@ export function TaskAttachments({
     limit: 50,
   })
 
-  const handleUpload = useCallback(
-    async (fileList: FileList | File[]) => {
+  const handleFilesSelected = useCallback(
+    (fileList: FileList | File[]) => {
       const MAX_FILE_SIZE_MB = 10
       const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
       const filesToUpload = Array.from(fileList)
@@ -131,30 +146,39 @@ export function TaskAttachments({
         return
       }
 
-      setUploading(true)
-      try {
-        for (const file of filesToUpload) {
-          await upload(file, {
-            isPrivate: false,
-            doctype: "Hive Task",
-            docname: taskName,
-          })
-        }
-        await mutate()
-        toast.success(
-          filesToUpload.length === 1
-            ? "File uploaded"
-            : `${filesToUpload.length} files uploaded`,
-        )
-      } catch {
-        toast.error("Failed to upload file")
-      } finally {
-        setUploading(false)
-        if (fileInputRef.current) fileInputRef.current.value = ""
-      }
+      setPendingFiles(filesToUpload)
+      setIsPrivate(false)
+      setShowUploadDialog(true)
     },
-    [taskName, upload, mutate],
+    [],
   )
+
+  const confirmUpload = useCallback(async () => {
+    if (pendingFiles.length === 0) return
+    setShowUploadDialog(false)
+    setUploading(true)
+    try {
+      for (const file of pendingFiles) {
+        await upload(file, {
+          isPrivate: isPrivate,
+          doctype: "Hive Task",
+          docname: taskName,
+        })
+      }
+      await mutate()
+      toast.success(
+        pendingFiles.length === 1
+          ? "File uploaded"
+          : `${pendingFiles.length} files uploaded`,
+      )
+    } catch {
+      toast.error("Failed to upload file")
+    } finally {
+      setUploading(false)
+      setPendingFiles([])
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }, [pendingFiles, isPrivate, taskName, upload, mutate])
 
   const handleRemove = async (file: FrappeFile) => {
     try {
@@ -181,9 +205,9 @@ export function TaskAttachments({
       e.preventDefault()
       setDragOver(false)
       if (readOnly || uploading) return
-      handleUpload(e.dataTransfer.files)
+      handleFilesSelected(e.dataTransfer.files)
     },
-    [readOnly, uploading, handleUpload],
+    [readOnly, uploading, handleFilesSelected],
   )
 
   return (
@@ -217,6 +241,14 @@ export function TaskAttachments({
               >
                 {file.file_name}
               </a>
+              {file.is_private === 1 && (
+                <HugeiconsIcon
+                  icon={SquareLock02Icon}
+                  strokeWidth={2}
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                  title="Private file"
+                />
+              )}
               <span className="shrink-0 text-xs text-muted-foreground">
                 {formatFileSize(file.file_size)}
               </span>
@@ -280,10 +312,75 @@ export function TaskAttachments({
             type="file"
             multiple
             className="hidden"
-            onChange={(e) => e.target.files && handleUpload(e.target.files)}
+            onChange={(e) => e.target.files && handleFilesSelected(e.target.files)}
           />
         </>
       )}
+      {/* Upload confirmation dialog */}
+      <Dialog
+        open={showUploadDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowUploadDialog(false)
+            setPendingFiles([])
+            if (fileInputRef.current) fileInputRef.current.value = ""
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Upload files</DialogTitle>
+            <DialogDescription>
+              {pendingFiles.length === 1
+                ? "1 file selected"
+                : `${pendingFiles.length} files selected`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="max-h-32 space-y-1 overflow-y-auto">
+              {pendingFiles.map((file, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <HugeiconsIcon
+                    icon={getFileIcon(file.name)}
+                    strokeWidth={2}
+                    className="size-3.5 shrink-0"
+                  />
+                  <span className="truncate">{file.name}</span>
+                  <span className="ml-auto shrink-0 text-xs">
+                    {formatFileSize(file.size)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <Label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={isPrivate}
+                onCheckedChange={(checked) => setIsPrivate(checked === true)}
+              />
+              <span>Upload as private</span>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Private files are only accessible to users with permission.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowUploadDialog(false)
+                setPendingFiles([])
+                if (fileInputRef.current) fileInputRef.current.value = ""
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmUpload}>Upload</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -132,6 +132,18 @@ export const TASK_SIZE_WEIGHT: Record<string, number> = {
   Medium: 2,
   Large: 4,
 } as const
+export interface HiveView {
+  name: string
+  label: string
+  emoji: string
+  view_type: "list" | "kanban"
+  filters_json: string
+  is_public: 0 | 1
+  owner: string
+  creation: string
+  modified: string
+}
+
 export const PROJECT_STATUSES = ["Open", "Completed", "On Hold"] as const
 export const MILESTONE_STATUSES = ["Upcoming", "In Progress", "Completed"] as const
 export const FEATURE_REQUEST_STATUSES = ["Open", "Under Review", "Approved", "Rejected", "Converted"] as const

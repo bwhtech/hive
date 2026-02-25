@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from "react-router"
-import { useFrappeAuth } from "frappe-react-sdk"
+import { NavLink, useLocation, useNavigate } from "react-router"
+import { useFrappeAuth, useFrappeGetDocList } from "frappe-react-sdk"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   DashboardSquare02Icon,
@@ -18,12 +18,14 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import type { HiveView } from "@/types"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +55,33 @@ export function AppSidebar({
   const { user, isClient } = useUser()
   const { setTheme, resolvedTheme } = useTheme()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const { data: savedViews } = useFrappeGetDocList<HiveView>(
+    "Hive View",
+    {
+      fields: ["name", "label", "emoji", "view_type", "filters_json", "is_public", "owner"],
+      filters: [["is_public", "=", 1]],
+      orderBy: { field: "creation", order: "asc" },
+      limit: 50,
+    },
+  )
+
+  const { data: myViews } = useFrappeGetDocList<HiveView>(
+    "Hive View",
+    {
+      fields: ["name", "label", "emoji", "view_type", "filters_json", "is_public", "owner"],
+      filters: [["is_public", "=", 0], ["owner", "=", user?.name || ""]],
+      orderBy: { field: "creation", order: "asc" },
+      limit: 50,
+    },
+  )
+
+  const allViews = [...(savedViews ?? []), ...(myViews ?? [])]
+  // Deduplicate by name
+  const viewMap = new Map<string, HiveView>()
+  for (const v of allViews) viewMap.set(v.name, v)
+  const views = Array.from(viewMap.values())
 
   const handleLogout = () => {
     logout()
@@ -123,6 +152,43 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {views.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Views</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {views.map((view) => {
+                  const filters = (() => {
+                    try { return JSON.parse(view.filters_json || "{}") } catch { return {} }
+                  })()
+                  const params = new URLSearchParams()
+                  for (const [k, v] of Object.entries(filters)) {
+                    if (v) params.set(k, v as string)
+                  }
+                  if (view.view_type === "kanban") params.set("view", "kanban")
+                  const to = `/tasks${params.toString() ? `?${params.toString()}` : ""}`
+                  const isActive = location.pathname === "/tasks" && location.search === `?${params.toString()}`
+
+                  return (
+                    <SidebarMenuItem key={view.name}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        tooltip={view.label}
+                        onClick={() => {
+                          setOpenMobile(false)
+                          navigate(to)
+                        }}
+                      >
+                        <span className="text-base leading-none">{view.emoji || "📋"}</span>
+                        <span className="truncate">{view.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

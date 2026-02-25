@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
-import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
+import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc, useFrappeUpdateDoc, useSWRConfig } from "frappe-react-sdk"
 import { useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -13,6 +13,7 @@ import {
   Add01Icon,
   LeftToRightListBulletIcon,
   DashboardSquare01Icon,
+  FloppyDiskIcon,
 } from "@hugeicons/core-free-icons"
 import { format } from "date-fns"
 import {
@@ -55,6 +56,16 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@/components/ui/empty"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskKanban } from "@/components/TaskKanban"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
@@ -232,8 +243,13 @@ export function TasksPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [saveViewOpen, setSaveViewOpen] = useState(false)
+  const [saveViewLabel, setSaveViewLabel] = useState("")
+  const [saveViewEmoji, setSaveViewEmoji] = useState("")
+  const [saveViewPublic, setSaveViewPublic] = useState(false)
   const { createDoc } = useFrappeCreateDoc()
   const { updateDoc } = useFrappeUpdateDoc()
+  const { mutate: globalMutate } = useSWRConfig()
 
   const { data: tasks, isLoading: tasksLoading, mutate: tasksMutate } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
@@ -291,6 +307,34 @@ export function TasksPage() {
       toast.error("Failed to create task")
     }
   }, [createDoc, callAssignees, tasksMutate])
+
+  const handleSaveView = useCallback(async () => {
+    if (!saveViewLabel.trim()) return
+    const filters: Record<string, string> = {}
+    if (statusFilter !== "all") filters.status = statusFilter
+    if (priorityFilter !== "all") filters.priority = priorityFilter
+    if (projectFilter !== "all") filters.project = projectFilter
+    if (assigneeFilter !== "all") filters.assignee = assigneeFilter
+    if (search) filters.q = search
+    try {
+      await createDoc("Hive View", {
+        label: saveViewLabel.trim(),
+        emoji: saveViewEmoji || "",
+        view_type: viewMode,
+        filters_json: JSON.stringify(filters),
+        is_public: saveViewPublic ? 1 : 0,
+      })
+      toast.success("View saved")
+      setSaveViewOpen(false)
+      setSaveViewLabel("")
+      setSaveViewEmoji("")
+      setSaveViewPublic(false)
+      // Revalidate sidebar views
+      globalMutate((key: unknown) => typeof key === "string" && key.includes("Hive View"), undefined, { revalidate: true })
+    } catch {
+      toast.error("Failed to save view")
+    }
+  }, [saveViewLabel, saveViewEmoji, saveViewPublic, statusFilter, priorityFilter, projectFilter, assigneeFilter, search, viewMode, createDoc, globalMutate])
 
   const projectMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -434,6 +478,10 @@ export function TasksPage() {
               <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
             </Button>
           </div>
+          <Button variant="outline" onClick={() => setSaveViewOpen(true)}>
+            <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} data-icon="inline-start" />
+            Save View
+          </Button>
           <Button onClick={() => setCreateOpen(true)}>
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
             Add Task
@@ -666,6 +714,81 @@ export function TasksPage() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateTask}
       />
+
+      <Dialog open={saveViewOpen} onOpenChange={(open) => {
+        setSaveViewOpen(open)
+        if (!open) {
+          setSaveViewLabel("")
+          setSaveViewEmoji("")
+          setSaveViewPublic(false)
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-3">
+              <div>
+                <Label htmlFor="save-view-emoji">Emoji</Label>
+                <Input
+                  id="save-view-emoji"
+                  value={saveViewEmoji}
+                  onChange={(e) => setSaveViewEmoji(e.target.value)}
+                  placeholder="📋"
+                  className="mt-1.5 w-16 text-center text-lg"
+                  maxLength={2}
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="save-view-label">Name</Label>
+                <Input
+                  id="save-view-label"
+                  value={saveViewLabel}
+                  onChange={(e) => setSaveViewLabel(e.target.value)}
+                  placeholder="My urgent tasks"
+                  className="mt-1.5"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && saveViewLabel.trim()) handleSaveView()
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="save-view-public"
+                checked={saveViewPublic}
+                onCheckedChange={(checked) => setSaveViewPublic(checked === true)}
+              />
+              <Label htmlFor="save-view-public" className="text-sm font-normal">
+                Public — visible to all team members
+              </Label>
+            </div>
+            {(statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all" || search) && (
+              <div className="rounded-md bg-muted p-3 text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">Current filters:</p>
+                {search && <p>Search: {search}</p>}
+                {statusFilter !== "all" && <p>Status: {statusFilter}</p>}
+                {priorityFilter !== "all" && <p>Priority: {priorityFilter}</p>}
+                {projectFilter !== "all" && <p>Project: {projectFilter}</p>}
+                {assigneeFilter !== "all" && <p>Assignee: {assigneeFilter}</p>}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              View type: {viewMode === "kanban" ? "Kanban" : "List"}
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button onClick={handleSaveView} disabled={!saveViewLabel.trim()}>
+              Save View
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

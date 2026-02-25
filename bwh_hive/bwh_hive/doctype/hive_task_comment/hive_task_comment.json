@@ -9,7 +9,8 @@
  "field_order": [
   "task",
   "content",
-  "posted_by"
+  "posted_by",
+  "is_archived"
  ],
  "fields": [
   {
@@ -35,6 +36,13 @@
    "label": "Posted By",
    "options": "User",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_archived",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Archived"
   }
  ],
  "grid_page_length": 50,

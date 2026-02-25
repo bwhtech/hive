@@ -116,6 +116,7 @@ export interface HiveTaskComment {
   task: string
   posted_by: string
   content: string
+  is_archived: 0 | 1
   creation: string
   modified: string
 }

@@ -1,21 +1,10 @@
 import { useState, useMemo } from "react"
-import { useFrappeGetDocList, useFrappeCreateDoc, useFrappeDeleteDoc } from "frappe-react-sdk"
+import { useFrappeGetDocList, useFrappeCreateDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Delete02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
 import { MemberAvatar } from "@/components/MemberAvatar"
@@ -43,13 +32,13 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
   )
 
   const { createDoc } = useFrappeCreateDoc()
-  const { deleteDoc } = useFrappeDeleteDoc()
+  const { updateDoc } = useFrappeUpdateDoc()
 
   const { data: comments, mutate } = useFrappeGetDocList<HiveTaskComment>(
     "Hive Task Comment",
     {
-      fields: ["name", "task", "posted_by", "content", "creation", "modified"],
-      filters: [["task", "=", taskName]],
+      fields: ["name", "task", "posted_by", "content", "creation", "modified", "is_archived"],
+      filters: [["task", "=", taskName], ["is_archived", "=", 0]],
       orderBy: { field: "creation", order: "asc" },
       limit: 100,
     },
@@ -85,9 +74,22 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
 
   const handleDelete = async (commentName: string) => {
     try {
-      await deleteDoc("Hive Task Comment", commentName)
+      await updateDoc("Hive Task Comment", commentName, { is_archived: 1 })
       mutate()
-      toast.success("Comment deleted")
+      toast("Comment deleted", {
+        duration: 6000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await updateDoc("Hive Task Comment", commentName, { is_archived: 0 })
+              mutate()
+            } catch {
+              toast.error("Failed to restore comment")
+            }
+          },
+        },
+      })
     } catch {
       toast.error("Failed to delete comment")
     }
@@ -116,32 +118,13 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
                     {formatDistanceToNow(new Date(comment.creation), { addSuffix: true })}
                   </span>
                   {isOwn && (
-                    <AlertDialog>
-                      <AlertDialogTrigger
-                        render={
-                          <button
-                            type="button"
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity ml-auto"
-                          />
-                        }
-                      >
-                        <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-3.5" />
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete comment?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This comment will be permanently deleted.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(comment.name)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <button
+                      type="button"
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity ml-auto"
+                      onClick={() => handleDelete(comment.name)}
+                    >
+                      <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-3.5" />
+                    </button>
                   )}
                 </div>
                 <div

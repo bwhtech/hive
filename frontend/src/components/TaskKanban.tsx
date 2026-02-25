@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -13,7 +13,7 @@ import { useDroppable } from "@dnd-kit/core"
 import { useDraggable } from "@dnd-kit/core"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Calendar03Icon, GitBranchIcon } from "@hugeicons/core-free-icons"
+import { Calendar03Icon, GitBranchIcon, LinkBackwardIcon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
@@ -31,6 +31,16 @@ interface TaskKanbanProps {
 
 export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigneesByTask, hasClient = true }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<HiveTask | null>(null)
+
+  const taskMap = useMemo(() => {
+    const map: Record<string, HiveTask> = {}
+    for (const tasks of Object.values(tasksByStatus)) {
+      for (const t of tasks) {
+        map[t.name] = t
+      }
+    }
+    return map
+  }, [tasksByStatus])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -87,11 +97,12 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
             onTaskClick={onTaskClick}
             assigneesByTask={assigneesByTask}
             hasClient={hasClient}
+            taskMap={taskMap}
           />
         ))}
       </div>
       <DragOverlay dropAnimation={null}>
-        {activeTask ? <TaskCard task={activeTask} isDragOverlay assignees={assigneesByTask?.[activeTask.name]} hasClient={hasClient} /> : null}
+        {activeTask ? <TaskCard task={activeTask} isDragOverlay assignees={assigneesByTask?.[activeTask.name]} hasClient={hasClient} taskMap={taskMap} /> : null}
       </DragOverlay>
     </DndContext>
   )
@@ -103,12 +114,14 @@ function KanbanColumn({
   onTaskClick,
   assigneesByTask,
   hasClient,
+  taskMap,
 }: {
   status: string
   tasks: HiveTask[]
   onTaskClick?: (task: HiveTask) => void
   assigneesByTask?: Record<string, HiveTaskAssignee[]>
   hasClient?: boolean
+  taskMap: Record<string, HiveTask>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -129,7 +142,7 @@ function KanbanColumn({
       </div>
       <div className="flex flex-col gap-2 min-h-[60px]">
         {tasks.map((task) => (
-          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} assignees={assigneesByTask?.[task.name]} hasClient={hasClient} />
+          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} assignees={assigneesByTask?.[task.name]} hasClient={hasClient} taskMap={taskMap} />
         ))}
       </div>
     </div>
@@ -141,11 +154,13 @@ function DraggableTaskCard({
   onTaskClick,
   assignees,
   hasClient,
+  taskMap,
 }: {
   task: HiveTask
   onTaskClick?: (task: HiveTask) => void
   assignees?: HiveTaskAssignee[]
   hasClient?: boolean
+  taskMap: Record<string, HiveTask>
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.name,
@@ -164,12 +179,12 @@ function DraggableTaskCard({
       className={isDragging ? "opacity-0" : ""}
       onClick={() => onTaskClick?.(task)}
     >
-      <TaskCard task={task} assignees={assignees} hasClient={hasClient} />
+      <TaskCard task={task} assignees={assignees} hasClient={hasClient} taskMap={taskMap} />
     </div>
   )
 }
 
-function TaskCard({ task, isDragOverlay, assignees, hasClient }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[]; hasClient?: boolean }) {
+function TaskCard({ task, isDragOverlay, assignees, hasClient, taskMap }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[]; hasClient?: boolean; taskMap?: Record<string, HiveTask> }) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
 
   // Use new assignees if available, fall back to legacy assigned_to
@@ -209,6 +224,21 @@ function TaskCard({ task, isDragOverlay, assignees, hasClient }: { task: HiveTas
             </Badge>
           )}
         </div>
+        {task.depends_on && taskMap?.[task.depends_on] && (
+          <div
+            className={`flex items-center gap-1 text-[11px] ${
+              taskMap[task.depends_on].status !== "Done"
+                ? "text-amber-600 dark:text-amber-500"
+                : "text-muted-foreground"
+            }`}
+          >
+            <HugeiconsIcon icon={LinkBackwardIcon} strokeWidth={2} className="size-3 shrink-0" />
+            <span className="truncate">
+              {taskMap[task.depends_on].status !== "Done" ? "Blocked by" : "Depends on"}{" "}
+              {taskMap[task.depends_on].title}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between mt-0.5">
           <div className="flex items-center gap-1.5">
             {task.due_date && (

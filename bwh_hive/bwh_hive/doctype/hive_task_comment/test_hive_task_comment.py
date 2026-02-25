@@ -1,8 +1,12 @@
 # Copyright (c) 2026, BWH Studios and Contributors
 # See license.txt
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import IntegrationTestCase
+
+from bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment import extract_mentions
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
 IGNORE_TEST_RECORD_DEPENDENCIES = []
@@ -107,3 +111,65 @@ class IntegrationTestHiveTaskComment(IntegrationTestCase):
 		)
 		visible_names = {c.name for c in visible}
 		self.assertIn(comment2.name, visible_names)
+
+
+class TestExtractMentions(IntegrationTestCase):
+	"""Unit tests for extracting @mentions from HTML content."""
+
+	def test_extract_single_mention(self):
+		html = '<p>Hey <span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice Smith">@Alice Smith</span></p>'
+		self.assertEqual(extract_mentions(html), ["alice@example.com"])
+
+	def test_extract_multiple_mentions(self):
+		html = '<p><span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice">@Alice</span> and <span data-type="mention" class="mention" data-id="bob@example.com" data-label="Bob">@Bob</span></p>'
+		result = extract_mentions(html)
+		self.assertEqual(set(result), {"alice@example.com", "bob@example.com"})
+
+	def test_no_mentions(self):
+		html = "<p>Just a regular comment with no mentions.</p>"
+		self.assertEqual(extract_mentions(html), [])
+
+	def test_duplicate_mentions_deduplicated(self):
+		html = '<p><span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice">@Alice</span> and again <span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice">@Alice</span></p>'
+		self.assertEqual(extract_mentions(html), ["alice@example.com"])
+
+
+class TestMentionNotification(IntegrationTestCase):
+	"""Integration tests for @mention email notifications."""
+
+	def setUp(self):
+		self.project = _make_project()
+		self.task = _make_task(self.project)
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
+	def test_mention_triggers_email(self, mock_sendmail):
+		content = '<p>Hey <span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice Smith">@Alice Smith</span></p>'
+		_make_comment(self.task, content)
+		mock_sendmail.assert_called_once()
+		call_kwargs = mock_sendmail.call_args
+		self.assertIn("alice@example.com", call_kwargs.kwargs["recipients"])
+
+	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
+	def test_no_mention_no_email(self, mock_sendmail):
+		_make_comment(self.task, "<p>Just a regular comment</p>")
+		mock_sendmail.assert_not_called()
+
+	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
+	def test_self_mention_no_email(self, mock_sendmail):
+		"""Mentioning yourself should not trigger an email."""
+		user = frappe.session.user
+		content = (
+			f'<p><span data-type="mention" class="mention" data-id="{user}" data-label="Me">@Me</span></p>'
+		)
+		_make_comment(self.task, content)
+		mock_sendmail.assert_not_called()
+
+	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
+	def test_email_subject_contains_task_title(self, mock_sendmail):
+		content = '<p><span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice">@Alice</span></p>'
+		_make_comment(self.task, content)
+		subject = mock_sendmail.call_args.kwargs["subject"]
+		self.assertIn(self.task.title, subject)

@@ -2,7 +2,21 @@ import { useState, useRef, useCallback } from "react"
 import { useFrappeFileUpload, useFrappeGetDocList, useFrappeDeleteDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Upload04Icon, Cancel02Icon, File02Icon, Download04Icon } from "@hugeicons/core-free-icons"
+import {
+  Upload04Icon,
+  Cancel02Icon,
+  File02Icon,
+  Download04Icon,
+  Pdf02Icon,
+  Image02Icon,
+  FileVideoIcon,
+  FileAudioIcon,
+  FileZipIcon,
+  SourceCodeIcon,
+  GoogleSheetIcon,
+  DocumentAttachmentIcon,
+} from "@hugeicons/core-free-icons"
+import type { IconSvgElement } from "@hugeicons/react"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
@@ -18,6 +32,55 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+const EXT_ICON_MAP: Record<string, IconSvgElement> = {
+  // Documents
+  pdf: Pdf02Icon,
+  // Images
+  png: Image02Icon,
+  jpg: Image02Icon,
+  jpeg: Image02Icon,
+  gif: Image02Icon,
+  svg: Image02Icon,
+  webp: Image02Icon,
+  // Video
+  mp4: FileVideoIcon,
+  mov: FileVideoIcon,
+  webm: FileVideoIcon,
+  avi: FileVideoIcon,
+  // Audio
+  mp3: FileAudioIcon,
+  wav: FileAudioIcon,
+  flac: FileAudioIcon,
+  ogg: FileAudioIcon,
+  // Archives
+  zip: FileZipIcon,
+  rar: FileZipIcon,
+  "7z": FileZipIcon,
+  gz: FileZipIcon,
+  tar: FileZipIcon,
+  // Spreadsheets
+  xls: GoogleSheetIcon,
+  xlsx: GoogleSheetIcon,
+  csv: GoogleSheetIcon,
+  // Word docs
+  doc: DocumentAttachmentIcon,
+  docx: DocumentAttachmentIcon,
+  // Code
+  js: SourceCodeIcon,
+  ts: SourceCodeIcon,
+  tsx: SourceCodeIcon,
+  jsx: SourceCodeIcon,
+  py: SourceCodeIcon,
+  html: SourceCodeIcon,
+  css: SourceCodeIcon,
+  json: SourceCodeIcon,
+}
+
+function getFileIcon(fileName: string): IconSvgElement {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? ""
+  return EXT_ICON_MAP[ext] ?? File02Icon
 }
 
 export function TaskAttachments({
@@ -127,7 +190,7 @@ export function TaskAttachments({
               className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
             >
               <HugeiconsIcon
-                icon={File02Icon}
+                icon={getFileIcon(file.file_name)}
                 strokeWidth={2}
                 className="size-4 shrink-0 text-muted-foreground"
               />

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { useFrappeGetDocList, useFrappeCreateDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Add01Icon, Calendar03Icon, Target02Icon } from "@hugeicons/core-free-icons"
+import { Add01Icon, Calendar03Icon, PencilEdit01Icon, Target02Icon } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { Badge } from "@/components/ui/badge"
@@ -47,7 +47,8 @@ function getWeight(size: string | null | undefined): number {
 }
 
 export function MilestoneSection({ projectId, tasks }: MilestoneSectionProps) {
-  const [createOpen, setCreateOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingMilestone, setEditingMilestone] = useState<HiveMilestone | null>(null)
 
   const { data: milestones, mutate } = useFrappeGetDocList<HiveMilestone>(
     "Hive Milestone",
@@ -89,11 +90,34 @@ export function MilestoneSection({ projectId, tasks }: MilestoneSectionProps) {
         project: projectId,
       })
       mutate()
-      setCreateOpen(false)
+      setDialogOpen(false)
       toast.success("Milestone created")
     } catch {
       toast.error("Failed to create milestone")
     }
+  }
+
+  const handleEdit = async (values: { title: string; target_date: string | null; description: string }) => {
+    if (!editingMilestone) return
+    try {
+      await updateDoc("Hive Milestone", editingMilestone.name, values)
+      mutate()
+      setDialogOpen(false)
+      setEditingMilestone(null)
+      toast.success("Milestone updated")
+    } catch {
+      toast.error("Failed to update milestone")
+    }
+  }
+
+  const openEdit = (ms: HiveMilestone) => {
+    setEditingMilestone(ms)
+    setDialogOpen(true)
+  }
+
+  const openCreate = () => {
+    setEditingMilestone(null)
+    setDialogOpen(true)
   }
 
   const handleStatusChange = async (name: string, status: string) => {
@@ -111,7 +135,7 @@ export function MilestoneSection({ projectId, tasks }: MilestoneSectionProps) {
         <h3 className="text-sm font-medium text-muted-foreground">
           {milestones?.length ?? 0} milestone{milestones?.length !== 1 ? "s" : ""}
         </h3>
-        <Button variant="secondary" size="sm" onClick={() => setCreateOpen(true)}>
+        <Button variant="secondary" size="sm" onClick={openCreate}>
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
           Add Milestone
         </Button>
@@ -133,7 +157,12 @@ export function MilestoneSection({ projectId, tasks }: MilestoneSectionProps) {
             <Card key={ms.name} size="sm">
               <CardHeader className="flex-row items-start justify-between gap-4">
                 <div className="space-y-1 min-w-0">
-                  <CardTitle className="text-sm">{ms.title}</CardTitle>
+                  <div className="flex items-center gap-1">
+                    <CardTitle className="text-sm">{ms.title}</CardTitle>
+                    <Button variant="ghost" size="icon" className="size-6 text-muted-foreground" onClick={() => openEdit(ms)}>
+                      <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3" />
+                    </Button>
+                  </div>
                   {ms.target_date && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="size-3.5" />
@@ -183,10 +212,14 @@ export function MilestoneSection({ projectId, tasks }: MilestoneSectionProps) {
         </div>
       )}
 
-      <CreateMilestoneDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onSubmit={handleCreate}
+      <MilestoneDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (!open) setEditingMilestone(null)
+        }}
+        onSubmit={editingMilestone ? handleEdit : handleCreate}
+        milestone={editingMilestone}
       />
     </div>
   )
@@ -198,18 +231,37 @@ function stripHtml(html: string): string {
   return tmp.textContent || tmp.innerText || ""
 }
 
-function CreateMilestoneDialog({
+function MilestoneDialog({
   open,
   onOpenChange,
   onSubmit,
+  milestone,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (values: { title: string; target_date: string | null; description: string }) => void
+  milestone: HiveMilestone | null
 }) {
+  const isEdit = !!milestone
   const [title, setTitle] = useState("")
   const [targetDate, setTargetDate] = useState<Date | undefined>()
   const [description, setDescription] = useState("")
+
+  // Sync form fields when dialog opens or switches between create/edit
+  const [lastMilestoneKey, setLastMilestoneKey] = useState<string | null>(null)
+  const currentKey = open ? (milestone?.name ?? "__create__") : null
+  if (currentKey !== lastMilestoneKey) {
+    setLastMilestoneKey(currentKey)
+    if (open && milestone) {
+      setTitle(milestone.title)
+      setTargetDate(milestone.target_date ? new Date(milestone.target_date) : undefined)
+      setDescription(milestone.description || "")
+    } else if (open) {
+      setTitle("")
+      setTargetDate(undefined)
+      setDescription("")
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -219,17 +271,16 @@ function CreateMilestoneDialog({
       target_date: targetDate ? format(targetDate, "yyyy-MM-dd") : null,
       description,
     })
-    setTitle("")
-    setTargetDate(undefined)
-    setDescription("")
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Milestone</DialogTitle>
-          <DialogDescription>Add a milestone to track project progress.</DialogDescription>
+          <DialogTitle>{isEdit ? "Edit Milestone" : "New Milestone"}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Update the milestone details." : "Add a milestone to track project progress."}
+          </DialogDescription>
         </DialogHeader>
         <form
           onSubmit={handleSubmit}
@@ -283,7 +334,7 @@ function CreateMilestoneDialog({
           </div>
           <DialogFooter>
             <Button type="submit" disabled={!title.trim()}>
-              Create Milestone
+              {isEdit ? "Save Changes" : "Create Milestone"}
               <kbd className="ml-2 pointer-events-none inline-flex h-5 items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                 <span className="text-xs">{navigator.platform?.includes("Mac") ? "\u2318" : "Ctrl"}</span>
                 <span className="text-xs">{"\u21B5"}</span>

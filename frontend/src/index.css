@@ -225,7 +225,10 @@
     height: auto;
     border-radius: 0.375rem;
     margin: 0.5em 0;
-    cursor: zoom-in;
+  }
+
+  .image-resizable.ProseMirror-selectednode {
+    outline: none;
   }
 
   /* Placeholder */

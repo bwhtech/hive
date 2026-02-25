@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
 import Placeholder from "@tiptap/extension-placeholder"
-import Image from "@tiptap/extension-image"
+import { ResizableImage } from "./ResizableImage"
 import Mention from "@tiptap/extension-mention"
 import { useFrappeFileUpload } from "frappe-react-sdk"
 import { useRef, useCallback, useMemo, useState, useEffect } from "react"
@@ -94,7 +94,7 @@ export function TiptapEditor({
         HTMLAttributes: { class: "text-primary underline" },
       }),
       Placeholder.configure({ placeholder }),
-      Image.configure({
+      ResizableImage.configure({
         inline: false,
         allowBase64: false,
       }),

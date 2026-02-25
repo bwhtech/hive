@@ -62,6 +62,15 @@ import { useUser } from "@/context/UserContext"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog"
 
 const TASK_FIELDS = [
   "name",
@@ -161,6 +170,8 @@ export function ProjectDetailPage() {
   )
   const draftCount = myDrafts?.length ?? 0
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [linksDialogOpen, setLinksDialogOpen] = useState(false)
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [newClientName, setNewClientName] = useState("")
@@ -394,6 +405,8 @@ export function ProjectDetailPage() {
   const handleArchiveProject = async () => {
     try {
       await updateDoc("Hive Project", id!, { is_archived: 1 })
+      setDeleteDialogOpen(false)
+      setDeleteConfirmText("")
       navigate("/projects")
       toast("Project deleted", {
         duration: 6000,
@@ -613,7 +626,7 @@ export function ProjectDetailPage() {
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={handleArchiveProject} />
+                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialogOpen(true)} />
               }
             >
               <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-4" />
@@ -871,6 +884,37 @@ export function ProjectDetailPage() {
           </form>
         </SheetContent>
       </Sheet>
+
+      {/* Delete Project Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open)
+        if (!open) setDeleteConfirmText("")
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete project</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will delete the project and all its data. Type <span className="font-semibold text-foreground">{project?.title}</span> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            placeholder="Type the project title"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            autoFocus
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText !== project?.title}
+              onClick={handleArchiveProject}
+            >
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

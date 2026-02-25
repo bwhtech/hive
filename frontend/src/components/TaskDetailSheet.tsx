@@ -49,7 +49,8 @@ import { TiptapEditor } from "@/components/TiptapEditor"
 import { useUser } from "@/context/UserContext"
 import { TaskCommentsSection } from "@/components/TaskCommentsSection"
 import { TaskAttachments } from "@/components/TaskAttachments"
-import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember, type HiveMilestone } from "@/types"
+import { LinkField } from "@/components/LinkField"
+import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember } from "@/types"
 
 interface TaskDetailSheetProps {
   task: HiveTask | null
@@ -108,18 +109,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     task?.name ? undefined : null,
   )
 
-  // Fetch milestones for the task's project
-  const { data: projectMilestones } = useFrappeGetDocList<HiveMilestone>(
-    "Hive Milestone",
-    {
-      fields: ["name", "title", "status", "target_date"] as (keyof HiveMilestone)[],
-      filters: [["project", "=", task?.project ?? ""]],
-      orderBy: { field: "target_date", order: "asc" },
-      limit: 50,
-    },
-    task?.project ? undefined : null,
-  )
-
   // Fetch all active members for the picker
   const { data: allMembers } = useFrappeGetDocList<HiveMember>(
     "Hive Member",
@@ -129,24 +118,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       limit: 100,
     },
   )
-
-  // Fetch tasks in the same project (for depends_on picker)
-  const { data: projectTasks } = useFrappeGetDocList<HiveTask>(
-    "Hive Task",
-    {
-      fields: ["name", "title", "status"] as (keyof HiveTask)[],
-      filters: [["project", "=", task?.project ?? ""], ["is_archived", "=", 0]],
-      orderBy: { field: "title", order: "asc" },
-      limit: 200,
-    },
-    task?.project ? undefined : null,
-  )
-
-  // Filter out the current task from depends_on options
-  const dependsOnOptions = useMemo(() => {
-    if (!projectTasks || !task) return []
-    return projectTasks.filter((t) => t.name !== task.name)
-  }, [projectTasks, task])
 
   // Sort members: current user first
   const sortedMembers = useMemo(() => {
@@ -435,20 +406,17 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
           <Label>Milestone</Label>
           {isClient ? (
             <p className="text-sm text-muted-foreground py-1">
-              {milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}
+              {milestone || "None"}
             </p>
           ) : (
-            <Select value={milestone} onValueChange={(v) => { setMilestone(v); markEdited() }}>
-              <SelectTrigger className="w-full">
-                <span>{milestone ? (projectMilestones?.find((ms) => ms.name === milestone)?.title ?? milestone) : "None"}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">None</SelectItem>
-                {projectMilestones?.map((ms) => (
-                  <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LinkField
+              doctype="Hive Milestone"
+              value={milestone}
+              onChange={(v) => { setMilestone(v); markEdited() }}
+              placeholder="None"
+              filters={{ project: task.project }}
+              className="w-full"
+            />
           )}
         </div>
 
@@ -457,23 +425,17 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
           <Label>Depends On</Label>
           {isClient ? (
             <p className="text-sm text-muted-foreground py-1">
-              {dependsOn ? (dependsOnOptions.find((t) => t.name === dependsOn)?.title ?? dependsOn) : "None"}
+              {dependsOn || "None"}
             </p>
           ) : (
-            <Select value={dependsOn} onValueChange={(v) => { setDependsOn(v); markEdited() }}>
-              <SelectTrigger className="w-full">
-                <span>{dependsOn ? (dependsOnOptions.find((t) => t.name === dependsOn)?.title ?? dependsOn) : "None"}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">None</SelectItem>
-                {dependsOnOptions.map((t) => (
-                  <SelectItem key={t.name} value={t.name}>
-                    <span className="truncate">{t.title}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">{t.status}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LinkField
+              doctype="Hive Task"
+              value={dependsOn}
+              onChange={(v) => { setDependsOn(v); markEdited() }}
+              placeholder="None"
+              filters={{ project: task.project, is_archived: 0 }}
+              className="w-full"
+            />
           )}
         </div>
 

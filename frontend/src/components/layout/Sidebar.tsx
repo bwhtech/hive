@@ -1,5 +1,6 @@
+import { useState, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router"
-import { useFrappeAuth, useFrappeGetDocList, useFrappeDeleteDoc } from "frappe-react-sdk"
+import { useFrappeAuth, useFrappeGetDocList, useFrappeDeleteDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -13,6 +14,8 @@ import {
   Moon02Icon,
   ArrowUp01Icon,
   Delete02Icon,
+  MoreHorizontalIcon,
+  PencilEdit01Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Sidebar,
@@ -36,6 +39,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { useUser } from "@/context/UserContext"
 import { useTheme } from "@/components/theme-provider"
@@ -60,6 +75,12 @@ export function AppSidebar({
   const location = useLocation()
   const navigate = useNavigate()
   const { deleteDoc } = useFrappeDeleteDoc()
+  const { updateDoc } = useFrappeUpdateDoc()
+
+  const [editingView, setEditingView] = useState<HiveView | null>(null)
+  const [editLabel, setEditLabel] = useState("")
+  const [editEmoji, setEditEmoji] = useState("")
+  const [editPublic, setEditPublic] = useState(false)
 
   const { data: savedViews, mutate: mutateSavedViews } = useFrappeGetDocList<HiveView>(
     "Hive View",
@@ -81,6 +102,30 @@ export function AppSidebar({
     },
     user?.email ? undefined : null,
   )
+
+  const openEditDialog = useCallback((view: HiveView) => {
+    setEditingView(view)
+    setEditLabel(view.label)
+    setEditEmoji(view.emoji || "")
+    setEditPublic(view.is_public === 1)
+  }, [])
+
+  const handleEditView = useCallback(async () => {
+    if (!editingView || !editLabel.trim()) return
+    try {
+      await updateDoc("Hive View", editingView.name, {
+        label: editLabel.trim(),
+        emoji: editEmoji || "",
+        is_public: editPublic ? 1 : 0,
+      })
+      toast.success("View updated")
+      setEditingView(null)
+      mutateSavedViews()
+      mutateMyViews()
+    } catch {
+      toast.error("Failed to update view")
+    }
+  }, [editingView, editLabel, editEmoji, editPublic, updateDoc, mutateSavedViews, mutateMyViews])
 
   const allViews = [...(savedViews ?? []), ...(myViews ?? [])]
   // Deduplicate by name
@@ -190,23 +235,47 @@ export function AppSidebar({
                         <span className="truncate">{view.label}</span>
                       </SidebarMenuButton>
                       {canDelete && (
-                        <SidebarMenuAction
-                          showOnHover
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={async (e) => {
-                            e.stopPropagation()
-                            try {
-                              await deleteDoc("Hive View", view.name)
-                              toast.success("View deleted")
-                              mutateSavedViews()
-                              mutateMyViews()
-                            } catch {
-                              toast.error("Failed to delete view")
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <SidebarMenuAction
+                                showOnHover
+                                className="text-muted-foreground"
+                              />
                             }
-                          }}
-                        >
-                          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-4" />
-                        </SidebarMenuAction>
+                          >
+                            <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} className="size-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="right" align="start">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openEditDialog(view)
+                              }}
+                            >
+                              <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={async (e) => {
+                                e.stopPropagation()
+                                try {
+                                  await deleteDoc("Hive View", view.name)
+                                  toast.success("View deleted")
+                                  mutateSavedViews()
+                                  mutateMyViews()
+                                } catch {
+                                  toast.error("Failed to delete view")
+                                }
+                              }}
+                            >
+                              <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </SidebarMenuItem>
                   )
@@ -251,6 +320,63 @@ export function AppSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <Dialog open={!!editingView} onOpenChange={(open) => {
+        if (!open) setEditingView(null)
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit View</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-3">
+              <div>
+                <Label htmlFor="edit-view-emoji">Emoji</Label>
+                <Input
+                  id="edit-view-emoji"
+                  value={editEmoji}
+                  onChange={(e) => setEditEmoji(e.target.value)}
+                  placeholder="📋"
+                  className="mt-1.5 w-16 text-center text-lg"
+                  maxLength={2}
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="edit-view-label">Name</Label>
+                <Input
+                  id="edit-view-label"
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  placeholder="My urgent tasks"
+                  className="mt-1.5"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && editLabel.trim()) handleEditView()
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit-view-public"
+                checked={editPublic}
+                onCheckedChange={(checked) => setEditPublic(checked === true)}
+              />
+              <Label htmlFor="edit-view-public" className="text-sm font-normal">
+                Public — visible to all team members
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button onClick={handleEditView} disabled={!editLabel.trim()}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   )
 }

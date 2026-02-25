@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -30,6 +30,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { TASK_PRIORITIES, TASK_STATUSES, type HiveMember, type HiveMilestone } from "@/types"
+import { useUser } from "@/context/UserContext"
 
 interface AssigneeRow {
   member: string
@@ -68,6 +69,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
   const [selectedMilestone, setSelectedMilestone] = useState("")
   const [selectedProject, setSelectedProject] = useState("")
 
+  const { user } = useUser()
   const needsProjectPicker = !projectId
 
   const { data: projects } = useFrappeGetDocList<{ name: string; title: string }>(
@@ -89,6 +91,17 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
       limit: 100,
     },
   )
+
+  // Sort members: current user first
+  const sortedMembers = useMemo(() => {
+    if (!allMembers) return []
+    if (!user?.email) return allMembers
+    return [...allMembers].sort((a, b) => {
+      const aIsCurrent = a.user === user.email ? -1 : 0
+      const bIsCurrent = b.user === user.email ? -1 : 0
+      return aIsCurrent - bIsCurrent
+    })
+  }, [allMembers, user?.email])
 
   const resolvedProject = projectId || selectedProject
 
@@ -257,8 +270,8 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-2" align="start">
                   <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {allMembers?.length ? (
-                      allMembers.map((m) => (
+                    {sortedMembers.length ? (
+                      sortedMembers.map((m) => (
                         <button
                           key={m.name}
                           type="button"
@@ -268,7 +281,10 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
                           }`}
                         >
                           <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
-                          <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
+                          <span className="flex-1 truncate text-left">
+                            {m.member_name || m.name}
+                            {m.user === user?.email && <span className="text-muted-foreground ml-1">(you)</span>}
+                          </span>
                           {assignedMemberNames.has(m.name) && (
                             <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
                           )}

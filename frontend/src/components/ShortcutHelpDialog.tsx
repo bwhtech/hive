@@ -33,6 +33,10 @@ const shortcuts = [
     group: "Project Detail",
     items: [{ keys: ["T"], description: "Create new task" }],
   },
+  {
+    group: "Task Detail",
+    items: [{ keys: ["A"], description: "Add assignee" }],
+  },
 ]
 
 export function ShortcutHelpDialog({

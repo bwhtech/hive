@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc, useFrappeDeleteDoc } from "frappe-react-sdk"
 import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
@@ -82,7 +82,7 @@ interface TaskAssigneeRow {
 
 export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient = true }: TaskDetailSheetProps) {
   const isMobile = useIsMobile()
-  const { isClient } = useUser()
+  const { isClient, user } = useUser()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("Backlog")
@@ -139,6 +139,19 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     },
   )
 
+  // Sort members: current user first
+  const sortedMembers = useMemo(() => {
+    if (!allMembers) return []
+    if (!user?.email) return allMembers
+    return [...allMembers].sort((a, b) => {
+      const aIsCurrent = a.user === user.email ? -1 : 0
+      const bIsCurrent = b.user === user.email ? -1 : 0
+      return aIsCurrent - bIsCurrent
+    })
+  }, [allMembers, user?.email])
+
+  const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false)
+
   // Only reset form when a different task opens (not on refetch of same task)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -175,12 +188,19 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const saveRef = useRef<() => void>(() => {})
 
   // Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux) to save
+  // 'A' key to open assignee popover (when not typing in an input)
   useEffect(() => {
     if (!open || isClient) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         saveRef.current()
+      }
+      if (e.key === "a" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (e.target as HTMLElement)?.tagName
+        if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return
+        e.preventDefault()
+        setAssigneePopoverOpen(true)
       }
     }
     document.addEventListener("keydown", handleKeyDown)
@@ -434,7 +454,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
               <p className="text-sm text-muted-foreground">None</p>
             )}
             {!isClient && (
-              <Popover>
+              <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
                 <PopoverTrigger
                   render={
                     <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" />
@@ -445,8 +465,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-2" align="start">
                   <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {allMembers?.length ? (
-                      allMembers.map((m) => (
+                    {sortedMembers.length ? (
+                      sortedMembers.map((m) => (
                         <button
                           key={m.name}
                           type="button"
@@ -456,7 +476,10 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
                           }`}
                         >
                           <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
-                          <span className="flex-1 truncate text-left">{m.member_name || m.name}</span>
+                          <span className="flex-1 truncate text-left">
+                            {m.member_name || m.name}
+                            {m.user === user?.email && <span className="text-muted-foreground ml-1">(you)</span>}
+                          </span>
                           {assignedMemberNames.has(m.name) && (
                             <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
                           )}

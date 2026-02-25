@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { LinkField } from "@/components/LinkField"
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveMilestone, type HiveTaskAssignee } from "@/types"
@@ -302,20 +303,6 @@ export function TasksPage() {
     return map
   }, [milestones])
 
-  const uniqueAssignees = useMemo(() => {
-    const seen = new Map<string, string>()
-    for (const assignees of Object.values(assigneesByTask)) {
-      for (const a of assignees) {
-        if (!seen.has(a.member)) {
-          seen.set(a.member, a.member_name || a.member)
-        }
-      }
-    }
-    return Array.from(seen.entries())
-      .map(([member, name]) => ({ member, name }))
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [assigneesByTask])
-
   const tableData = useMemo<TaskRow[]>(() => {
     if (!tasks) return []
     return tasks
@@ -419,30 +406,21 @@ export function TasksPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-fit">
-              <span className="text-muted-foreground">Project:</span>
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {projects?.map((p) => (
-                <SelectItem key={p.name} value={p.name}>{p.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="w-fit">
-              <span className="text-muted-foreground">Assignee:</span>
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {uniqueAssignees.map((a) => (
-                <SelectItem key={a.member} value={a.member}>{a.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <LinkField
+            doctype="Hive Project"
+            value={projectFilter === "all" ? "" : projectFilter}
+            onChange={(v) => setProjectFilter(v || "all")}
+            label="Project:"
+            placeholder="All"
+            filters={{ is_archived: 0 }}
+          />
+          <LinkField
+            doctype="Hive Member"
+            value={assigneeFilter === "all" ? "" : assigneeFilter}
+            onChange={(v) => setAssigneeFilter(v || "all")}
+            label="Assignee:"
+            placeholder="All"
+          />
         </div>
       </div>
 

@@ -231,7 +231,16 @@ function CreateMilestoneDialog({
           <DialogTitle>New Milestone</DialogTitle>
           <DialogDescription>Add a milestone to track project progress.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4">
+        <form
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault()
+              handleSubmit(e)
+            }
+          }}
+          className="grid gap-4"
+        >
           <div className="grid gap-2">
             <Label htmlFor="ms-title">Title</Label>
             <Input
@@ -275,6 +284,10 @@ function CreateMilestoneDialog({
           <DialogFooter>
             <Button type="submit" disabled={!title.trim()}>
               Create Milestone
+              <kbd className="ml-2 pointer-events-none inline-flex h-5 items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                <span className="text-xs">{navigator.platform?.includes("Mac") ? "\u2318" : "Ctrl"}</span>
+                <span className="text-xs">{"\u21B5"}</span>
+              </kbd>
             </Button>
           </DialogFooter>
         </form>

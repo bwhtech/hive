@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useAutoSave } from "@/hooks/use-auto-save"
 import {
   useFrappeGetDocList,
@@ -30,7 +30,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
-import type { HiveProjectUpdate } from "@/types"
+import type { HiveProjectUpdate, HiveMember } from "@/types"
 
 const REACTION_EMOJIS = ["\ud83d\udc4d", "\u2764\ufe0f", "\ud83c\udf89", "\ud83d\ude80", "\ud83d\udc40", "\ud83d\ude4f"]
 
@@ -45,6 +45,26 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
   const [savingDraft, setSavingDraft] = useState(false)
   const [editorKey, setEditorKey] = useState(0)
   const { currentUser } = useFrappeAuth()
+
+  // Fetch members for @mention suggestions
+  const { data: allMembers } = useFrappeGetDocList<HiveMember>(
+    "Hive Member",
+    {
+      fields: ["name", "user", "member_name", "user_image", "is_active"],
+      filters: [["is_active", "=", 1]],
+      limit: 100,
+    },
+  )
+
+  const mentionSuggestions = useMemo(
+    () =>
+      allMembers?.map((m) => ({
+        id: m.user,
+        label: m.member_name || m.user,
+        image: m.user_image || null,
+      })) ?? [],
+    [allMembers],
+  )
 
   // Published updates
   const { data: updates, mutate } = useFrappeGetDocList<HiveProjectUpdate>(
@@ -279,6 +299,7 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
             onChange={setContent}
             placeholder="Share an update with the team..."
             onSubmit={handlePost}
+            mentionSuggestions={mentionSuggestions}
           />
           <div className="flex items-center justify-between mt-3">
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -330,6 +351,7 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
             <DraftCard
               key={draft.name}
               draft={draft}
+              mentionSuggestions={mentionSuggestions}
               onPublish={handlePublish}
               onDelete={handleDeleteDraft}
               onUpdate={(name, newContent) => {
@@ -385,11 +407,13 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
 
 function DraftCard({
   draft,
+  mentionSuggestions,
   onPublish,
   onDelete,
   onUpdate,
 }: {
   draft: HiveProjectUpdate
+  mentionSuggestions: { id: string; label: string; image: string | null }[]
   onPublish: (name: string) => void
   onDelete: (name: string) => void
   onUpdate: (name: string, content: string) => void
@@ -422,6 +446,7 @@ function DraftCard({
               onChange={setEditContent}
               placeholder="Edit your draft..."
               content={draft.content}
+              mentionSuggestions={mentionSuggestions}
             />
             <div className="flex items-center gap-2 mt-3 justify-end">
               <Button

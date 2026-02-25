@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   useFrappeGetDocList,
   useFrappeCreateDoc,
@@ -54,6 +54,7 @@ import { TiptapEditor } from "@/components/TiptapEditor"
 import {
   FEATURE_REQUEST_PRIORITIES,
   type HiveFeatureRequest,
+  type HiveMember,
 } from "@/types"
 import { FEATURE_REQUEST_STATUS_VARIANT, FEATURE_REQUEST_PRIORITY_VARIANT } from "@/lib/variants"
 
@@ -71,6 +72,26 @@ export function FeatureRequestSection({
   const [internalCreateOpen, setInternalCreateOpen] = useState(false)
   const createOpen = controlledCreateOpen ?? internalCreateOpen
   const setCreateOpen = onCreateOpenChange ?? setInternalCreateOpen
+
+  // Fetch members for @mention suggestions
+  const { data: allMembers } = useFrappeGetDocList<HiveMember>(
+    "Hive Member",
+    {
+      fields: ["name", "user", "member_name", "user_image", "is_active"],
+      filters: [["is_active", "=", 1]],
+      limit: 100,
+    },
+  )
+
+  const mentionSuggestions = useMemo(
+    () =>
+      allMembers?.map((m) => ({
+        id: m.user,
+        label: m.member_name || m.user,
+        image: m.user_image || null,
+      })) ?? [],
+    [allMembers],
+  )
 
   const { data: requests, mutate } = useFrappeGetDocList<HiveFeatureRequest>(
     "Hive Feature Request",
@@ -243,6 +264,7 @@ export function FeatureRequestSection({
         open={createOpen}
         onOpenChange={setCreateOpen}
         onSubmit={handleCreate}
+        mentionSuggestions={mentionSuggestions}
       />
     </div>
   )
@@ -333,10 +355,12 @@ function CreateFeatureRequestDialog({
   open,
   onOpenChange,
   onSubmit,
+  mentionSuggestions,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (values: { title: string; description: string; priority: string }) => void
+  mentionSuggestions: { id: string; label: string; image: string | null }[]
 }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -399,6 +423,7 @@ function CreateFeatureRequestDialog({
               content={description}
               onChange={(html) => setDescription(html)}
               placeholder="Describe the feature in detail..."
+              mentionSuggestions={mentionSuggestions}
             />
           </div>
           <DialogFooter>

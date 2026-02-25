@@ -119,6 +119,16 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     },
   )
 
+  const mentionSuggestions = useMemo(
+    () =>
+      allMembers?.map((m) => ({
+        id: m.user,
+        label: m.member_name || m.user,
+        image: m.user_image || null,
+      })) ?? [],
+    [allMembers],
+  )
+
   // Sort members: current user first
   const sortedMembers = useMemo(() => {
     if (!allMembers) return []
@@ -583,6 +593,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
               content={task.description || ""}
               onChange={(v) => { setDescription(v); markEdited() }}
               placeholder="Add a description..."
+              mentionSuggestions={mentionSuggestions}
             />
           )}
         </div>

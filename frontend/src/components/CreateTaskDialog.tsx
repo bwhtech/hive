@@ -97,6 +97,16 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     },
   )
 
+  const mentionSuggestions = useMemo(
+    () =>
+      allMembers?.map((m) => ({
+        id: m.user,
+        label: m.member_name || m.user,
+        image: m.user_image || null,
+      })) ?? [],
+    [allMembers],
+  )
+
   // Sort members: current user first
   const sortedMembers = useMemo(() => {
     if (!allMembers) return []
@@ -198,6 +208,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
               onChange={setDescription}
               placeholder="Add a description..."
               className="max-h-[200px] overflow-y-auto [&_.tiptap-content]:min-h-[60px]"
+              mentionSuggestions={mentionSuggestions}
             />
           </div>
 

@@ -4,11 +4,11 @@ import { MentionList, type MentionItem, type MentionListRef } from "./MentionLis
 import type { SuggestionOptions } from "@tiptap/suggestion"
 
 export function createMentionSuggestion(
-  items: MentionItem[],
+  getItems: () => MentionItem[],
 ): Omit<SuggestionOptions<MentionItem>, "editor"> {
   return {
     items: ({ query }) => {
-      return items
+      return getItems()
         .filter((item) =>
           item.label.toLowerCase().includes(query.toLowerCase()),
         )

@@ -6,7 +6,7 @@ import Placeholder from "@tiptap/extension-placeholder"
 import Image from "@tiptap/extension-image"
 import Mention from "@tiptap/extension-mention"
 import { useFrappeFileUpload } from "frappe-react-sdk"
-import { useRef, useCallback, useMemo, useState } from "react"
+import { useRef, useCallback, useMemo, useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -35,9 +35,17 @@ export function TiptapEditor({
   const { upload } = useFrappeFileUpload()
   const imageInputRef = useRef<HTMLInputElement>(null)
 
+  const mentionItemsRef = useRef<MentionItem[]>(mentionSuggestions ?? [])
+  useEffect(() => {
+    mentionItemsRef.current = mentionSuggestions ?? []
+  }, [mentionSuggestions])
+
   const mentionConfig = useMemo(
-    () => mentionSuggestions ? createMentionSuggestion(mentionSuggestions) : null,
-    [mentionSuggestions],
+    () => mentionSuggestions !== undefined
+      ? createMentionSuggestion(() => mentionItemsRef.current)
+      : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mentionSuggestions !== undefined],
   )
 
   const uploadAndInsertImage = useCallback(

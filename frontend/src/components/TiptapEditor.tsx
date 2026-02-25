@@ -68,15 +68,17 @@ export function TiptapEditor({
   )
 
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  const [selectedImageAlt, setSelectedImageAlt] = useState<string | null>(null)
 
   const handleEditorClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      if (editable) return
       const target = e.target as HTMLElement
       if (target.tagName === "IMG") {
         setLightboxSrc((target as HTMLImageElement).src)
       }
     },
-    [],
+    [editable],
   )
 
   const editor = useEditor({
@@ -155,6 +157,35 @@ export function TiptapEditor({
     },
   })
 
+  useEffect(() => {
+    if (!editor || !editable) {
+      setSelectedImageAlt(null)
+      return
+    }
+    const handler = () => {
+      if (editor.isActive("image")) {
+        setSelectedImageAlt(editor.getAttributes("image").alt || "")
+      } else {
+        setSelectedImageAlt(null)
+      }
+    }
+    editor.on("selectionUpdate", handler)
+    return () => {
+      editor.off("selectionUpdate", handler)
+    }
+  }, [editor, editable])
+
+  const handleAltChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
+      setSelectedImageAlt(value)
+      if (editor?.isActive("image")) {
+        editor.chain().updateAttributes("image", { alt: value }).run()
+      }
+    },
+    [editor],
+  )
+
   const handleImageSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files
@@ -185,6 +216,26 @@ export function TiptapEditor({
       <div onClick={handleEditorClick}>
         <EditorContent editor={editor} />
       </div>
+      {selectedImageAlt !== null && (
+        <div className="flex items-center gap-2 border-t border-input px-3 py-1.5">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            Alt text
+          </span>
+          <input
+            type="text"
+            className="flex-1 h-6 rounded-sm border border-input bg-transparent px-2 text-xs outline-none focus:ring-1 focus:ring-ring"
+            placeholder="Describe this image..."
+            value={selectedImageAlt}
+            onChange={handleAltChange}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "Escape") {
+                e.preventDefault()
+                editor?.commands.focus()
+              }
+            }}
+          />
+        </div>
+      )}
       <input
         ref={imageInputRef}
         type="file"

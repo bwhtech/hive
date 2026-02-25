@@ -71,6 +71,7 @@ const TASK_FIELDS = [
   "priority",
   "size",
   "milestone",
+  "depends_on",
   "assigned_to",
   "is_internal",
   "description",

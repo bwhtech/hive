@@ -78,6 +78,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const [priority, setPriority] = useState("Medium")
   const [size, setSize] = useState("")
   const [milestone, setMilestone] = useState("")
+  const [dependsOn, setDependsOn] = useState("")
   const [prLink, setPrLink] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
@@ -127,6 +128,24 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     },
   )
 
+  // Fetch tasks in the same project (for depends_on picker)
+  const { data: projectTasks } = useFrappeGetDocList<HiveTask>(
+    "Hive Task",
+    {
+      fields: ["name", "title", "status"] as (keyof HiveTask)[],
+      filters: [["project", "=", task?.project ?? ""], ["is_archived", "=", 0]],
+      orderBy: { field: "title", order: "asc" },
+      limit: 200,
+    },
+    task?.project ? undefined : null,
+  )
+
+  // Filter out the current task from depends_on options
+  const dependsOnOptions = useMemo(() => {
+    if (!projectTasks || !task) return []
+    return projectTasks.filter((t) => t.name !== task.name)
+  }, [projectTasks, task])
+
   // Sort members: current user first
   const sortedMembers = useMemo(() => {
     if (!allMembers) return []
@@ -152,6 +171,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       setPriority(task.priority)
       setSize(task.size || "")
       setMilestone(task.milestone || "")
+      setDependsOn(task.depends_on || "")
       setPrLink(task.pr_link || "")
       setDueDate(task.due_date ? new Date(task.due_date) : undefined)
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
@@ -210,7 +230,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         autosaveTimerRef.current = undefined
       }
     }
-  }, [title, description, status, priority, size, milestone, prLink, dueDate, startDate, completedOn, assignees, open, isClient])
+  }, [title, description, status, priority, size, milestone, dependsOn, prLink, dueDate, startDate, completedOn, assignees, open, isClient])
 
   if (!task) return null
 
@@ -239,6 +259,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         priority,
         size: size || null,
         milestone: milestone || null,
+        depends_on: dependsOn || null,
         pr_link: prLink || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
@@ -423,6 +444,31 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
                 <SelectItem value="">None</SelectItem>
                 {projectMilestones?.map((ms) => (
                   <SelectItem key={ms.name} value={ms.name}>{ms.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        {/* Depends On */}
+        <div className="grid gap-2">
+          <Label>Depends On</Label>
+          {isClient ? (
+            <p className="text-sm text-muted-foreground py-1">
+              {dependsOn ? (dependsOnOptions.find((t) => t.name === dependsOn)?.title ?? dependsOn) : "None"}
+            </p>
+          ) : (
+            <Select value={dependsOn} onValueChange={(v) => { setDependsOn(v); markEdited() }}>
+              <SelectTrigger className="w-full">
+                <span>{dependsOn ? (dependsOnOptions.find((t) => t.name === dependsOn)?.title ?? dependsOn) : "None"}</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {dependsOnOptions.map((t) => (
+                  <SelectItem key={t.name} value={t.name}>
+                    <span className="truncate">{t.title}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{t.status}</span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

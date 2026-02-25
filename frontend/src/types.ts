@@ -19,6 +19,7 @@ export interface HiveTask {
   priority: "Low" | "Medium" | "High" | "Urgent"
   size: "Small" | "Medium" | "Large" | "" | null
   milestone: string | null
+  depends_on: string | null
   assigned_to: string
   is_internal: 0 | 1
   is_archived: 0 | 1

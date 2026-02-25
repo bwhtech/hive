@@ -12,6 +12,7 @@
   "priority",
   "size",
   "milestone",
+  "depends_on",
   "assigned_to",
   "assignees",
   "is_internal",
@@ -75,6 +76,12 @@
    "in_standard_filter": 1,
    "label": "Milestone",
    "options": "Hive Milestone"
+  },
+  {
+   "fieldname": "depends_on",
+   "fieldtype": "Link",
+   "label": "Depends On",
+   "options": "Hive Task"
   },
   {
    "fieldname": "assigned_to",

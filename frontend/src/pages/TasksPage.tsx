@@ -230,7 +230,7 @@ export function TasksPage() {
     {
       fields: [
         "name", "title", "project", "status", "priority", "size", "milestone",
-        "assigned_to", "is_internal", "due_date", "pr_link",
+        "depends_on", "assigned_to", "is_internal", "due_date", "pr_link",
         "uat_status", "creation", "modified",
       ],
       filters: [["is_archived", "=", 0]],

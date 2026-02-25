@@ -3,6 +3,10 @@ import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
 import Placeholder from "@tiptap/extension-placeholder"
+import Image from "@tiptap/extension-image"
+import { useFrappeFileUpload } from "frappe-react-sdk"
+import { useRef, useCallback } from "react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 interface TiptapEditorProps {
@@ -22,6 +26,22 @@ export function TiptapEditor({
   editable = true,
   onSubmit,
 }: TiptapEditorProps) {
+  const { upload } = useFrappeFileUpload()
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
+  const uploadAndInsertImage = useCallback(
+    async (file: File, editor: Editor) => {
+      try {
+        const res = await upload(file, { isPrivate: false })
+        const url = (res as { file_url: string }).file_url
+        editor.chain().focus().setImage({ src: url }).run()
+      } catch {
+        toast.error("Failed to upload image")
+      }
+    },
+    [upload],
+  )
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -35,6 +55,10 @@ export function TiptapEditor({
         HTMLAttributes: { class: "text-primary underline" },
       }),
       Placeholder.configure({ placeholder }),
+      Image.configure({
+        inline: false,
+        allowBase64: false,
+      }),
     ],
     content,
     editable,
@@ -54,8 +78,49 @@ export function TiptapEditor({
         }
         return false
       },
+      handleDrop: (view, event) => {
+        const files = event.dataTransfer?.files
+        if (!files?.length) return false
+        const images = Array.from(files).filter((f) =>
+          f.type.startsWith("image/"),
+        )
+        if (!images.length) return false
+        event.preventDefault()
+        const editorInstance = view.state
+        if (editorInstance) {
+          for (const img of images) {
+            uploadAndInsertImage(img, editor!)
+          }
+        }
+        return true
+      },
+      handlePaste: (_view, event) => {
+        const files = event.clipboardData?.files
+        if (!files?.length) return false
+        const images = Array.from(files).filter((f) =>
+          f.type.startsWith("image/"),
+        )
+        if (!images.length) return false
+        event.preventDefault()
+        for (const img of images) {
+          uploadAndInsertImage(img, editor!)
+        }
+        return true
+      },
     },
   })
+
+  const handleImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (!files?.length || !editor) return
+      for (const file of Array.from(files)) {
+        uploadAndInsertImage(file, editor)
+      }
+      e.target.value = ""
+    },
+    [editor, uploadAndInsertImage],
+  )
 
   if (!editor) return null
 
@@ -66,8 +131,21 @@ export function TiptapEditor({
         className,
       )}
     >
-      {editable && <Toolbar editor={editor} />}
+      {editable && (
+        <Toolbar
+          editor={editor}
+          onImageClick={() => imageInputRef.current?.click()}
+        />
+      )}
       <EditorContent editor={editor} />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleImageSelect}
+      />
     </div>
   )
 }
@@ -79,7 +157,13 @@ type ToolbarItem = {
   isActive?: boolean
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({
+  editor,
+  onImageClick,
+}: {
+  editor: Editor
+  onImageClick: () => void
+}) {
   const addLink = () => {
     const prev = editor.getAttributes("link").href as string | undefined
     const url = window.prompt("URL", prev ?? "https://")
@@ -169,6 +253,11 @@ function Toolbar({ editor }: { editor: Editor }) {
         title: "Link",
         action: addLink,
         isActive: editor.isActive("link"),
+      },
+      {
+        label: "\ud83d\uddbc",
+        title: "Insert Image",
+        action: onImageClick,
       },
     ],
   ]

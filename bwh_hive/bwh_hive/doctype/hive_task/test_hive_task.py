@@ -17,6 +17,71 @@ def _make_task(project, title="Test Task", **kwargs):
 	return doc.insert(ignore_permissions=True)
 
 
+class TestHiveTaskDependencyValidation(IntegrationTestCase):
+	"""Integration tests for Hive Task circular dependency validation."""
+
+	def setUp(self):
+		self.project = _make_project("Dependency Test Project")
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_self_dependency_rejected(self):
+		task = _make_task(self.project, "Task A")
+		task.depends_on = task.name
+		self.assertRaises(frappe.ValidationError, task.save)
+
+	def test_direct_circular_dependency_rejected(self):
+		"""A → B → A should be rejected."""
+		task_a = _make_task(self.project, "Task A")
+		task_b = _make_task(self.project, "Task B", depends_on=task_a.name)
+		task_a.depends_on = task_b.name
+		self.assertRaises(frappe.ValidationError, task_a.save)
+
+	def test_indirect_circular_dependency_rejected(self):
+		"""A → B → C → A should be rejected."""
+		task_a = _make_task(self.project, "Task A")
+		task_b = _make_task(self.project, "Task B", depends_on=task_a.name)
+		task_c = _make_task(self.project, "Task C", depends_on=task_b.name)
+		task_a.depends_on = task_c.name
+		self.assertRaises(frappe.ValidationError, task_a.save)
+
+	def test_valid_dependency_accepted(self):
+		task_a = _make_task(self.project, "Task A")
+		task_b = _make_task(self.project, "Task B")
+		task_b.depends_on = task_a.name
+		task_b.save()
+		task_b.reload()
+		self.assertEqual(task_b.depends_on, task_a.name)
+
+	def test_valid_chain_accepted(self):
+		"""A → B → C is a valid chain (no cycle)."""
+		task_a = _make_task(self.project, "Task A")
+		task_b = _make_task(self.project, "Task B", depends_on=task_a.name)
+		task_c = _make_task(self.project, "Task C")
+		task_c.depends_on = task_b.name
+		task_c.save()
+		task_c.reload()
+		self.assertEqual(task_c.depends_on, task_b.name)
+
+	def test_clearing_dependency_accepted(self):
+		task_a = _make_task(self.project, "Task A")
+		task_b = _make_task(self.project, "Task B", depends_on=task_a.name)
+		task_b.depends_on = None
+		task_b.save()
+		task_b.reload()
+		self.assertIsNone(task_b.depends_on)
+
+	def test_changing_dependency_to_non_circular_accepted(self):
+		task_a = _make_task(self.project, "Task A")
+		task_b = _make_task(self.project, "Task B")
+		task_c = _make_task(self.project, "Task C", depends_on=task_a.name)
+		task_c.depends_on = task_b.name
+		task_c.save()
+		task_c.reload()
+		self.assertEqual(task_c.depends_on, task_b.name)
+
+
 class IntegrationTestHiveTask(IntegrationTestCase):
 	"""Integration tests for Hive Task soft delete (archive/restore)."""
 

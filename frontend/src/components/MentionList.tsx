@@ -1,8 +1,10 @@
 import { forwardRef, useImperativeHandle, useState } from "react"
+import { MemberAvatar } from "@/components/MemberAvatar"
 
 export interface MentionItem {
   id: string
   label: string
+  image?: string | null
 }
 
 interface MentionListProps {
@@ -56,13 +58,14 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
           <button
             key={item.id}
             type="button"
-            className={`block w-full text-left px-3 py-1.5 text-sm ${
+            className={`flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm ${
               index === safeIndex
                 ? "bg-accent text-accent-foreground"
                 : "text-popover-foreground hover:bg-muted"
             }`}
             onClick={() => command(item)}
           >
+            <MemberAvatar size="sm" name={item.label} image={item.image} />
             {item.label}
           </button>
         ))}

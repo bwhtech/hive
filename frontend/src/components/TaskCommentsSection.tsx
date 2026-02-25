@@ -27,6 +27,7 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
       members?.map((m) => ({
         id: m.user,
         label: m.member_name || m.user,
+        image: m.user_image || null,
       })) ?? [],
     [members],
   )

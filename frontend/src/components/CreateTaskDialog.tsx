@@ -31,6 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { TASK_PRIORITIES, TASK_STATUSES, type HiveMember, type HiveMilestone } from "@/types"
 import { useUser } from "@/context/UserContext"
+import { TiptapEditor } from "@/components/TiptapEditor"
 
 interface AssigneeRow {
   member: string
@@ -40,6 +41,7 @@ interface AssigneeRow {
 
 interface CreateTaskValues {
   title: string
+  description?: string
   priority: string
   status: string
   due_date?: string | null
@@ -60,6 +62,8 @@ interface CreateTaskDialogProps {
 
 export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [editorKey, setEditorKey] = useState(0)
   const [priority, setPriority] = useState("Medium")
   const [status, setStatus] = useState("To Do")
   const [dueDate, setDueDate] = useState<Date | undefined>()
@@ -122,6 +126,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     if (!canSubmit) return
     onSubmit({
       title: title.trim(),
+      description: description || undefined,
       priority,
       status,
       due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
@@ -132,6 +137,8 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
       project: resolvedProject,
     })
     setTitle("")
+    setDescription("")
+    setEditorKey((k) => k + 1)
     setPriority("Medium")
     setStatus("To Do")
     setDueDate(undefined)
@@ -160,7 +167,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New Task</DialogTitle>
           <DialogDescription>Add a task to this project.</DialogDescription>
@@ -189,6 +196,17 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Description</Label>
+            <TiptapEditor
+              key={editorKey}
+              content=""
+              onChange={setDescription}
+              placeholder="Add a description..."
+              className="max-h-[200px] overflow-y-auto [&_.tiptap-content]:min-h-[60px]"
             />
           </div>
 

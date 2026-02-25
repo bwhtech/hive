@@ -1,5 +1,6 @@
 import { NavLink, useLocation, useNavigate } from "react-router"
-import { useFrappeAuth, useFrappeGetDocList } from "frappe-react-sdk"
+import { useFrappeAuth, useFrappeGetDocList, useFrappeDeleteDoc } from "frappe-react-sdk"
+import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   DashboardSquare02Icon,
@@ -11,6 +12,7 @@ import {
   Sun02Icon,
   Moon02Icon,
   ArrowUp01Icon,
+  Delete02Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Sidebar,
@@ -21,6 +23,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
@@ -56,8 +59,9 @@ export function AppSidebar({
   const { setTheme, resolvedTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
+  const { deleteDoc } = useFrappeDeleteDoc()
 
-  const { data: savedViews } = useFrappeGetDocList<HiveView>(
+  const { data: savedViews, mutate: mutateSavedViews } = useFrappeGetDocList<HiveView>(
     "Hive View",
     {
       fields: ["name", "label", "emoji", "view_type", "filters_json", "is_public", "owner"],
@@ -67,14 +71,15 @@ export function AppSidebar({
     },
   )
 
-  const { data: myViews } = useFrappeGetDocList<HiveView>(
+  const { data: myViews, mutate: mutateMyViews } = useFrappeGetDocList<HiveView>(
     "Hive View",
     {
       fields: ["name", "label", "emoji", "view_type", "filters_json", "is_public", "owner"],
-      filters: [["is_public", "=", 0], ["owner", "=", user?.name || ""]],
+      filters: [["is_public", "=", 0], ["owner", "=", user?.email || ""]],
       orderBy: { field: "creation", order: "asc" },
       limit: 50,
     },
+    user?.email ? undefined : null,
   )
 
   const allViews = [...(savedViews ?? []), ...(myViews ?? [])]
@@ -169,6 +174,8 @@ export function AppSidebar({
                   const to = `/tasks${params.toString() ? `?${params.toString()}` : ""}`
                   const isActive = location.pathname === "/tasks" && location.search === `?${params.toString()}`
 
+                  const canDelete = view.owner === user?.email
+
                   return (
                     <SidebarMenuItem key={view.name}>
                       <SidebarMenuButton
@@ -182,6 +189,25 @@ export function AppSidebar({
                         <span className="text-base leading-none">{view.emoji || "📋"}</span>
                         <span className="truncate">{view.label}</span>
                       </SidebarMenuButton>
+                      {canDelete && (
+                        <SidebarMenuAction
+                          showOnHover
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              await deleteDoc("Hive View", view.name)
+                              toast.success("View deleted")
+                              mutateSavedViews()
+                              mutateMyViews()
+                            } catch {
+                              toast.error("Failed to delete view")
+                            }
+                          }}
+                        >
+                          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-4" />
+                        </SidebarMenuAction>
+                      )}
                     </SidebarMenuItem>
                   )
                 })}

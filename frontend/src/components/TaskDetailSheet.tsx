@@ -48,6 +48,7 @@ import { toast } from "sonner"
 import { TiptapEditor } from "@/components/TiptapEditor"
 import { useUser } from "@/context/UserContext"
 import { TaskCommentsSection } from "@/components/TaskCommentsSection"
+import { TaskAttachments } from "@/components/TaskAttachments"
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember, type HiveMilestone } from "@/types"
 
 interface TaskDetailSheetProps {
@@ -622,6 +623,12 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
               placeholder="Add a description..."
             />
           )}
+        </div>
+
+        {/* Attachments */}
+        <div className="grid gap-2">
+          <Label>Attachments</Label>
+          <TaskAttachments taskName={task.name} readOnly={isClient} />
         </div>
 
         {/* UAT Section — only shown for projects with a client */}

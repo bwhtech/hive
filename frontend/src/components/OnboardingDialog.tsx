@@ -2,7 +2,6 @@ import { useState } from "react"
 import {
   useFrappeGetDocList,
   useFrappeCreateDoc,
-  useFrappeDeleteDoc,
   useFrappePostCall,
   useFrappeUpdateDoc,
   useFrappeGetCall,
@@ -193,11 +192,12 @@ function ProjectTypesStep() {
     mutate,
   } = useFrappeGetDocList<{ name: string; type_name: string }>("Hive Project Type", {
     fields: ["name", "type_name"],
+    filters: [["is_archived", "=", 0]],
     orderBy: { field: "creation", order: "asc" },
     limit_page_length: 0,
   })
   const { createDoc, loading: creating } = useFrappeCreateDoc()
-  const { deleteDoc } = useFrappeDeleteDoc()
+  const { updateDoc } = useFrappeUpdateDoc()
   const [newType, setNewType] = useState("")
 
   const handleAdd = async () => {
@@ -216,8 +216,18 @@ function ProjectTypesStep() {
 
   const handleDelete = async (name: string) => {
     try {
-      await deleteDoc("Hive Project Type", name)
+      await updateDoc("Hive Project Type", name, { is_archived: 1 })
       mutate()
+      toast("Project type removed", {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            await updateDoc("Hive Project Type", name, { is_archived: 0 })
+            mutate()
+          },
+        },
+        duration: 6000,
+      })
     } catch {
       toast.error("Failed to remove project type")
     }

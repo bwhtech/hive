@@ -95,6 +95,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSubmit }: CreateProj
                 value={projectType}
                 onChange={setProjectType}
                 placeholder="Select type"
+                filters={{ is_archived: 0 }}
                 className="w-full justify-between"
               />
             </div>

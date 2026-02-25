@@ -1,7 +1,7 @@
 import {
   useFrappeGetDocList,
   useFrappeCreateDoc,
-  useFrappeDeleteDoc,
+  useFrappeUpdateDoc,
 } from "frappe-react-sdk"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -23,11 +23,12 @@ export function GeneralSection() {
     mutate,
   } = useFrappeGetDocList<HiveProjectType>("Hive Project Type", {
     fields: ["name", "type_name"],
+    filters: [["is_archived", "=", 0]],
     orderBy: { field: "creation", order: "asc" },
     limit_page_length: 0,
   })
   const { createDoc, loading: creating } = useFrappeCreateDoc()
-  const { deleteDoc } = useFrappeDeleteDoc()
+  const { updateDoc } = useFrappeUpdateDoc()
 
   const [newType, setNewType] = useState("")
 
@@ -48,9 +49,18 @@ export function GeneralSection() {
 
   const handleDelete = async (name: string, typeName: string) => {
     try {
-      await deleteDoc("Hive Project Type", name)
-      toast.success(`Project type "${typeName}" removed`)
+      await updateDoc("Hive Project Type", name, { is_archived: 1 })
       mutate()
+      toast(`Project type "${typeName}" deleted`, {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            await updateDoc("Hive Project Type", name, { is_archived: 0 })
+            mutate()
+          },
+        },
+        duration: 6000,
+      })
     } catch (e: unknown) {
       const message =
         e instanceof Error ? e.message : "Failed to remove project type"

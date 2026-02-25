@@ -200,6 +200,7 @@ export function ProjectDetailPage() {
 
   const { data: projectTypes } = useFrappeGetDocList("Hive Project Type", {
     fields: ["name", "type_name"],
+    filters: [["is_archived", "=", 0]],
     limit: 50,
     orderBy: { field: "type_name", order: "asc" },
   })

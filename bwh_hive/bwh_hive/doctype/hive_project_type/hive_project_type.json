@@ -6,7 +6,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "type_name"
+  "type_name",
+  "is_archived"
  ],
  "fields": [
   {
@@ -16,6 +17,13 @@
    "label": "Type Name",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_archived",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is Archived"
   }
  ],
  "grid_page_length": 50,

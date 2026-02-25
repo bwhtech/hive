@@ -6,7 +6,6 @@ import {
   Calendar03Icon,
   UserAdd01Icon,
   Cancel02Icon,
-  CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Dialog,
@@ -28,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { Calendar } from "@/components/ui/calendar"
 import { TASK_PRIORITIES, TASK_STATUSES, type HiveMember, type HiveMilestone } from "@/types"
 import { useUser } from "@/context/UserContext"
@@ -286,32 +286,29 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
                   <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
                   Add
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-2" align="start">
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {sortedMembers.length ? (
-                      sortedMembers.map((m) => (
-                        <button
-                          key={m.name}
-                          type="button"
-                          onClick={() => toggleAssignee(m)}
-                          className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors ${
-                            assignedMemberNames.has(m.name) ? "bg-muted" : ""
-                          }`}
-                        >
-                          <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
-                          <span className="flex-1 truncate text-left">
-                            {m.member_name || m.name}
-                            {m.user === user?.email && <span className="text-muted-foreground ml-1">(you)</span>}
-                          </span>
-                          {assignedMemberNames.has(m.name) && (
-                            <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4 text-primary" />
-                          )}
-                        </button>
-                      ))
-                    ) : (
-                      <p className="text-xs text-muted-foreground px-2 py-1">No members found</p>
-                    )}
-                  </div>
+                <PopoverContent className="w-64 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search members..." />
+                    <CommandList>
+                      <CommandEmpty>No members found</CommandEmpty>
+                      <CommandGroup>
+                        {sortedMembers.map((m) => (
+                          <CommandItem
+                            key={m.name}
+                            value={m.member_name || m.name}
+                            data-checked={assignedMemberNames.has(m.name)}
+                            onSelect={() => toggleAssignee(m)}
+                          >
+                            <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
+                            <span className="flex-1 truncate">
+                              {m.member_name || m.name}
+                              {m.user === user?.email && <span className="text-muted-foreground ml-1">(you)</span>}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
                 </PopoverContent>
               </Popover>
             </div>

@@ -128,6 +128,16 @@
     }
 }
 
+/* Mention tag */
+.mention {
+  background: oklch(from var(--primary) l c h / 15%);
+  color: var(--primary);
+  border-radius: 0.25em;
+  padding: 0.1em 0.25em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 /* Tiptap editor styles */
 .tiptap-content {
   > *:first-child {

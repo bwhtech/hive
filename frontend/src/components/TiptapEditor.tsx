@@ -4,10 +4,13 @@ import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
 import Placeholder from "@tiptap/extension-placeholder"
 import Image from "@tiptap/extension-image"
+import Mention from "@tiptap/extension-mention"
 import { useFrappeFileUpload } from "frappe-react-sdk"
-import { useRef, useCallback } from "react"
+import { useRef, useCallback, useMemo } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { createMentionSuggestion } from "./mentionSuggestion"
+import type { MentionItem } from "./MentionList"
 
 interface TiptapEditorProps {
   content?: string
@@ -16,6 +19,7 @@ interface TiptapEditorProps {
   className?: string
   editable?: boolean
   onSubmit?: () => void
+  mentionSuggestions?: MentionItem[]
 }
 
 export function TiptapEditor({
@@ -25,9 +29,15 @@ export function TiptapEditor({
   className,
   editable = true,
   onSubmit,
+  mentionSuggestions,
 }: TiptapEditorProps) {
   const { upload } = useFrappeFileUpload()
   const imageInputRef = useRef<HTMLInputElement>(null)
+
+  const mentionConfig = useMemo(
+    () => mentionSuggestions ? createMentionSuggestion(mentionSuggestions) : null,
+    [mentionSuggestions],
+  )
 
   const uploadAndInsertImage = useCallback(
     async (file: File, editor: Editor) => {
@@ -59,6 +69,14 @@ export function TiptapEditor({
         inline: false,
         allowBase64: false,
       }),
+      ...(mentionConfig
+        ? [
+            Mention.configure({
+              HTMLAttributes: { class: "mention" },
+              suggestion: mentionConfig,
+            }),
+          ]
+        : []),
     ],
     content,
     editable,

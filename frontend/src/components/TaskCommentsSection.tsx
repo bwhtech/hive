@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useFrappeGetDocList, useFrappeCreateDoc, useFrappeDeleteDoc } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -32,6 +32,15 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
   const [newComment, setNewComment] = useState("")
   const [posting, setPosting] = useState(false)
   const [editorKey, setEditorKey] = useState(0)
+
+  const mentionSuggestions = useMemo(
+    () =>
+      members?.map((m) => ({
+        id: m.user,
+        label: m.member_name || m.user,
+      })) ?? [],
+    [members],
+  )
 
   const { createDoc } = useFrappeCreateDoc()
   const { deleteDoc } = useFrappeDeleteDoc()
@@ -151,8 +160,9 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
           key={`comment-${taskName}-${editorKey}`}
           content=""
           onChange={setNewComment}
-          placeholder="Write a comment..."
+          placeholder="Write a comment... (@ to mention)"
           onSubmit={handlePost}
+          mentionSuggestions={mentionSuggestions}
         />
         <div className="flex justify-end">
           <Button

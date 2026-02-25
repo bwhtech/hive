@@ -6,7 +6,8 @@ import Placeholder from "@tiptap/extension-placeholder"
 import Image from "@tiptap/extension-image"
 import Mention from "@tiptap/extension-mention"
 import { useFrappeFileUpload } from "frappe-react-sdk"
-import { useRef, useCallback, useMemo } from "react"
+import { useRef, useCallback, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { createMentionSuggestion } from "./mentionSuggestion"
@@ -56,6 +57,18 @@ export function TiptapEditor({
       }
     },
     [upload],
+  )
+
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+
+  const handleEditorClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === "IMG") {
+        setLightboxSrc((target as HTMLImageElement).src)
+      }
+    },
+    [],
   )
 
   const editor = useEditor({
@@ -161,7 +174,9 @@ export function TiptapEditor({
           onImageClick={() => imageInputRef.current?.click()}
         />
       )}
-      <EditorContent editor={editor} />
+      <div onClick={handleEditorClick}>
+        <EditorContent editor={editor} />
+      </div>
       <input
         ref={imageInputRef}
         type="file"
@@ -170,6 +185,31 @@ export function TiptapEditor({
         className="hidden"
         onChange={handleImageSelect}
       />
+      {lightboxSrc &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out animate-in fade-in-0 duration-150"
+            onClick={() => setLightboxSrc(null)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.stopPropagation()
+                setLightboxSrc(null)
+              }
+            }}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
+            ref={(el) => el?.focus()}
+          >
+            <img
+              src={lightboxSrc}
+              alt=""
+              className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

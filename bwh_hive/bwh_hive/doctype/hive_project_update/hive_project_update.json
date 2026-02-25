@@ -10,6 +10,7 @@
   "project",
   "posted_by",
   "is_draft",
+  "is_archived",
   "content",
   "reactions"
  ],
@@ -37,6 +38,13 @@
    "fieldname": "is_draft",
    "fieldtype": "Check",
    "label": "Is Draft"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_archived",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is Archived"
   },
   {
    "fieldname": "content",

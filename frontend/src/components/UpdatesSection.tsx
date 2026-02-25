@@ -7,7 +7,6 @@ import {
   useFrappePostCall,
   useFrappeAuth,
   useFrappeUpdateDoc,
-  useFrappeDeleteDoc,
   useSWRConfig,
 } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
@@ -25,17 +24,6 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
@@ -75,6 +63,7 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
       filters: [
         ["project", "=", projectId],
         ["is_draft", "=", 0],
+        ["is_archived", "=", 0],
       ],
       orderBy: { field: "creation", order: "desc" },
       limit: 100,
@@ -97,6 +86,7 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
       filters: [
         ["project", "=", projectId],
         ["is_draft", "=", 1],
+        ["is_archived", "=", 0],
         ["posted_by", "=", currentUser ?? ""],
       ],
       orderBy: { field: "modified", order: "desc" },
@@ -105,7 +95,6 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
 
   const { createDoc } = useFrappeCreateDoc()
   const { updateDoc } = useFrappeUpdateDoc()
-  const { deleteDoc } = useFrappeDeleteDoc()
   const { call: callMethod } = useFrappePostCall("frappe.client.run_doc_method")
   const { call: publishCall } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.publish_update",
@@ -243,10 +232,24 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
 
   const handleDeleteDraft = async (draftName: string) => {
     try {
-      await deleteDoc("Hive Project Update", draftName)
+      await updateDoc("Hive Project Update", draftName, { is_archived: 1 })
       mutateDrafts()
       onDraftChange?.()
-      toast.success("Draft deleted")
+      toast("Draft deleted", {
+        duration: 6000,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await updateDoc("Hive Project Update", draftName, { is_archived: 0 })
+              mutateDrafts()
+              onDraftChange?.()
+            } catch {
+              toast.error("Failed to restore draft")
+            }
+          },
+        },
+      })
     } catch {
       toast.error("Failed to delete draft")
     }
@@ -451,26 +454,9 @@ function DraftCard({
 
         {!editing && (
           <div className="flex items-center gap-2 mt-3 justify-end">
-            <AlertDialog>
-              <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
-                Delete
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete draft?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This draft will be permanently deleted. This action cannot be
-                    undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(draft.name)}>
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button variant="ghost" size="sm" onClick={() => onDelete(draft.name)}>
+              Delete
+            </Button>
             <Button
               variant="ghost"
               size="sm"

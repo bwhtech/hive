@@ -153,7 +153,7 @@ def get_my_dashboard():
 	if all_my_project_ids:
 		updates = frappe.get_all(
 			"Hive Project Update",
-			filters={"project": ["in", list(all_my_project_ids)], "is_draft": 0},
+			filters={"project": ["in", list(all_my_project_ids)], "is_draft": 0, "is_archived": 0},
 			fields=["name", "_seen"],
 			limit=200,
 		)
@@ -167,7 +167,7 @@ def get_my_dashboard():
 	if all_my_project_ids:
 		recent_updates = frappe.get_all(
 			"Hive Project Update",
-			filters={"project": ["in", list(all_my_project_ids)], "is_draft": 0},
+			filters={"project": ["in", list(all_my_project_ids)], "is_draft": 0, "is_archived": 0},
 			fields=["name", "project", "posted_by", "content", "creation", "_seen"],
 			order_by="creation desc",
 			limit=10,
@@ -207,7 +207,7 @@ def get_stale_members(threshold_days: int = 7):
 	for member in team_members:
 		latest = frappe.get_all(
 			"Hive Project Update",
-			filters={"posted_by": member.user, "is_draft": 0},
+			filters={"posted_by": member.user, "is_draft": 0, "is_archived": 0},
 			fields=["creation"],
 			order_by="creation desc",
 			limit=1,
@@ -593,7 +593,7 @@ def mark_updates_seen(project: str):
 	user = frappe.session.user
 	updates = frappe.get_all(
 		"Hive Project Update",
-		filters={"project": project, "is_draft": 0},
+		filters={"project": project, "is_draft": 0, "is_archived": 0},
 		fields=["name", "_seen"],
 	)
 

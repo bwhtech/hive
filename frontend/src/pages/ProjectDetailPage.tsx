@@ -152,6 +152,7 @@ export function ProjectDetailPage() {
       filters: [
         ["project", "=", id ?? ""],
         ["is_draft", "=", 1],
+        ["is_archived", "=", 0],
         ["posted_by", "=", currentUser ?? ""],
       ],
       limit: 100,

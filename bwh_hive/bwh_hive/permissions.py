@@ -47,7 +47,7 @@ def task_query(user: str | None) -> str:
 		return "1=0"
 
 	project_list = ", ".join(frappe.db.escape(p) for p in projects)
-	return f"`tabHive Task`.`project` IN ({project_list})"
+	return f"`tabHive Task`.`project` IN ({project_list}) AND `tabHive Task`.`is_internal` = 0"
 
 
 def feature_request_query(user: str | None) -> str:
@@ -93,3 +93,30 @@ def milestone_query(user: str | None) -> str:
 
 	project_list = ", ".join(frappe.db.escape(p) for p in projects)
 	return f"`tabHive Milestone`.`project` IN ({project_list})"
+
+
+def member_query(user: str | None) -> str:
+	"""Client users can only see members who share the same client."""
+	if not user:
+		user = frappe.session.user
+
+	if user == "Administrator" or not _is_hive_client():
+		return ""
+
+	client = frappe.db.get_value("Hive Member", user, "client")
+	if not client:
+		# No client assigned — can only see themselves
+		return f"`tabHive Member`.`name` = {frappe.db.escape(user)}"
+
+	return f"`tabHive Member`.`client` = {frappe.db.escape(client)}"
+
+
+def client_query(user: str | None) -> str:
+	"""Client users cannot see any Hive Client records."""
+	if not user:
+		user = frappe.session.user
+
+	if user == "Administrator" or not _is_hive_client():
+		return ""
+
+	return "1=0"

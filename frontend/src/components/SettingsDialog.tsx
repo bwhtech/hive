@@ -21,16 +21,17 @@ import {
 } from "@/components/ui/drawer"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useUser } from "@/context/UserContext"
 import { ProfileSection } from "@/components/settings/ProfileSection"
 import { GeneralSection } from "@/components/settings/GeneralSection"
 import { MembersSection } from "@/components/settings/MembersSection"
 import { ClientsSection } from "@/components/settings/ClientsSection"
 
-const sections = [
-  { id: "profile", label: "Profile", icon: UserCircleIcon },
-  { id: "general", label: "General", icon: Settings01Icon },
-  { id: "members", label: "Members", icon: UserGroup03Icon },
-  { id: "clients", label: "Clients", icon: Building06Icon },
+const allSections = [
+  { id: "profile", label: "Profile", icon: UserCircleIcon, teamOnly: false },
+  { id: "general", label: "General", icon: Settings01Icon, teamOnly: true },
+  { id: "members", label: "Members", icon: UserGroup03Icon, teamOnly: true },
+  { id: "clients", label: "Clients", icon: Building06Icon, teamOnly: true },
 ] as const
 
 function SettingsContent({
@@ -42,6 +43,8 @@ function SettingsContent({
   onTabChange?: (tab: string) => void
   isMobile: boolean
 }) {
+  const { isClient } = useUser()
+  const sections = allSections.filter((s) => !s.teamOnly || !isClient)
   return (
     <Tabs
       value={activeTab}
@@ -110,30 +113,38 @@ function SettingsContent({
           <TabsContent value="profile" className="flex flex-col m-0">
             <ProfileSection />
           </TabsContent>
-          <TabsContent value="general" className="flex flex-col m-0">
-            <GeneralSection />
-          </TabsContent>
-          <TabsContent value="members" className="flex flex-col m-0">
-            <MembersSection />
-          </TabsContent>
-          <TabsContent value="clients" className="flex flex-col m-0">
-            <ClientsSection />
-          </TabsContent>
+          {!isClient && (
+            <>
+              <TabsContent value="general" className="flex flex-col m-0">
+                <GeneralSection />
+              </TabsContent>
+              <TabsContent value="members" className="flex flex-col m-0">
+                <MembersSection />
+              </TabsContent>
+              <TabsContent value="clients" className="flex flex-col m-0">
+                <ClientsSection />
+              </TabsContent>
+            </>
+          )}
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <TabsContent value="profile" className="flex flex-1 flex-col overflow-hidden m-0">
             <ProfileSection />
           </TabsContent>
-          <TabsContent value="general" className="flex flex-1 flex-col overflow-hidden m-0">
-            <GeneralSection />
-          </TabsContent>
-          <TabsContent value="members" className="flex flex-1 flex-col overflow-hidden m-0">
-            <MembersSection />
-          </TabsContent>
-          <TabsContent value="clients" className="flex flex-1 flex-col overflow-hidden m-0">
-            <ClientsSection />
-          </TabsContent>
+          {!isClient && (
+            <>
+              <TabsContent value="general" className="flex flex-1 flex-col overflow-hidden m-0">
+                <GeneralSection />
+              </TabsContent>
+              <TabsContent value="members" className="flex flex-1 flex-col overflow-hidden m-0">
+                <MembersSection />
+              </TabsContent>
+              <TabsContent value="clients" className="flex flex-1 flex-col overflow-hidden m-0">
+                <ClientsSection />
+              </TabsContent>
+            </>
+          )}
         </div>
       )}
     </Tabs>

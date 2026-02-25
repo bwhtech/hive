@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select"
 import { PROJECT_STATUSES, type HiveProject } from "@/types"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
+import { useUser } from "@/context/UserContext"
 import {
   Empty,
   EmptyHeader,
@@ -27,6 +28,7 @@ import {
 
 export function ProjectsPage() {
   const { openCreateProject } = useOutletContext<{ openCreateProject: () => void }>()
+  const { isClient } = useUser()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
@@ -59,10 +61,12 @@ export function ProjectsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
           <p className="mt-1 text-muted-foreground">Manage your projects.</p>
         </div>
-        <Button onClick={openCreateProject}>
-          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-4" />
-          New Project
-        </Button>
+        {!isClient && (
+          <Button onClick={openCreateProject}>
+            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-4" />
+            New Project
+          </Button>
+        )}
       </div>
 
       {/* Search & Filter */}

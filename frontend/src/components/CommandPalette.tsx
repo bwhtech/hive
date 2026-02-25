@@ -23,6 +23,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command"
+import { useUser } from "@/context/UserContext"
 
 interface CommandPaletteProps {
   open: boolean
@@ -58,6 +59,7 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { isClient } = useUser()
   const [query, setQuery] = useState("")
 
   // Detect current project context from URL
@@ -202,18 +204,20 @@ export function CommandPalette({
               </span>
               {currentProjectId && <CommandShortcut>T</CommandShortcut>}
             </CommandItem>
-            <CommandItem
-              value="new project"
-              keywords={["new", "create", "add", "project"]}
-              onSelect={() => runCommand(() => onCreateProject())}
-            >
-              <HugeiconsIcon
-                icon={FolderAddIcon}
-                strokeWidth={2}
-                className="size-4"
-              />
-              <span>New Project</span>
-            </CommandItem>
+            {!isClient && (
+              <CommandItem
+                value="new project"
+                keywords={["new", "create", "add", "project"]}
+                onSelect={() => runCommand(() => onCreateProject())}
+              >
+                <HugeiconsIcon
+                  icon={FolderAddIcon}
+                  strokeWidth={2}
+                  className="size-4"
+                />
+                <span>New Project</span>
+              </CommandItem>
+            )}
             {currentProjectId && (
               <CommandItem
                 value="new feature request"
@@ -289,23 +293,25 @@ export function CommandPalette({
             </CommandItem>
           </CommandGroup>
 
-          <CommandSeparator />
-
-          {/* Actions */}
-          <CommandGroup heading="Actions">
-            <CommandItem
-              value="settings"
-              keywords={["preferences", "config"]}
-              onSelect={() => runCommand(() => onOpenSettings("profile"))}
-            >
-              <HugeiconsIcon
-                icon={Settings01Icon}
-                strokeWidth={2}
-                className="size-4"
-              />
-              <span>Open Settings</span>
-            </CommandItem>
-          </CommandGroup>
+          {!isClient && (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Actions">
+                <CommandItem
+                  value="settings"
+                  keywords={["preferences", "config"]}
+                  onSelect={() => runCommand(() => onOpenSettings("profile"))}
+                >
+                  <HugeiconsIcon
+                    icon={Settings01Icon}
+                    strokeWidth={2}
+                    className="size-4"
+                  />
+                  <span>Open Settings</span>
+                </CommandItem>
+              </CommandGroup>
+            </>
+          )}
         </CommandList>
       </Command>
     </CommandDialog>

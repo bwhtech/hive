@@ -127,6 +127,8 @@ permission_query_conditions = {
 	"Hive Feature Request": "bwh_hive.bwh_hive.permissions.feature_request_query",
 	"Hive Project Update": "bwh_hive.bwh_hive.permissions.project_update_query",
 	"Hive Milestone": "bwh_hive.bwh_hive.permissions.milestone_query",
+	"Hive Member": "bwh_hive.bwh_hive.permissions.member_query",
+	"Hive Client": "bwh_hive.bwh_hive.permissions.client_query",
 }
 
 # Document Events

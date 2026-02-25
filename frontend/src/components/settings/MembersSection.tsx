@@ -76,6 +76,20 @@ export function MembersSection() {
   const { call: inviteByEmail, loading: inviting } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.invite_member",
   )
+  const { call: inviteClientMember, loading: invitingClient } = useFrappePostCall(
+    "bwh_hive.bwh_hive.api.invite_client_member",
+  )
+
+  interface HiveClient {
+    name: string
+    company_name: string
+  }
+  const { data: clients } = useFrappeGetDocList<HiveClient>("Hive Client", {
+    fields: ["name", "company_name"],
+    filters: [["is_active", "=", 1]],
+    orderBy: { field: "company_name", order: "asc" },
+    limit_page_length: 0,
+  })
   const { call: cancelInvitation } = useFrappePostCall(
     "frappe.core.api.user_invitation.cancel_invitation",
   )
@@ -95,6 +109,7 @@ export function MembersSection() {
 
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<string>("Hive Team")
+  const [selectedClient, setSelectedClient] = useState<string>("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
 
   const refreshAll = () => {
@@ -105,10 +120,19 @@ export function MembersSection() {
   const handleInvite = async () => {
     const trimmed = email.trim()
     if (!trimmed) return
+    if (role === "Hive Client" && !selectedClient) {
+      toast.error("Please select a client for the client member")
+      return
+    }
     try {
-      await inviteByEmail({ email: trimmed, role })
+      if (role === "Hive Client") {
+        await inviteClientMember({ email: trimmed, client: selectedClient })
+      } else {
+        await inviteByEmail({ email: trimmed, role })
+      }
       toast.success(`Invitation sent to ${trimmed}`)
       setEmail("")
+      setSelectedClient("")
       refreshAll()
     } catch (e: unknown) {
       const message =
@@ -144,7 +168,7 @@ export function MembersSection() {
               Send an invitation email to add a new member.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Input
               placeholder="email@example.com"
               type="email"
@@ -153,9 +177,9 @@ export function MembersSection() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleInvite()
               }}
-              className="flex-1"
+              className="flex-1 min-w-[180px]"
             />
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={(v) => { setRole(v); if (v !== "Hive Client") setSelectedClient("") }}>
               <SelectTrigger className="w-[140px]">
                 <span data-slot="select-value" className="flex flex-1 text-left">
                   {role === "Hive Client" ? "Client" : "Team"}
@@ -166,11 +190,25 @@ export function MembersSection() {
                 <SelectItem value="Hive Client">Client</SelectItem>
               </SelectContent>
             </Select>
+            {role === "Hive Client" && (
+              <Select value={selectedClient} onValueChange={setSelectedClient}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select client..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients?.map((c) => (
+                    <SelectItem key={c.name} value={c.name}>
+                      {c.company_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button
               onClick={handleInvite}
-              disabled={inviting || !email.trim()}
+              disabled={(inviting || invitingClient) || !email.trim() || (role === "Hive Client" && !selectedClient)}
             >
-              {inviting ? <><Spinner className="mr-1.5" /> Sending...</> : <><HugeiconsIcon icon={SentIcon} strokeWidth={2} className="size-4 mr-1.5" />Invite</>}
+              {(inviting || invitingClient) ? <><Spinner className="mr-1.5" /> Sending...</> : <><HugeiconsIcon icon={SentIcon} strokeWidth={2} className="size-4 mr-1.5" />Invite</>}
             </Button>
           </div>
         </div>

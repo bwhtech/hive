@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
-import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc } from "frappe-react-sdk"
+import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -11,6 +11,8 @@ import {
   ArrowDown01Icon,
   SortingIcon,
   Add01Icon,
+  LeftToRightListBulletIcon,
+  DashboardSquare01Icon,
 } from "@hugeicons/core-free-icons"
 import { format } from "date-fns"
 import {
@@ -54,6 +56,8 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
+import { TaskKanban } from "@/components/TaskKanban"
+import { TaskDetailSheet } from "@/components/TaskDetailSheet"
 
 interface TaskRow {
   task: HiveTask
@@ -203,6 +207,7 @@ export function TasksPage() {
   const priorityFilter = searchParams.get("priority") ?? "all"
   const projectFilter = searchParams.get("project") ?? "all"
   const assigneeFilter = searchParams.get("assignee") ?? "all"
+  const viewMode = (searchParams.get("view") ?? "list") as "list" | "kanban"
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams((prev) => {
@@ -221,10 +226,14 @@ export function TasksPage() {
   const setPriorityFilter = useCallback((value: string) => setFilter("priority", value), [setFilter])
   const setProjectFilter = useCallback((value: string) => setFilter("project", value), [setFilter])
   const setAssigneeFilter = useCallback((value: string) => setFilter("assignee", value), [setFilter])
+  const setViewMode = useCallback((value: string) => setFilter("view", value === "list" ? "" : value), [setFilter])
 
   const [sorting, setSorting] = useState<SortingState>([])
   const [createOpen, setCreateOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const { createDoc } = useFrappeCreateDoc()
+  const { updateDoc } = useFrappeUpdateDoc()
 
   const { data: tasks, isLoading: tasksLoading, mutate: tasksMutate } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
@@ -303,6 +312,59 @@ export function TasksPage() {
     return map
   }, [milestones])
 
+  // Shared filter function used by both list and kanban views
+  const filteredTasks = useMemo(() => {
+    if (!tasks) return []
+    return tasks.filter((task) => {
+      if (search) {
+        const q = search.toLowerCase()
+        const matchTitle = task.title.toLowerCase().includes(q)
+        const matchProject = (projectMap[task.project] ?? task.project).toLowerCase().includes(q)
+        const matchAssignee = (task.assigned_to ?? "").toLowerCase().includes(q)
+        if (!matchTitle && !matchProject && !matchAssignee) return false
+      }
+      if (statusFilter !== "all" && task.status !== statusFilter) return false
+      if (priorityFilter !== "all" && task.priority !== priorityFilter) return false
+      if (projectFilter !== "all" && task.project !== projectFilter) return false
+      if (assigneeFilter !== "all") {
+        const taskAssignees = assigneesByTask[task.name] ?? []
+        if (!taskAssignees.some((a) => a.member === assigneeFilter)) return false
+      }
+      return true
+    })
+  }, [tasks, search, statusFilter, priorityFilter, projectFilter, assigneeFilter, projectMap, assigneesByTask])
+
+  // Group filtered tasks by status for kanban view
+  const tasksByStatus = useMemo(() => {
+    const grouped: Record<string, HiveTask[]> = {}
+    for (const status of TASK_STATUSES) {
+      grouped[status] = []
+    }
+    for (const task of filteredTasks) {
+      if (grouped[task.status]) {
+        grouped[task.status].push(task)
+      }
+    }
+    return grouped
+  }, [filteredTasks])
+
+  const handleStatusChange = useCallback(async (taskName: string, newStatus: string) => {
+    try {
+      await updateDoc("Hive Task", taskName, { status: newStatus })
+      tasksMutate()
+    } catch {
+      toast.error("Failed to update task status")
+    }
+  }, [updateDoc, tasksMutate])
+
+  const handleTaskClick = useCallback((task: HiveTask) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    setSelectedTask(task)
+    setSheetOpen(true)
+  }, [])
+
   const tableData = useMemo<TaskRow[]>(() => {
     if (!tasks) return []
     return tasks
@@ -353,10 +415,30 @@ export function TasksPage() {
             All tasks across your projects.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
-          Add Task
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border p-0.5">
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setViewMode("list")}
+            >
+              <HugeiconsIcon icon={LeftToRightListBulletIcon} strokeWidth={2} className="size-4" />
+            </Button>
+            <Button
+              variant={viewMode === "kanban" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setViewMode("kanban")}
+            >
+              <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
+            </Button>
+          </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -424,34 +506,46 @@ export function TasksPage() {
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Data View */}
       {tasksLoading ? (
-        <div className="overflow-hidden rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {["Task", "Project", "Status", "Priority", "Size", "Milestone", "Due Date", "Assignees"].map((h) => (
-                  <TableHead key={h}>{h}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-14" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="size-6 rounded-full" /></TableCell>
+        viewMode === "kanban" ? (
+          <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="min-w-[220px] space-y-3 md:min-w-0">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {["Task", "Project", "Status", "Priority", "Size", "Milestone", "Due Date", "Assignees"].map((h) => (
+                    <TableHead key={h}>{h}</TableHead>
+                  ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : tableData.length === 0 ? (
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="size-6 rounded-full" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
+      ) : filteredTasks.length === 0 ? (
         <Empty className="border rounded-2xl p-12">
           <EmptyHeader>
             <EmptyMedia>
@@ -475,6 +569,19 @@ export function TasksPage() {
             </Button>
           )}
         </Empty>
+      ) : viewMode === "kanban" ? (
+        <div className="space-y-2">
+          <TaskKanban
+            tasksByStatus={tasksByStatus}
+            onStatusChange={handleStatusChange}
+            onTaskClick={handleTaskClick}
+            assigneesByTask={assigneesByTask}
+          />
+          <p className="text-xs text-muted-foreground">
+            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
+            {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && " matching filters"}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-md border">
@@ -540,6 +647,19 @@ export function TasksPage() {
           </div>
         </div>
       )}
+
+      <TaskDetailSheet
+        task={selectedTask}
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open)
+          if (!open) setSelectedTask(null)
+        }}
+        onUpdated={() => {
+          tasksMutate()
+          callAssignees({})
+        }}
+      />
 
       <CreateTaskDialog
         open={createOpen}

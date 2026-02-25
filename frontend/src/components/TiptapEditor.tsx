@@ -41,6 +41,12 @@ export function TiptapEditor({
 
   const uploadAndInsertImage = useCallback(
     async (file: File, editor: Editor) => {
+      const MAX_IMAGE_SIZE_MB = 10
+      const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        toast.error(`Image too large. Maximum size is ${MAX_IMAGE_SIZE_MB}MB.`)
+        return
+      }
       try {
         const res = await upload(file, { isPrivate: false })
         const url = (res as { file_url: string }).file_url

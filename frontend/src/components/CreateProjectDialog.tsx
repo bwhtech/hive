@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useFrappeGetDocList, useFrappeCreateDoc } from "frappe-react-sdk"
+import { useFrappeCreateDoc } from "frappe-react-sdk"
 import {
   Dialog,
   DialogContent,
@@ -16,20 +16,13 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { LinkField } from "@/components/LinkField"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Add01Icon } from "@hugeicons/core-free-icons"
 import { toast } from "sonner"
-import type { HiveClient } from "@/types"
 
 interface CreateProjectDialogProps {
   open: boolean
@@ -43,22 +36,6 @@ export function CreateProjectDialog({ open, onOpenChange, onSubmit }: CreateProj
   const [client, setClient] = useState("")
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [newClientName, setNewClientName] = useState("")
-
-  const { data: projectTypes } = useFrappeGetDocList("Hive Project Type", {
-    fields: ["name", "type_name"],
-    limit: 50,
-    orderBy: { field: "type_name", order: "asc" },
-  })
-
-  const { data: clients, mutate: mutateClients } = useFrappeGetDocList<HiveClient>(
-    "Hive Client",
-    {
-      fields: ["name", "company_name", "is_active"],
-      filters: [["is_active", "=", 1]],
-      limit: 100,
-      orderBy: { field: "company_name", order: "asc" },
-    },
-  )
 
   const { createDoc } = useFrappeCreateDoc()
 
@@ -83,7 +60,6 @@ export function CreateProjectDialog({ open, onOpenChange, onSubmit }: CreateProj
         company_name: newClientName.trim(),
       })
       toast.success("Client created")
-      await mutateClients()
       setClient(doc.name)
       setNewClientName("")
       setNewClientOpen(false)
@@ -114,43 +90,26 @@ export function CreateProjectDialog({ open, onOpenChange, onSubmit }: CreateProj
 
             <div className="grid gap-2">
               <Label>Type</Label>
-              <Select value={projectType} onValueChange={setProjectType}>
-                <SelectTrigger className="w-full">
-                  <span className={projectType ? "" : "text-muted-foreground"}>
-                    {projectType
-                      ? (projectTypes?.find((t) => t.name === projectType) as { type_name: string } | undefined)?.type_name ?? projectType
-                      : "Select type"}
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  {projectTypes?.map((t) => (
-                    <SelectItem key={t.name} value={t.name}>
-                      {(t as { type_name: string }).type_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <LinkField
+                doctype="Hive Project Type"
+                value={projectType}
+                onChange={setProjectType}
+                placeholder="Select type"
+                className="w-full justify-between"
+              />
             </div>
 
             <div className="grid gap-2">
               <Label>Client</Label>
               <div className="flex items-center gap-2">
-                <Select value={client} onValueChange={setClient}>
-                  <SelectTrigger className="w-full flex-1">
-                    <span className={client ? "" : "text-muted-foreground"}>
-                      {client
-                        ? clients?.find((c) => c.name === client)?.company_name ?? client
-                        : "Select client"}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients?.map((c) => (
-                      <SelectItem key={c.name} value={c.name}>
-                        {c.company_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <LinkField
+                  doctype="Hive Client"
+                  value={client}
+                  onChange={setClient}
+                  placeholder="Select client"
+                  filters={{ is_active: 1 }}
+                  className="w-full flex-1 justify-between"
+                />
                 <Button
                   type="button"
                   variant="outline"

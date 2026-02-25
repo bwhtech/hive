@@ -27,6 +27,8 @@
  "name": "Hive Project Type",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
+ "search_fields": "type_name",
+ "title_field": "type_name",
  "permissions": [
   {
    "create": 1,

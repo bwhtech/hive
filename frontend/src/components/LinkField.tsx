@@ -35,6 +35,8 @@ interface LinkFieldProps {
   filters?: Record<string, unknown>
   /** Max results to show (default 20) */
   pageLength?: number
+  /** Additional className for the trigger button */
+  className?: string
 }
 
 export function LinkField({
@@ -45,6 +47,7 @@ export function LinkField({
   placeholder = "All",
   filters,
   pageLength = 20,
+  className: triggerClassName,
 }: LinkFieldProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -145,6 +148,7 @@ export function LinkField({
             className={cn(
               "h-9 gap-1.5 rounded-4xl border-input bg-input/30 px-3 font-normal",
               !showValue && "text-muted-foreground",
+              triggerClassName,
             )}
           />
         }

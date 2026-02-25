@@ -35,6 +35,8 @@
  "name": "Hive Client",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
+ "search_fields": "company_name",
+ "title_field": "company_name",
  "permissions": [
   {
    "create": 1,

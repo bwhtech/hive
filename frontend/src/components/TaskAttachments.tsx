@@ -78,6 +78,13 @@ const EXT_ICON_MAP: Record<string, IconSvgElement> = {
   json: SourceCodeIcon,
 }
 
+const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp"])
+
+function isImageFile(fileName: string): boolean {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? ""
+  return IMAGE_EXTENSIONS.has(ext)
+}
+
 function getFileIcon(fileName: string): IconSvgElement {
   const ext = fileName.split(".").pop()?.toLowerCase() ?? ""
   return EXT_ICON_MAP[ext] ?? File02Icon
@@ -189,11 +196,19 @@ export function TaskAttachments({
               key={file.name}
               className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
             >
-              <HugeiconsIcon
-                icon={getFileIcon(file.file_name)}
-                strokeWidth={2}
-                className="size-4 shrink-0 text-muted-foreground"
-              />
+              {isImageFile(file.file_name) ? (
+                <img
+                  src={file.file_url}
+                  alt={file.file_name}
+                  className="size-8 shrink-0 rounded object-cover"
+                />
+              ) : (
+                <HugeiconsIcon
+                  icon={getFileIcon(file.file_name)}
+                  strokeWidth={2}
+                  className="size-4 shrink-0 text-muted-foreground"
+                />
+              )}
               <a
                 href={file.file_url}
                 target="_blank"

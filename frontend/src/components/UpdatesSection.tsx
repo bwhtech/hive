@@ -26,6 +26,17 @@ import {
 } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -479,9 +490,25 @@ function DraftCard({
 
         {!editing && (
           <div className="flex items-center gap-2 mt-3 justify-end">
-            <Button variant="ghost" size="sm" onClick={() => onDelete(draft.name)}>
-              Delete
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
+                Delete
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete draft?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This draft will be deleted. You can undo this action from the toast notification.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onClick={() => onDelete(draft.name)}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button
               variant="ghost"
               size="sm"

@@ -197,6 +197,12 @@ test.describe("Members", () => {
 		await roleDropdown.click();
 		await page.getByRole("option", { name: "Client" }).click();
 
+		// When Client role is selected, a client org dropdown appears — select one
+		const clientDropdown = dialog.locator("button[role='combobox']").nth(1);
+		await expect(clientDropdown).toBeVisible();
+		await clientDropdown.click();
+		await page.getByRole("option", { name: "Acme Corp" }).click();
+
 		// Click Invite button
 		await dialog.getByRole("button", { name: /invite/i }).click();
 

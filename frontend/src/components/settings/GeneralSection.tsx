@@ -51,7 +51,7 @@ export function GeneralSection() {
     try {
       await updateDoc("Hive Project Type", name, { is_archived: 1 })
       mutate()
-      toast(`Project type "${typeName}" deleted`, {
+      toast(`Project type "${typeName}" removed`, {
         action: {
           label: "Undo",
           onClick: async () => {

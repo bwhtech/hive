@@ -240,3 +240,19 @@
     height: 0;
   }
 }
+
+/* Task celebration animations */
+@keyframes celebration-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes celebration-wave-l {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-35deg); }
+}
+
+@keyframes celebration-wave-r {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(35deg); }
+}

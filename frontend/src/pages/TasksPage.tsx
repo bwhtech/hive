@@ -69,6 +69,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskKanban } from "@/components/TaskKanban"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
+import { useCelebration } from "@/context/CelebrationContext"
 
 interface TaskRow {
   task: HiveTask
@@ -239,6 +240,7 @@ export function TasksPage() {
   const setAssigneeFilter = useCallback((value: string) => setFilter("assignee", value), [setFilter])
   const setViewMode = useCallback((value: string) => setFilter("view", value === "list" ? "" : value), [setFilter])
 
+  const { celebrate } = useCelebration()
   const [sorting, setSorting] = useState<SortingState>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
@@ -396,10 +398,11 @@ export function TasksPage() {
     try {
       await updateDoc("Hive Task", taskName, { status: newStatus })
       tasksMutate()
+      if (newStatus === "Done") celebrate()
     } catch {
       toast.error("Failed to update task status")
     }
-  }, [updateDoc, tasksMutate])
+  }, [updateDoc, tasksMutate, celebrate])
 
   const handleTaskClick = useCallback((task: HiveTask) => {
     if (document.activeElement instanceof HTMLElement) {

@@ -59,6 +59,8 @@ import { OverviewTab } from "@/components/project/OverviewTab"
 import { ActivityTab } from "@/components/project/ActivityTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
+import { useCelebration } from "@/context/CelebrationContext"
+import { useCelebration } from "@/context/CelebrationContext"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
@@ -100,6 +102,7 @@ export function ProjectDetailPage() {
   const isMobile = useIsMobile()
   const { isClient } = useUser()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { celebrate } = useCelebration()
   const [createOpen, setCreateOpen] = useState(false)
   const [createFeatureRequestOpen, setCreateFeatureRequestOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
@@ -255,6 +258,7 @@ export function ProjectDetailPage() {
     try {
       await updateDoc("Hive Task", taskName, { status: newStatus })
       mutateTasks()
+      if (newStatus === "Done") celebrate()
     } catch {
       toast.error("Failed to update task status")
     }

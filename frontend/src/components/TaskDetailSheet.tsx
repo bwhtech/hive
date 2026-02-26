@@ -181,24 +181,61 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const saveRef = useRef<() => void>(() => {})
 
   // Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux) to save
-  // 'A' key to open assignee popover (when not typing in an input)
+  // 'S' key to open assignee popover (when not typing in an input)
+  // 'M then S' chord to assign task to self
   useEffect(() => {
     if (!open || isClient) return
+    let chordPending = false
+    let chordTimer: ReturnType<typeof setTimeout>
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         saveRef.current()
+        return
       }
-      if (e.key === "a" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        const tag = (e.target as HTMLElement)?.tagName
-        if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return
+      const tag = (e.target as HTMLElement)?.tagName
+      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable
+      if (e.metaKey || e.ctrlKey || e.altKey || isEditable) return
+
+      const key = e.key.toLowerCase()
+
+      // M→S chord: assign to self
+      if (chordPending) {
+        chordPending = false
+        clearTimeout(chordTimer)
+        if (key === "s" && user?.email && allMembers) {
+          e.preventDefault()
+          e.stopPropagation()
+          const me = allMembers.find((m) => m.user === user.email)
+          if (me) {
+            setAssignees((prev) => {
+              if (prev.some((a) => a.member === me.name)) return prev
+              return [...prev, { member: me.name, member_name: me.member_name, user_image: me.user_image }]
+            })
+            markEdited()
+            toast.success("Assigned to you")
+          }
+        }
+        return
+      }
+
+      if (key === "m") {
+        chordPending = true
+        chordTimer = setTimeout(() => { chordPending = false }, 1000)
+        return
+      }
+
+      if (key === "s") {
         e.preventDefault()
         setAssigneePopoverOpen(true)
       }
     }
     document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [open, isClient])
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown)
+      clearTimeout(chordTimer)
+    }
+  }, [open, isClient, user?.email, allMembers])
 
   // Autosave: debounce 1.5s after user edits
   useEffect(() => {

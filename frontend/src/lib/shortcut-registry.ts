@@ -26,7 +26,8 @@ export const SHORTCUT_REGISTRY: ShortcutDef[] = [
   { id: "create-task", keys: ["T"], description: "Create new task", group: "Project Detail" },
 
   // Task Detail
-  { id: "add-assignee", keys: ["A"], description: "Add assignee", group: "Task Detail" },
+  { id: "add-assignee", keys: ["S"], description: "Add assignee", group: "Task Detail" },
+  { id: "assign-self", keys: ["M", "S"], description: "Assign to myself", group: "Task Detail" },
 ]
 
 export function groupShortcuts(): { group: string; items: ShortcutDef[] }[] {

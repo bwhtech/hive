@@ -70,11 +70,13 @@ export function NotificationSheet({ open, onOpenChange }: NotificationSheetProps
       await markRead({ docname: notification.name })
       mutate()
     }
-    // Navigate to the task if it's a Hive Task notification
+    // Navigate based on notification document type
     if (notification.document_type === "Hive Task" && notification.document_name) {
-      // We need the project to build the URL — fetch it
       onOpenChange(false)
       navigate(`/tasks?q=${encodeURIComponent(notification.document_name)}`)
+    } else if (notification.document_type === "Hive Project" && notification.document_name) {
+      onOpenChange(false)
+      navigate(`/projects/${notification.document_name}?tab=updates`)
     }
   }
 

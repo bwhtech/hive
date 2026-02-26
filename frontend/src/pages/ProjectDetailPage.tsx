@@ -756,6 +756,7 @@ export function ProjectDetailPage() {
             stats={{ totalTasks, inProgressTasks, doneTasks, blockedTasks }}
             milestones={milestones}
             tasks={tasks}
+            onTaskClick={handleTaskClick}
           />
         </TabsContent>
 
@@ -818,7 +819,7 @@ export function ProjectDetailPage() {
         {/* Milestones Tab */}
         <TabsContent value="milestones">
           <div className="pt-2">
-            {id && <MilestoneSection projectId={id} tasks={tasks} />}
+            {id && <MilestoneSection projectId={id} tasks={tasks} onTaskClick={handleTaskClick} />}
           </div>
         </TabsContent>
 

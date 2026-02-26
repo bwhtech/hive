@@ -4,6 +4,7 @@ import {
   useFrappeUpdateDoc,
   useFrappePostCall,
 } from "frappe-react-sdk"
+import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Target02Icon,
@@ -11,12 +12,18 @@ import {
   UserAdd01Icon,
   CheckmarkCircle02Icon,
   Cancel02Icon,
+  ArrowDown01Icon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { MemberAvatar } from "@/components/MemberAvatar"
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
@@ -28,6 +35,7 @@ import {
 import { toast } from "sonner"
 import type { HiveProject, HiveMilestone, HiveMember, HiveTask } from "@/types"
 import { TASK_SIZE_WEIGHT } from "@/types"
+import { TASK_STATUS_COLOR } from "@/lib/variants"
 import { useUser } from "@/context/UserContext"
 import {
   Empty,
@@ -48,15 +56,50 @@ interface OverviewTabProps {
   }
   milestones: HiveMilestone[] | undefined
   tasks?: HiveTask[]
+  onTaskClick?: (task: HiveTask) => void
 }
 
 function getWeight(size: string | null | undefined): number {
   return TASK_SIZE_WEIGHT[size ?? ""] ?? 1
 }
 
-export function OverviewTab({ projectId, project, stats, milestones, tasks }: OverviewTabProps) {
+function sortTasksByDueDate(tasks: HiveTask[]): HiveTask[] {
+  return [...tasks].sort((a, b) => {
+    if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date)
+    if (a.due_date && !b.due_date) return -1
+    if (!a.due_date && b.due_date) return 1
+    return 0
+  })
+}
+
+export function OverviewTab({ projectId, project, stats, milestones, tasks, onTaskClick }: OverviewTabProps) {
   const { isClient } = useUser()
   const { updateDoc } = useFrappeUpdateDoc()
+  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set())
+
+  const toggleExpanded = (name: string) => {
+    setExpandedMilestones((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
+
+  // Group tasks by milestone, sorted by due date
+  const tasksByMilestone = useMemo(() => {
+    const map: Record<string, HiveTask[]> = {}
+    if (!tasks) return map
+    for (const task of tasks) {
+      if (!task.milestone) continue
+      if (!map[task.milestone]) map[task.milestone] = []
+      map[task.milestone].push(task)
+    }
+    for (const key of Object.keys(map)) {
+      map[key] = sortTasksByDueDate(map[key])
+    }
+    return map
+  }, [tasks])
   const { call: callDashboard, result: dashboardResult } = useFrappePostCall(
     "bwh_hive.bwh_hive.api.get_project_dashboard",
   )
@@ -182,29 +225,74 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks }: Ov
                     const pct = progress && progress.total > 0
                       ? Math.round((progress.done / progress.total) * 100)
                       : 0
+                    const milestoneTasks = tasksByMilestone[ms.name] ?? []
+                    const isExpanded = expandedMilestones.has(ms.name)
                     return (
-                      <div key={ms.name} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>{ms.title}</span>
-                          <Badge
-                            variant={ms.status === "In Progress" ? "secondary" : "outline"}
-                            className="text-[10px] h-4 px-1.5"
-                          >
-                            {ms.status}
-                          </Badge>
-                        </div>
-                        {progress && progress.total > 0 ? (
-                          <div className="space-y-1">
-                            <Progress value={pct} className="h-1.5" />
-                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                              <span>{progress.doneCount}/{progress.taskCount} tasks</span>
-                              <span>{pct}%</span>
-                            </div>
+                      <Collapsible key={ms.name} open={isExpanded} onOpenChange={() => toggleExpanded(ms.name)}>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <CollapsibleTrigger
+                              render={
+                                <button type="button" className="flex items-center gap-1.5 hover:text-foreground transition-colors" />
+                              }
+                            >
+                              <HugeiconsIcon
+                                icon={ArrowDown01Icon}
+                                strokeWidth={2}
+                                className={`size-3 text-muted-foreground transition-transform ${isExpanded ? "" : "-rotate-90"}`}
+                              />
+                              <span>{ms.title}</span>
+                            </CollapsibleTrigger>
+                            <Badge
+                              variant={ms.status === "In Progress" ? "secondary" : "outline"}
+                              className="text-[10px] h-4 px-1.5"
+                            >
+                              {ms.status}
+                            </Badge>
                           </div>
-                        ) : (
-                          <p className="text-[10px] text-muted-foreground">No tasks linked</p>
-                        )}
-                      </div>
+                          {progress && progress.total > 0 ? (
+                            <div className="space-y-1">
+                              <Progress value={pct} className="h-1.5" />
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                <span>{progress.doneCount}/{progress.taskCount} tasks</span>
+                                <span>{pct}%</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground">No tasks linked</p>
+                          )}
+                        </div>
+                        <CollapsibleContent>
+                          <div className="mt-1.5 border-t pt-1.5">
+                            {milestoneTasks.length === 0 ? (
+                              <p className="text-[11px] text-muted-foreground py-1">No tasks in this milestone</p>
+                            ) : (
+                              <div className="space-y-0.5">
+                                {milestoneTasks.map((task) => (
+                                  <button
+                                    key={task.name}
+                                    type="button"
+                                    className="flex items-center gap-2 w-full py-1 text-left hover:bg-muted/50 px-1 -mx-1 rounded transition-colors"
+                                    onClick={() => onTaskClick?.(task)}
+                                  >
+                                    <span className={`size-1.5 rounded-full shrink-0 ${TASK_STATUS_COLOR[task.status] ?? "bg-muted-foreground/40"}`} />
+                                    <span className="text-xs truncate flex-1">{task.title}</span>
+                                    {task.due_date && (
+                                      <span className={`text-[10px] shrink-0 ${
+                                        new Date(task.due_date) < new Date() && task.status !== "Done"
+                                          ? "text-destructive"
+                                          : "text-muted-foreground"
+                                      }`}>
+                                        {format(new Date(task.due_date), "MMM d")}
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     )
                   })}
               </div>

@@ -211,14 +211,14 @@ export function TaskAttachments({
   )
 
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2 overflow-hidden">
       {/* File list */}
       {files && files.length > 0 && (
         <div className="space-y-1.5">
           {files.map((file) => (
             <div
               key={file.name}
-              className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+              className="flex min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-sm"
             >
               {isImageFile(file.file_name) ? (
                 <img
@@ -341,7 +341,7 @@ export function TaskAttachments({
               {pendingFiles.map((file, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                  className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground"
                 >
                   <HugeiconsIcon
                     icon={getFileIcon(file.name)}

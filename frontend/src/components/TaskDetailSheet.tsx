@@ -339,7 +339,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
 
   const formContent = (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="grid gap-5 px-6 py-4">
+      <div className="grid gap-5 overflow-hidden px-6 py-4">
         {/* Title */}
         <div className="grid gap-2">
           <Label htmlFor="task-detail-title">Title</Label>

@@ -40,6 +40,9 @@ class HiveTaskComment(Document):
 
 		subject = f"{poster_name} mentioned you in a comment on: {task_doc.title}"
 
+		from frappe.utils import get_url
+
+		task_link = f"{get_url()}/hive/tasks?q={self.task}"
 		enqueue_create_notification(
 			mentioned_emails,
 			{
@@ -49,6 +52,7 @@ class HiveTaskComment(Document):
 				"subject": subject,
 				"from_user": self.posted_by,
 				"email_content": self.content,
+				"link": task_link,
 			},
 		)
 

@@ -46,7 +46,9 @@ class HiveProjectUpdate(Document):
 		subject = f"{poster_name} mentioned you in a project update on: {project_title}"
 
 		from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+		from frappe.utils import get_url
 
+		project_link = f"{get_url()}/hive/projects/{self.project}?tab=updates"
 		enqueue_create_notification(
 			mentioned_emails,
 			{
@@ -56,6 +58,7 @@ class HiveProjectUpdate(Document):
 				"subject": subject,
 				"from_user": self.posted_by,
 				"email_content": self.content,
+				"link": project_link,
 			},
 		)
 

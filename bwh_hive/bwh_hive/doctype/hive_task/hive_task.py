@@ -110,7 +110,9 @@ class HiveTask(Document):
 		subject = f"{from_name} assigned you to: {self.title}"
 
 		from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+		from frappe.utils import get_url
 
+		task_link = f"{get_url()}/hive/tasks?q={self.name}"
 		enqueue_create_notification(
 			list(added),
 			{
@@ -120,6 +122,7 @@ class HiveTask(Document):
 				"subject": subject,
 				"from_user": frappe.session.user,
 				"email_content": f"You have been assigned to task: {self.title}",
+				"link": task_link,
 			},
 		)
 

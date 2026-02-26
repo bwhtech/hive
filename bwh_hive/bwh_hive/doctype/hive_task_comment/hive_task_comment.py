@@ -4,6 +4,7 @@
 import re
 
 import frappe
+from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 from frappe.model.document import Document
 
 
@@ -38,9 +39,6 @@ class HiveTaskComment(Document):
 		poster_name = frappe.get_cached_value("User", self.posted_by, "full_name") or self.posted_by
 
 		subject = f"{poster_name} mentioned you in a comment on: {task_doc.title}"
-
-		# Create in-app Notification Log entries
-		from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 
 		enqueue_create_notification(
 			mentioned_emails,

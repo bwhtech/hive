@@ -135,7 +135,11 @@ class TestExtractMentions(IntegrationTestCase):
 
 
 class TestMentionNotification(IntegrationTestCase):
-	"""Integration tests for @mention email notifications."""
+	"""Integration tests for @mention notifications via Notification Log."""
+
+	NOTIFICATION_PATCH = (
+		"bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.enqueue_create_notification"
+	)
 
 	def setUp(self):
 		self.project = _make_project()
@@ -144,32 +148,32 @@ class TestMentionNotification(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
-	def test_mention_triggers_email(self, mock_sendmail):
+	@patch(NOTIFICATION_PATCH)
+	def test_mention_triggers_notification(self, mock_notify):
 		content = '<p>Hey <span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice Smith">@Alice Smith</span></p>'
 		_make_comment(self.task, content)
-		mock_sendmail.assert_called_once()
-		call_kwargs = mock_sendmail.call_args
-		self.assertIn("alice@example.com", call_kwargs.kwargs["recipients"])
+		mock_notify.assert_called_once()
+		call_args = mock_notify.call_args
+		self.assertIn("alice@example.com", call_args[0][0])
 
-	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
-	def test_no_mention_no_email(self, mock_sendmail):
+	@patch(NOTIFICATION_PATCH)
+	def test_no_mention_no_notification(self, mock_notify):
 		_make_comment(self.task, "<p>Just a regular comment</p>")
-		mock_sendmail.assert_not_called()
+		mock_notify.assert_not_called()
 
-	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
-	def test_self_mention_no_email(self, mock_sendmail):
-		"""Mentioning yourself should not trigger an email."""
+	@patch(NOTIFICATION_PATCH)
+	def test_self_mention_no_notification(self, mock_notify):
+		"""Mentioning yourself should not trigger a notification."""
 		user = frappe.session.user
 		content = (
 			f'<p><span data-type="mention" class="mention" data-id="{user}" data-label="Me">@Me</span></p>'
 		)
 		_make_comment(self.task, content)
-		mock_sendmail.assert_not_called()
+		mock_notify.assert_not_called()
 
-	@patch("bwh_hive.bwh_hive.doctype.hive_task_comment.hive_task_comment.frappe.sendmail")
-	def test_email_subject_contains_task_title(self, mock_sendmail):
+	@patch(NOTIFICATION_PATCH)
+	def test_notification_subject_contains_task_title(self, mock_notify):
 		content = '<p><span data-type="mention" class="mention" data-id="alice@example.com" data-label="Alice">@Alice</span></p>'
 		_make_comment(self.task, content)
-		subject = mock_sendmail.call_args.kwargs["subject"]
-		self.assertIn(self.task.title, subject)
+		notification_doc = mock_notify.call_args[0][1]
+		self.assertIn(self.task.title, notification_doc["subject"])

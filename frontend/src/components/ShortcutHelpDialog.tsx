@@ -6,39 +6,14 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Kbd } from "@/components/ui/kbd"
+import { groupShortcuts } from "@/lib/shortcut-registry"
 
 interface ShortcutHelpDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const shortcuts = [
-  {
-    group: "Global",
-    items: [
-      { keys: ["⌘", "K"], description: "Open command palette" },
-      { keys: ["?"], description: "Show keyboard shortcuts" },
-      { keys: ["⇧", "T"], description: "Celebrate" },
-    ],
-  },
-  {
-    group: "Navigation",
-    items: [
-      { keys: ["G", "D"], description: "Go to Dashboard" },
-      { keys: ["G", "P"], description: "Go to Projects" },
-      { keys: ["G", "T"], description: "Go to Tasks" },
-      { keys: ["G", "M"], description: "Go to Team" },
-    ],
-  },
-  {
-    group: "Project Detail",
-    items: [{ keys: ["T"], description: "Create new task" }],
-  },
-  {
-    group: "Task Detail",
-    items: [{ keys: ["A"], description: "Add assignee" }],
-  },
-]
+const shortcuts = groupShortcuts()
 
 export function ShortcutHelpDialog({
   open,
@@ -62,7 +37,7 @@ export function ShortcutHelpDialog({
               <div className="space-y-2">
                 {group.items.map((shortcut) => (
                   <div
-                    key={shortcut.description}
+                    key={shortcut.id}
                     className="flex items-center justify-between"
                   >
                     <span className="text-sm">{shortcut.description}</span>

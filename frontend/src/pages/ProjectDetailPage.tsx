@@ -114,6 +114,19 @@ export function ProjectDetailPage() {
   }, [isClient])
   useHotkey("t", openCreateDialog)
 
+  // Tab-switching shortcuts (disabled when dialogs/sheets are open)
+  const dialogOpen = sheetOpen || createOpen || createFeatureRequestOpen
+  const goOverview = useCallback(() => setActiveTab("overview"), [])
+  const goMilestones = useCallback(() => setActiveTab("milestones"), [])
+  const goUpdates = useCallback(() => setActiveTab("updates"), [])
+  const goRequests = useCallback(() => setActiveTab("requests"), [])
+  const goActivity = useCallback(() => setActiveTab("activity"), [])
+  useHotkey("o", goOverview, { enabled: !dialogOpen })
+  useHotkey("m", goMilestones, { enabled: !dialogOpen })
+  useHotkey("u", goUpdates, { enabled: !dialogOpen })
+  useHotkey("r", goRequests, { enabled: !dialogOpen })
+  useHotkey("a", goActivity, { enabled: !dialogOpen })
+
   // Sync active tab from URL (e.g. ?tab=updates from dashboard click)
   const tabParam = searchParams.get("tab")
   const taskParam = searchParams.get("task")

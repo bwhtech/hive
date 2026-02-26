@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc } from "frappe-react-sdk"
 import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
@@ -143,6 +143,15 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   }, [allMembers, user?.email])
 
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Focus the scrollable container (not the title input) when sheet opens
+  // so single-key shortcuts work immediately.
+  // Two-phase: rAF catches most cases, setTimeout(50) beats base-ui's focus trap.
+  const focusContainer = useCallback(() => {
+    requestAnimationFrame(() => scrollRef.current?.focus())
+    setTimeout(() => scrollRef.current?.focus(), 50)
+  }, [])
 
   // Only reset form when a different task opens (not on refetch of same task)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -220,6 +229,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       }
 
       if (key === "m") {
+        e.preventDefault()
+        e.stopPropagation()
         chordPending = true
         chordTimer = setTimeout(() => { chordPending = false }, 1000)
         return
@@ -236,6 +247,11 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       clearTimeout(chordTimer)
     }
   }, [open, isClient, user?.email, allMembers])
+
+  // Steal focus from the title input after the dialog's focus management runs
+  useEffect(() => {
+    if (open) focusContainer()
+  }, [open, focusContainer])
 
   // Autosave: debounce 1.5s after user edits
   useEffect(() => {
@@ -378,7 +394,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const assignedMemberNames = new Set(assignees.map((a) => a.member))
 
   const formContent = (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto outline-none" tabIndex={-1}>
       <div className="grid gap-5 overflow-hidden px-6 py-4">
         {/* Title */}
         <div className="grid gap-2">

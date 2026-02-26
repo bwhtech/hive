@@ -112,7 +112,7 @@ export function ProjectDetailPage() {
   const openCreateDialog = useCallback(() => {
     if (!isClient) setCreateOpen(true)
   }, [isClient])
-  useHotkey("t", openCreateDialog)
+  useHotkey("t", openCreateDialog, { shift: false })
 
   // Tab-switching shortcuts (disabled when dialogs/sheets are open)
   const dialogOpen = sheetOpen || createOpen || createFeatureRequestOpen

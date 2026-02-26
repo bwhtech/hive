@@ -195,7 +195,7 @@ export function ProjectDetailPage() {
     {
       fields: TASK_FIELDS as unknown as (keyof HiveTask)[],
       filters: [["project", "=", id ?? ""], ["is_archived", "=", 0]],
-      orderBy: { field: "modified", order: "desc" },
+      orderBy: { field: "due_date", order: "asc" },
       limit: 200,
     },
     id ? undefined : null,
@@ -471,7 +471,7 @@ export function ProjectDetailPage() {
     return task.milestone === milestoneFilter
   })
 
-  // Group filtered tasks by status
+  // Group filtered tasks by status, sorted by due date ascending (nulls last)
   const tasksByStatus: Record<string, HiveTask[]> = {}
   for (const status of TASK_STATUSES) {
     tasksByStatus[status] = []
@@ -482,6 +482,13 @@ export function ProjectDetailPage() {
         tasksByStatus[task.status].push(task)
       }
     }
+  }
+  for (const status of TASK_STATUSES) {
+    tasksByStatus[status].sort((a, b) => {
+      const da = a.due_date || "9999-12-31"
+      const db = b.due_date || "9999-12-31"
+      return da < db ? -1 : da > db ? 1 : 0
+    })
   }
 
   // Compute stats (always from all tasks, not filtered)

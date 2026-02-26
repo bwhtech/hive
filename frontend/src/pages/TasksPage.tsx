@@ -171,7 +171,7 @@ const columns: ColumnDef<TaskRow>[] = [
   },
   {
     id: "due_date",
-    accessorFn: (row) => row.task.due_date ?? "",
+    accessorFn: (row) => row.task.due_date || "9999-12-31",
     header: ({ column }) => <SortHeader label="Due Date" column={column} />,
     cell: ({ row }) => {
       const { task } = row.original
@@ -243,7 +243,7 @@ export function TasksPage() {
   const setAssigneeFilter = useCallback((value: string) => setFilter("assignee", value), [setFilter])
   const setViewMode = useCallback((value: string) => setFilter("view", value === "list" ? "" : value), [setFilter])
 
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>([{ id: "due_date", desc: false }])
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -267,7 +267,7 @@ export function TasksPage() {
         "uat_status", "creation", "modified",
       ],
       filters: [["is_archived", "=", 0]],
-      orderBy: { field: "modified", order: "desc" },
+      orderBy: { field: "due_date", order: "asc" },
       limit: 500,
     },
   )
@@ -385,7 +385,7 @@ export function TasksPage() {
     })
   }, [tasks, search, statusFilter, priorityFilter, projectFilter, assigneeFilter, projectMap, assigneesByTask])
 
-  // Group filtered tasks by status for kanban view
+  // Group filtered tasks by status for kanban view, sorted by due date ascending (nulls last)
   const tasksByStatus = useMemo(() => {
     const grouped: Record<string, HiveTask[]> = {}
     for (const status of TASK_STATUSES) {
@@ -395,6 +395,13 @@ export function TasksPage() {
       if (grouped[task.status]) {
         grouped[task.status].push(task)
       }
+    }
+    for (const status of TASK_STATUSES) {
+      grouped[status].sort((a, b) => {
+        const da = a.due_date || "9999-12-31"
+        const db = b.due_date || "9999-12-31"
+        return da < db ? -1 : da > db ? 1 : 0
+      })
     }
     return grouped
   }, [filteredTasks])

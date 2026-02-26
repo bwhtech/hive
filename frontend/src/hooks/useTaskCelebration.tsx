@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useRef, useEffect, ty
 import { createPortal } from "react-dom"
 import { DotLottieReact } from "@lottiefiles/dotlottie-react"
 import type { DotLottie } from "@lottiefiles/dotlottie-web"
+import { motion } from "motion/react"
 import confetti from "canvas-confetti"
 
 const LOTTIE_SRC = "/assets/bwh_hive/frontend/sounds/celebration.lottie"
@@ -20,6 +21,17 @@ export function useCelebration() {
 
 function CelebrationOverlay({ visible }: { visible: boolean }) {
   const lottieRef = useRef<DotLottie | null>(null)
+  const [shown, setShown] = useState(false)
+
+  // Keep container visible during exit animation, then hide after it completes
+  useEffect(() => {
+    if (visible) {
+      setShown(true)
+    } else if (shown) {
+      const timer = setTimeout(() => setShown(false), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [visible, shown])
 
   // When celebration starts, rewind and play the Lottie from frame 0
   useEffect(() => {
@@ -32,11 +44,16 @@ function CelebrationOverlay({ visible }: { visible: boolean }) {
   return createPortal(
     <div
       className="pointer-events-none fixed inset-0 z-[9999]"
-      style={{ visibility: visible ? "visible" : "hidden" }}
+      style={{ visibility: shown ? "visible" : "hidden" }}
     >
-      <div
-        className={`absolute bottom-0 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-64 ${visible ? "animate-celebration-slide-up" : ""}`}
-        style={visible ? undefined : { transform: "translateY(100%)" }}
+      <motion.div
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-64"
+        animate={visible ? { y: 0, opacity: 1 } : { y: "100%", opacity: 0 }}
+        initial={false}
+        transition={visible
+          ? { type: "spring", stiffness: 120, damping: 14, mass: 1 }
+          : { type: "spring", stiffness: 200, damping: 26 }
+        }
       >
         <DotLottieReact
           src={LOTTIE_SRC}
@@ -45,7 +62,7 @@ function CelebrationOverlay({ visible }: { visible: boolean }) {
           dotLottieRefCallback={(dotLottie) => { lottieRef.current = dotLottie }}
           style={{ width: 320, height: 320 }}
         />
-      </div>
+      </motion.div>
     </div>,
     document.body,
   )

@@ -49,7 +49,7 @@ interface CreateTaskValues {
   start_date?: string | null
   is_internal?: 0 | 1
   milestone?: string | null
-  assignees?: { member: string }[]
+  _assign_users?: string[]
   project?: string
 }
 
@@ -134,7 +134,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
       start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
       is_internal: isInternal ? 1 : 0,
       milestone: selectedMilestone || null,
-      assignees: assignees.map((a) => ({ member: a.member })),
+      _assign_users: assignees.map((a) => a.member),
       project: resolvedProject,
     })
     setTitle("")

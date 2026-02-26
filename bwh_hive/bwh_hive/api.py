@@ -68,36 +68,14 @@ def get_my_dashboard():
 	"""Return aggregated personal dashboard data: my tasks, my projects, unread updates."""
 	user = frappe.session.user
 
-	# My tasks grouped by project (legacy assigned_to)
+	# My tasks: assigned via Frappe's _assign field
 	my_tasks = frappe.get_all(
 		"Hive Task",
-		filters={"assigned_to": user, "status": ["not in", ["Done"]], "is_archived": 0},
+		filters={"_assign": ["like", f"%{user}%"], "status": ["not in", ["Done"]], "is_archived": 0},
 		fields=["name", "title", "project", "status", "priority", "due_date", "is_internal"],
 		order_by="priority desc, modified desc",
 		limit=50,
 	)
-
-	# Also include tasks from multi-assignee system
-	assignee_rows = frappe.get_all(
-		"Hive Task Assignee",
-		filters={"member": user, "parenttype": "Hive Task", "parentfield": "assignees"},
-		fields=["parent"],
-		limit=100,
-	)
-	legacy_task_names = {t.name for t in my_tasks}
-	extra_task_names = {r.parent for r in assignee_rows} - legacy_task_names
-	if extra_task_names:
-		extra_tasks = frappe.get_all(
-			"Hive Task",
-			filters={
-				"name": ["in", list(extra_task_names)],
-				"status": ["not in", ["Done"]],
-				"is_archived": 0,
-			},
-			fields=["name", "title", "project", "status", "priority", "due_date", "is_internal"],
-			order_by="priority desc, modified desc",
-		)
-		my_tasks.extend(extra_tasks)
 
 	# Get project titles for the tasks
 	project_ids = list({t.project for t in my_tasks if t.project})
@@ -222,47 +200,39 @@ def get_stale_members(threshold_days: int = 7):
 
 @frappe.whitelist()
 def get_task_assignees(project: str | None = None):
-	"""Return assignees for tasks grouped by task name. Optionally filter by project."""
-	assignees = frappe.get_all(
-		"Hive Task Assignee",
-		filters={"parenttype": "Hive Task", "parentfield": "assignees"},
-		fields=["parent", "member"],
+	"""Return assignees for tasks grouped by task name. Reads from Frappe's standard _assign field."""
+	filters: dict = {"is_archived": 0, "_assign": ["is", "set"]}
+	if project:
+		filters["project"] = project
+
+	tasks = frappe.get_all(
+		"Hive Task",
+		filters=filters,
+		fields=["name", "_assign"],
 		limit=500,
 	)
 
-	# Resolve names from Hive Member (source of truth) instead of relying on fetch_from cache
+	# Resolve names from Hive Member
 	members = frappe.get_all(
 		"Hive Member",
 		fields=["name", "member_name", "user_image"],
 	)
 	member_map = {m.name: m for m in members}
 
-	# If project specified, filter to only tasks belonging to that project
-	if project:
-		project_tasks = {
-			t.name
-			for t in frappe.get_all(
-				"Hive Task",
-				filters={"project": project, "is_archived": 0},
-				fields=["name"],
-				limit=500,
-			)
-		}
-	else:
-		project_tasks = None
-
 	result: dict[str, list[dict]] = {}
-	for row in assignees:
-		if project_tasks is not None and row.parent not in project_tasks:
+	for task in tasks:
+		assignee_list = json.loads(task._assign or "[]")
+		if not assignee_list:
 			continue
-		member_info = member_map.get(row.member)
-		result.setdefault(row.parent, []).append(
-			{
-				"member": row.member,
-				"member_name": member_info.member_name if member_info else row.member,
-				"user_image": member_info.user_image if member_info else None,
-			}
-		)
+		for user in assignee_list:
+			member_info = member_map.get(user)
+			result.setdefault(task.name, []).append(
+				{
+					"member": user,
+					"member_name": member_info.member_name if member_info else user,
+					"user_image": member_info.user_image if member_info else None,
+				}
+			)
 
 	return result
 
@@ -395,35 +365,21 @@ def get_team_dashboard():
 			)
 		}
 
-	# Get all non-Done tasks
+	# Get all non-Done tasks with _assign field
 	tasks = frappe.get_all(
 		"Hive Task",
 		filters={"status": ["not in", ["Done"]], "is_archived": 0},
-		fields=["name", "status", "assigned_to"],
+		fields=["name", "status", "_assign"],
 		limit=500,
 	)
 
-	# Get all task assignees (multi-assignee system)
-	assignees = frappe.get_all(
-		"Hive Task Assignee",
-		filters={"parenttype": "Hive Task", "parentfield": "assignees"},
-		fields=["parent", "member"],
-		limit=500,
-	)
-
-	# Build task status map
+	# Build task status map and user -> task set mapping from _assign
 	task_status = {t.name: t.status for t in tasks}
-
-	# Build user -> task set mapping (deduplicates legacy + new assignees)
 	user_tasks: dict[str, set] = {}
 
 	for task in tasks:
-		if task.assigned_to:
-			user_tasks.setdefault(task.assigned_to, set()).add(task.name)
-
-	for row in assignees:
-		if row.parent in task_status:
-			user_tasks.setdefault(row.member, set()).add(row.parent)
+		for user in json.loads(task._assign or "[]"):
+			user_tasks.setdefault(user, set()).add(task.name)
 
 	# --- Trend data: completed vs created in last 7 days ---
 	cutoff = getdate(nowdate()) - timedelta(days=7)
@@ -432,51 +388,27 @@ def get_team_dashboard():
 	done_tasks = frappe.get_all(
 		"Hive Task",
 		filters={"status": "Done", "modified": [">=", cutoff], "is_archived": 0},
-		fields=["name", "assigned_to"],
-		limit=500,
-	)
-	done_assignees = frappe.get_all(
-		"Hive Task Assignee",
-		filters={
-			"parenttype": "Hive Task",
-			"parentfield": "assignees",
-			"parent": ["in", [t.name for t in done_tasks]] if done_tasks else ["in", []],
-		},
-		fields=["parent", "member"],
+		fields=["name", "_assign"],
 		limit=500,
 	)
 
 	user_completed: dict[str, set] = {}
 	for t in done_tasks:
-		if t.assigned_to:
-			user_completed.setdefault(t.assigned_to, set()).add(t.name)
-	for row in done_assignees:
-		user_completed.setdefault(row.member, set()).add(row.parent)
+		for user in json.loads(t._assign or "[]"):
+			user_completed.setdefault(user, set()).add(t.name)
 
 	# Tasks created in last 7 days (any status)
 	new_tasks = frappe.get_all(
 		"Hive Task",
 		filters={"creation": [">=", cutoff], "is_archived": 0},
-		fields=["name", "assigned_to"],
-		limit=500,
-	)
-	new_assignees = frappe.get_all(
-		"Hive Task Assignee",
-		filters={
-			"parenttype": "Hive Task",
-			"parentfield": "assignees",
-			"parent": ["in", [t.name for t in new_tasks]] if new_tasks else ["in", []],
-		},
-		fields=["parent", "member"],
+		fields=["name", "_assign"],
 		limit=500,
 	)
 
 	user_created: dict[str, set] = {}
 	for t in new_tasks:
-		if t.assigned_to:
-			user_created.setdefault(t.assigned_to, set()).add(t.name)
-	for row in new_assignees:
-		user_created.setdefault(row.member, set()).add(row.parent)
+		for user in json.loads(t._assign or "[]"):
+			user_created.setdefault(user, set()).add(t.name)
 
 	# Count per member
 	result = []
@@ -525,36 +457,17 @@ def get_team_dashboard():
 @frappe.whitelist()
 def get_member_tasks(user: str):
 	"""Return tasks assigned to a specific member, grouped by category (wip, backlog, blocked)."""
-	# Get tasks via legacy assigned_to
-	legacy_tasks = frappe.get_all(
+	all_tasks = frappe.get_all(
 		"Hive Task",
-		filters={"assigned_to": user, "status": ["not in", ["Done"]], "is_archived": 0},
+		filters={
+			"_assign": ["like", f"%{user}%"],
+			"status": ["not in", ["Done"]],
+			"is_archived": 0,
+		},
 		fields=["name", "title", "project", "status", "priority", "due_date"],
 		limit=100,
 	)
-	task_names = {t.name for t in legacy_tasks}
-	task_map = {t.name: t for t in legacy_tasks}
-
-	# Get tasks via multi-assignee system
-	assignee_rows = frappe.get_all(
-		"Hive Task Assignee",
-		filters={"member": user, "parenttype": "Hive Task", "parentfield": "assignees"},
-		fields=["parent"],
-		limit=100,
-	)
-	extra_task_names = {r.parent for r in assignee_rows} - task_names
-	if extra_task_names:
-		extra_tasks = frappe.get_all(
-			"Hive Task",
-			filters={
-				"name": ["in", list(extra_task_names)],
-				"status": ["not in", ["Done"]],
-				"is_archived": 0,
-			},
-			fields=["name", "title", "project", "status", "priority", "due_date"],
-		)
-		for t in extra_tasks:
-			task_map[t.name] = t
+	task_map = {t.name: t for t in all_tasks}
 
 	# Enrich with project titles
 	project_ids = list({t.project for t in task_map.values() if t.project})

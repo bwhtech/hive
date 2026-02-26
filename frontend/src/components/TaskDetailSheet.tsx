@@ -67,7 +67,7 @@ const uatVariant: Record<string, "default" | "secondary" | "destructive" | "outl
   Rejected: "destructive",
 }
 
-interface TaskAssigneeRow {
+interface AssigneeDisplay {
   member: string
   member_name?: string
   user_image?: string
@@ -88,7 +88,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
   const [completedOn, setCompletedOn] = useState<Date | undefined>()
-  const [assignees, setAssignees] = useState<TaskAssigneeRow[]>([])
+  const [assignees, setAssignees] = useState<AssigneeDisplay[]>([])
   const [saving, setSaving] = useState(false)
   const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle")
   const userEditedRef = useRef(false)
@@ -103,9 +103,11 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const { updateDoc } = useFrappeUpdateDoc()
   const { call: approveUat, loading: approvingUat } = useFrappePostCall("frappe.client.run_doc_method")
   const { call: rejectUat, loading: rejectingUat } = useFrappePostCall("frappe.client.run_doc_method")
+  const { call: callAssign } = useFrappePostCall("frappe.desk.form.assign_to.add")
+  const { call: callUnassign } = useFrappePostCall("frappe.desk.form.assign_to.remove")
 
-  // Fetch full task doc (with child tables) when task changes
-  const { data: taskDoc } = useFrappeGetDoc<HiveTask & { assignees?: TaskAssigneeRow[] }>(
+  // Fetch full task doc when task changes
+  const { data: taskDoc, mutate: mutateTaskDoc } = useFrappeGetDoc<HiveTask & { _assign?: string }>(
     "Hive Task",
     task?.name ?? "",
     task?.name ? undefined : null,
@@ -164,18 +166,22 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }, [task?.name])
 
-  // Sync assignees from fetched task doc
+  // Sync assignees from _assign field, resolve display info from allMembers
   useEffect(() => {
-    if (taskDoc?.assignees) {
-      setAssignees(taskDoc.assignees.map((a) => ({
-        member: a.member,
-        member_name: a.member_name,
-        user_image: a.user_image,
-      })))
+    const raw = taskDoc?._assign
+    const emails: string[] = raw ? JSON.parse(raw) : []
+    if (emails.length > 0 && allMembers) {
+      const memberMap = new Map(allMembers.map((m) => [m.name, m]))
+      setAssignees(
+        emails.map((email) => {
+          const m = memberMap.get(email)
+          return { member: email, member_name: m?.member_name, user_image: m?.user_image }
+        }),
+      )
     } else {
       setAssignees([])
     }
-  }, [taskDoc])
+  }, [taskDoc?._assign, allMembers])
 
   // Ref to hold latest save function for keyboard shortcut
   const saveRef = useRef<() => void>(() => {})
@@ -215,7 +221,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         autosaveTimerRef.current = undefined
       }
     }
-  }, [title, description, status, priority, size, milestone, dependsOn, prLink, dueDate, startDate, completedOn, assignees, open, isClient])
+  }, [title, description, status, priority, size, milestone, dependsOn, prLink, dueDate, startDate, completedOn, open, isClient])
 
   if (!task) return null
 
@@ -250,7 +256,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         completed_on: completedOn ? format(completedOn, "yyyy-MM-dd") : null,
-        assignees: assignees.map((a) => ({ member: a.member })),
       })
       userEditedRef.current = false
       if (silent) {
@@ -322,20 +327,34 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }
 
-  const toggleAssignee = (member: HiveMember) => {
-    setAssignees((prev) => {
-      const exists = prev.some((a) => a.member === member.name)
+  const toggleAssignee = async (member: HiveMember) => {
+    const exists = assignees.some((a) => a.member === member.name)
+    try {
       if (exists) {
-        return prev.filter((a) => a.member !== member.name)
+        setAssignees((prev) => prev.filter((a) => a.member !== member.name))
+        await callUnassign({ doctype: "Hive Task", name: task.name, assign_to: member.name })
+      } else {
+        setAssignees((prev) => [...prev, { member: member.name, member_name: member.member_name, user_image: member.user_image }])
+        await callAssign({ doctype: "Hive Task", name: task.name, assign_to: [member.name] })
       }
-      return [...prev, { member: member.name, member_name: member.member_name, user_image: member.user_image }]
-    })
-    markEdited()
+      mutateTaskDoc()
+      onUpdated()
+    } catch {
+      toast.error("Failed to update assignee")
+      mutateTaskDoc()
+    }
   }
 
-  const removeAssignee = (memberName: string) => {
+  const removeAssignee = async (memberName: string) => {
     setAssignees((prev) => prev.filter((a) => a.member !== memberName))
-    markEdited()
+    try {
+      await callUnassign({ doctype: "Hive Task", name: task.name, assign_to: memberName })
+      mutateTaskDoc()
+      onUpdated()
+    } catch {
+      toast.error("Failed to remove assignee")
+      mutateTaskDoc()
+    }
   }
 
   const assignedMemberNames = new Set(assignees.map((a) => a.member))

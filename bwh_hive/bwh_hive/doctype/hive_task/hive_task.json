@@ -14,7 +14,6 @@
   "milestone",
   "depends_on",
   "assigned_to",
-  "assignees",
   "is_internal",
   "is_archived",
   "start_date",
@@ -91,12 +90,6 @@
    "label": "Assigned To",
    "options": "User",
    "hidden": 1
-  },
-  {
-   "fieldname": "assignees",
-   "fieldtype": "Table",
-   "label": "Assignees",
-   "options": "Hive Task Assignee"
   },
   {
    "default": "0",

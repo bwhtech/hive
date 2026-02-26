@@ -312,14 +312,20 @@ export function TasksPage() {
 
   const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
 
+  const { call: callAssign } = useFrappePostCall("frappe.desk.form.assign_to.add")
+
   const handleCreateTask = useCallback(async (values: {
     title: string; priority: string; status: string;
     due_date?: string | null; start_date?: string | null;
-    is_internal?: 0 | 1; assignees?: { member: string }[];
+    is_internal?: 0 | 1; _assign_users?: string[];
     project?: string; milestone?: string | null;
   }) => {
     try {
-      await createDoc("Hive Task", values)
+      const { _assign_users, ...taskValues } = values
+      const doc = await createDoc("Hive Task", taskValues)
+      if (_assign_users?.length) {
+        await callAssign({ doctype: "Hive Task", name: doc.name, assign_to: _assign_users })
+      }
       setCreateOpen(false)
       toast.success("Task created")
       tasksMutate()
@@ -327,7 +333,7 @@ export function TasksPage() {
     } catch {
       toast.error("Failed to create task")
     }
-  }, [createDoc, callAssignees, tasksMutate])
+  }, [createDoc, callAssign, callAssignees, tasksMutate])
 
   const handleSaveView = useCallback(async () => {
     if (!saveViewLabel.trim()) return

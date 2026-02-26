@@ -281,6 +281,8 @@ export function ProjectDetailPage() {
     }
   }
 
+  const { call: callAssign } = useFrappePostCall("frappe.desk.form.assign_to.add")
+
   const handleCreateTask = async (values: {
     title: string
     priority: string
@@ -289,14 +291,18 @@ export function ProjectDetailPage() {
     start_date?: string | null
     pr_link?: string | null
     is_internal?: 0 | 1
-    assignees?: { member: string }[]
+    _assign_users?: string[]
     project?: string
   }) => {
     try {
-      await createDoc("Hive Task", {
-        ...values,
-        project: values.project || id,
+      const { _assign_users, ...taskValues } = values
+      const doc = await createDoc("Hive Task", {
+        ...taskValues,
+        project: taskValues.project || id,
       })
+      if (_assign_users?.length) {
+        await callAssign({ doctype: "Hive Task", name: doc.name, assign_to: _assign_users })
+      }
       mutateTasks()
       callAssignees({ project: id }).catch(() => {})
       setCreateOpen(false)

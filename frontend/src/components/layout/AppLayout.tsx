@@ -11,6 +11,7 @@ import { ShortcutHelpDialog } from "@/components/ShortcutHelpDialog"
 import { CreateProjectDialog } from "@/components/CreateProjectDialog"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { OnboardingDialog } from "@/components/OnboardingDialog"
+import { NotificationSheet } from "@/components/NotificationSheet"
 import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 
@@ -20,6 +21,7 @@ export function AppLayout() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [globalCreateTaskOpen, setGlobalCreateTaskOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const commandPalette = useCommandPalette()
   const navigate = useNavigate()
   const location = useLocation()
@@ -114,7 +116,7 @@ export function AppLayout() {
     <SidebarProvider>
       <AppSidebar openSettings={openSettings} />
       <SidebarInset>
-        <Header onOpenSearch={() => commandPalette.setOpen(true)} />
+        <Header onOpenSearch={() => commandPalette.setOpen(true)} onOpenNotifications={() => setNotificationsOpen(true)} />
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet context={{ openCreateProject: () => setCreateProjectOpen(true) }} />
         </div>
@@ -146,6 +148,10 @@ export function AppLayout() {
       <ShortcutHelpDialog
         open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}
+      />
+      <NotificationSheet
+        open={notificationsOpen}
+        onOpenChange={setNotificationsOpen}
       />
       <OnboardingDialog
         open={showOnboarding}

@@ -1,5 +1,4 @@
-import { useFrappeGetCall } from "frappe-react-sdk"
-import { Link } from "react-router"
+import { useFrappeAuth, useFrappeGetDocCount } from "frappe-react-sdk"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Notification01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -9,13 +8,20 @@ import { Kbd } from "@/components/ui/kbd"
 
 interface HeaderProps {
   onOpenSearch: () => void
+  onOpenNotifications: () => void
 }
 
-export function Header({ onOpenSearch }: HeaderProps) {
-  const { data } = useFrappeGetCall<{ message: { unread_count: number } }>(
-    "bwh_hive.bwh_hive.api.get_my_dashboard",
+export function Header({ onOpenSearch, onOpenNotifications }: HeaderProps) {
+  const { currentUser } = useFrappeAuth()
+  const { data: unreadCount } = useFrappeGetDocCount(
+    "Notification Log",
+    [["read", "=", 0], ["for_user", "=", currentUser ?? ""]],
+    undefined,
+    currentUser ? undefined : null,
+    { refreshInterval: 30000 },
   )
-  const unreadCount = data?.message?.unread_count ?? 0
+
+  const count = unreadCount ?? 0
 
   return (
     <header className="flex h-14 shrink-0 items-center border-b border-border bg-background px-4 md:px-6">
@@ -45,18 +51,18 @@ export function Header({ onOpenSearch }: HeaderProps) {
         <Tooltip>
           <TooltipTrigger
             render={
-              <Button variant="ghost" size="icon" className="relative" render={<Link to="/" />} />
+              <Button variant="ghost" size="icon" className="relative" onClick={onOpenNotifications} />
             }
           >
             <HugeiconsIcon icon={Notification01Icon} strokeWidth={2} className="size-5" />
-            {unreadCount > 0 && (
+            {count > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {count > 9 ? "9+" : count}
               </span>
             )}
           </TooltipTrigger>
           <TooltipContent>
-            {unreadCount > 0 ? `${unreadCount} unread updates` : "No unread updates"}
+            {count > 0 ? `${count} unread notifications` : "No notifications"}
           </TooltipContent>
         </Tooltip>
       </div>

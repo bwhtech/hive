@@ -39,31 +39,20 @@ class HiveTaskComment(Document):
 
 		subject = f"{poster_name} mentioned you in a comment on: {task_doc.title}"
 
-		# Build link to the task
-		site_url = frappe.utils.get_url()
-		project = task_doc.project
-		task_link = f"{site_url}/hive/projects/{project}/tasks/{self.task}"
+		# Create in-app Notification Log entries
+		from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
 
-		message = f"""
-		<p><strong>{poster_name}</strong> mentioned you in a comment on task
-		<a href="{task_link}">{task_doc.title}</a>:</p>
-		<blockquote style="border-left: 3px solid #ccc; padding-left: 12px; margin: 12px 0; color: #555;">
-		{self.content}
-		</blockquote>
-		<p><a href="{task_link}">View Task</a></p>
-		"""
-
-		try:
-			frappe.sendmail(
-				recipients=mentioned_emails,
-				subject=subject,
-				message=message,
-				reference_doctype="Hive Task Comment",
-				reference_name=self.name,
-				now=True,
-			)
-		except frappe.OutgoingEmailError:
-			pass
+		enqueue_create_notification(
+			mentioned_emails,
+			{
+				"type": "Mention",
+				"document_type": "Hive Task",
+				"document_name": self.task,
+				"subject": subject,
+				"from_user": self.posted_by,
+				"email_content": self.content,
+			},
+		)
 
 
 def extract_mentions(html: str) -> list[str]:

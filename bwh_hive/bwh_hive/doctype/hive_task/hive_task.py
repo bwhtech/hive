@@ -43,6 +43,9 @@ class HiveTask(Document):
 		uat_status: DF.Literal["Pending", "Approved", "Rejected"]
 	# end: auto-generated types
 
+	def on_update(self):
+		self._notify_new_assignees()
+
 	def validate(self):
 		self._validate_status_transition()
 		self._validate_dates()
@@ -86,6 +89,39 @@ class HiveTask(Document):
 			self.completed_on = today()
 		elif self.status != "Done":
 			self.completed_on = None
+
+	def _notify_new_assignees(self):
+		if self.is_new():
+			return
+
+		old_assignees = set()
+		if self._doc_before_save:
+			for a in self._doc_before_save.get("assignees", []):
+				old_assignees.add(a.member)
+
+		new_assignees = {a.member for a in self.get("assignees", [])}
+		added = new_assignees - old_assignees
+		# Don't notify yourself
+		added.discard(frappe.session.user)
+		if not added:
+			return
+
+		from_name = frappe.get_cached_value("User", frappe.session.user, "full_name") or frappe.session.user
+		subject = f"{from_name} assigned you to: {self.title}"
+
+		from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+
+		enqueue_create_notification(
+			list(added),
+			{
+				"type": "Assignment",
+				"document_type": "Hive Task",
+				"document_name": self.name,
+				"subject": subject,
+				"from_user": frappe.session.user,
+				"email_content": f"You have been assigned to task: {self.title}",
+			},
+		)
 
 	@frappe.whitelist()
 	def approve_uat(self):

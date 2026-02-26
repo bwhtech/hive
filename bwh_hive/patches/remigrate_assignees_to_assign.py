@@ -9,7 +9,7 @@ import frappe
 
 
 def execute():
-	if not frappe.db.table_exists("tabHive Task Assignee"):
+	if not frappe.db.table_exists("Hive Task Assignee"):
 		frappe.log_error(
 			title="remigrate_assignees: table missing",
 			message="tabHive Task Assignee does not exist — nothing to migrate.",

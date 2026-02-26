@@ -11,7 +11,7 @@ import frappe
 
 def execute():
 	# Check if the child table still exists (idempotent)
-	if not frappe.db.table_exists("tabHive Task Assignee"):
+	if not frappe.db.table_exists("Hive Task Assignee"):
 		return
 
 	# Read all child table rows grouped by parent task

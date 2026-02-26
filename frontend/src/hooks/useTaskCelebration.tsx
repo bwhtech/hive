@@ -1,7 +1,10 @@
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { DotLottieReact } from "@lottiefiles/dotlottie-react"
+import type { DotLottie } from "@lottiefiles/dotlottie-web"
 import confetti from "canvas-confetti"
+
+const LOTTIE_SRC = "/assets/bwh_hive/frontend/sounds/celebration.lottie"
 
 interface CelebrationContextValue {
   celebrate: () => void
@@ -15,19 +18,31 @@ export function useCelebration() {
   return ctx
 }
 
-function CelebrationOverlay({ visible, onDone }: { visible: boolean; onDone: () => void }) {
-  if (!visible) return null
+function CelebrationOverlay({ visible }: { visible: boolean }) {
+  const lottieRef = useRef<DotLottie | null>(null)
+
+  // When celebration starts, rewind and play the Lottie from frame 0
+  useEffect(() => {
+    if (visible && lottieRef.current) {
+      lottieRef.current.setFrame(0)
+      lottieRef.current.play()
+    }
+  }, [visible])
 
   return createPortal(
     <div
       className="pointer-events-none fixed inset-0 z-[9999]"
-      onAnimationEnd={onDone}
+      style={{ visibility: visible ? "visible" : "hidden" }}
     >
-      {/* Lottie character sliding up from bottom-left */}
-      <div className="absolute bottom-0 left-4 animate-celebration-slide-up">
+      <div
+        className={`absolute bottom-0 left-64 ${visible ? "animate-celebration-slide-up" : ""}`}
+        style={visible ? undefined : { transform: "translateY(100%)" }}
+      >
         <DotLottieReact
-          src="https://lottie.host/41939115-11a3-4f76-90ec-48d4424041f3/h5f7MdMijX.lottie"
-          autoplay
+          src={LOTTIE_SRC}
+          autoplay={false}
+          loop
+          dotLottieRefCallback={(dotLottie) => { lottieRef.current = dotLottie }}
           style={{ width: 320, height: 320 }}
         />
       </div>
@@ -38,50 +53,70 @@ function CelebrationOverlay({ visible, onDone }: { visible: boolean; onDone: () 
 
 export function CelebrationProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const dismissRef = useRef<ReturnType<typeof setTimeout>>()
+  const fadeRef = useRef<ReturnType<typeof setTimeout>>()
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  // Preload the audio file
+  useEffect(() => {
+    audioRef.current = new Audio("/assets/bwh_hive/frontend/sounds/victory.wav")
+    audioRef.current.preload = "auto"
+  }, [])
+
   const celebrate = useCallback(() => {
-    // Prevent overlapping celebrations
     if (visible) return
 
     setVisible(true)
 
-    // Confetti burst from bottom-left
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { x: 0.1, y: 0.9 },
-      colors: ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"],
-    })
+    // Confetti burst from bottom-left (delayed 1s to sync with Lottie slide-up)
+    setTimeout(() => {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { x: 0.25, y: 0.9 },
+        colors: ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"],
+      })
+    }, 1000)
 
-    // Play celebration sound
+    // Play celebration sound with fade-out
     try {
-      if (!audioRef.current) {
-        audioRef.current = new Audio("/hive/sounds/task-complete.mp3")
-        audioRef.current.volume = 0.5
+      const audio = audioRef.current
+      if (audio) {
+        audio.volume = 0.5
+        audio.currentTime = 0
+        audio.play().catch(() => {})
+
+        // Start fading out after 3s (over the last 2s)
+        if (fadeRef.current) clearTimeout(fadeRef.current)
+        fadeRef.current = setTimeout(() => {
+          const fadeSteps = 40
+          const fadeInterval = 2000 / fadeSteps
+          let step = 0
+          const fade = setInterval(() => {
+            step++
+            audio.volume = Math.max(0, 0.5 * (1 - step / fadeSteps))
+            if (step >= fadeSteps) {
+              clearInterval(fade)
+              audio.pause()
+            }
+          }, fadeInterval)
+        }, 3000)
       }
-      audioRef.current.currentTime = 0
-      audioRef.current.play().catch(() => {})
     } catch {
       // Audio playback may be blocked by browser policy — ignore
     }
 
-    // Auto-dismiss after 3 seconds
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
+    // Auto-dismiss overlay after 5 seconds
+    if (dismissRef.current) clearTimeout(dismissRef.current)
+    dismissRef.current = setTimeout(() => {
       setVisible(false)
-    }, 3000)
+    }, 5000)
   }, [visible])
-
-  const handleDone = useCallback(() => {
-    // Animation ended — cleanup if timer already elapsed
-  }, [])
 
   return (
     <CelebrationContext.Provider value={{ celebrate }}>
       {children}
-      <CelebrationOverlay visible={visible} onDone={handleDone} />
+      <CelebrationOverlay visible={visible} />
     </CelebrationContext.Provider>
   )
 }

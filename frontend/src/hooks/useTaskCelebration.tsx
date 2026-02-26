@@ -68,16 +68,14 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
 
     setVisible(true)
 
-    // Confetti burst (delayed 1s to sync with Lottie slide-up)
+    // Confetti burst
     const isMobile = window.innerWidth < 768
-    setTimeout(() => {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { x: isMobile ? 0.5 : 0.25, y: 0.9 },
-        colors: ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"],
-      })
-    }, 1000)
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { x: isMobile ? 0.5 : 0.25, y: 0.9 },
+      colors: ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"],
+    })
 
     // Play celebration sound with fade-out
     try {

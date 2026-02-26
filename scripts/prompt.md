@@ -12,6 +12,8 @@ Make each task the smallest possible unit of work. We don't want to outrun our h
 
 ## TASK SELECTION
 
+DO NOT work on issues which have the "not ready for RALPH" label
+
 Pick the next task. Prioritize tasks in this order:
 
 1. Critical bugfixes

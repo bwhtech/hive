@@ -48,7 +48,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveProjectUpdate, HiveProjectLink, HiveClient } from "@/types"
-import { TASK_STATUSES } from "@/types"
+import { TASK_STATUSES, PROJECT_STATUSES } from "@/types"
 import { TaskKanban } from "@/components/TaskKanban"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
@@ -362,6 +362,15 @@ export function ProjectDetailPage() {
     saveProjectLinks(current)
   }
 
+  const handleProjectStatusChange = async (value: string) => {
+    try {
+      await updateDoc("Hive Project", id!, { status: value })
+      mutateProject()
+    } catch {
+      toast.error("Failed to update project status")
+    }
+  }
+
   const handleTypeChange = async (value: string) => {
     try {
       await updateDoc("Hive Project", id!, { project_type: value || null })
@@ -535,9 +544,26 @@ export function ProjectDetailPage() {
               </h1>
             )}
             <div className="mt-1 flex items-center gap-2">
-              <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
-                {project.status}
-              </Badge>
+              {isClient ? (
+                <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
+                  {project.status}
+                </Badge>
+              ) : (
+                <Select value={project.status} onValueChange={handleProjectStatusChange}>
+                  <SelectTrigger
+                    className={`h-5 w-auto text-[11px] px-2.5 gap-1 rounded-full font-medium ${
+                      project.status === "Completed" ? "text-muted-foreground" : ""
+                    }`}
+                  >
+                    {project.status}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROJECT_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {isClient ? (
                 <>
                   {project.project_type && (

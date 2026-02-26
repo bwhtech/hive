@@ -18,6 +18,7 @@ const shortcuts = [
     items: [
       { keys: ["⌘", "K"], description: "Open command palette" },
       { keys: ["?"], description: "Show keyboard shortcuts" },
+      { keys: ["⇧", "T"], description: "Celebrate" },
     ],
   },
   {

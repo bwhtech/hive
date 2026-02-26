@@ -23,7 +23,9 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command"
+import { PartyIcon } from "@hugeicons/core-free-icons"
 import { useUser } from "@/context/UserContext"
+import { useCelebration } from "@/hooks/useTaskCelebration"
 
 interface CommandPaletteProps {
   open: boolean
@@ -60,6 +62,7 @@ export function CommandPalette({
   const navigate = useNavigate()
   const location = useLocation()
   const { isClient } = useUser()
+  const { celebrate } = useCelebration()
   const [query, setQuery] = useState("")
 
   // Detect current project context from URL
@@ -312,6 +315,23 @@ export function CommandPalette({
               </CommandGroup>
             </>
           )}
+
+          <CommandSeparator />
+          <CommandGroup heading="Fun">
+            <CommandItem
+              value="celebrate"
+              keywords={["confetti", "party", "celebration"]}
+              onSelect={() => runCommand(() => celebrate())}
+            >
+              <HugeiconsIcon
+                icon={PartyIcon}
+                strokeWidth={2}
+                className="size-4"
+              />
+              <span>Celebrate</span>
+              <CommandShortcut>Shift T</CommandShortcut>
+            </CommandItem>
+          </CommandGroup>
         </CommandList>
       </Command>
     </CommandDialog>

@@ -18,15 +18,17 @@ function isEditableTarget(e: KeyboardEvent) {
 export function useHotkey(
   key: string,
   callback: () => void,
-  options?: { enabled?: boolean; capture?: boolean },
+  options?: { enabled?: boolean; capture?: boolean; shift?: boolean },
 ) {
   useEffect(() => {
     if (options?.enabled === false) return
     const capture = options?.capture ?? false
+    const requireShift = options?.shift
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isEditableTarget(e)) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (requireShift !== undefined && e.shiftKey !== requireShift) return
 
       if (e.key.toLowerCase() === key.toLowerCase()) {
         e.preventDefault()
@@ -37,7 +39,7 @@ export function useHotkey(
 
     document.addEventListener("keydown", handleKeyDown, capture)
     return () => document.removeEventListener("keydown", handleKeyDown, capture)
-  }, [key, callback, options?.enabled, options?.capture])
+  }, [key, callback, options?.enabled, options?.capture, options?.shift])
 }
 
 /**

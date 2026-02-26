@@ -12,6 +12,7 @@ import { CreateProjectDialog } from "@/components/CreateProjectDialog"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { OnboardingDialog } from "@/components/OnboardingDialog"
 import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
+import { useCelebration } from "@/hooks/useTaskCelebration"
 
 export function AppLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -31,8 +32,10 @@ export function AppLayout() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const showOnboarding = hiveSettings != null && !hiveSettings.onboarding_completed && !onboardingDismissed
 
+  const { celebrate } = useCelebration()
   const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), [])
   useHotkey("?", toggleShortcuts, { capture: true })
+  useHotkey("t", celebrate, { shift: true })
 
   // G then D/P/T/M navigation chord shortcuts
   const navChords = useMemo(

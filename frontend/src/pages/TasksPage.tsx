@@ -170,6 +170,20 @@ const columns: ColumnDef<TaskRow>[] = [
     },
   },
   {
+    id: "start_date",
+    accessorFn: (row) => row.task.start_date || "9999-12-31",
+    header: ({ column }) => <SortHeader label="Start Date" column={column} />,
+    cell: ({ row }) => {
+      const { task } = row.original
+      if (!task.start_date) return <span className="text-muted-foreground">-</span>
+      return (
+        <span className="text-muted-foreground">
+          {format(new Date(task.start_date), "MMM d, yyyy")}
+        </span>
+      )
+    },
+  },
+  {
     id: "due_date",
     accessorFn: (row) => row.task.due_date || "9999-12-31",
     header: ({ column }) => <SortHeader label="Due Date" column={column} />,
@@ -263,7 +277,7 @@ export function TasksPage() {
     {
       fields: [
         "name", "title", "project", "status", "priority", "size", "milestone",
-        "depends_on", "assigned_to", "is_internal", "due_date", "pr_link",
+        "depends_on", "assigned_to", "is_internal", "start_date", "due_date", "pr_link",
         "uat_status", "creation", "modified",
       ],
       filters: [["is_archived", "=", 0]],
@@ -595,7 +609,7 @@ export function TasksPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {["Task", "Project", "Status", "Priority", "Size", "Milestone", "Due Date", "Assignees"].map((h) => (
+                  {["Task", "Project", "Status", "Priority", "Size", "Milestone", "Start Date", "Due Date", "Assignees"].map((h) => (
                     <TableHead key={h}>{h}</TableHead>
                   ))}
                 </TableRow>
@@ -608,6 +622,7 @@ export function TasksPage() {
                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-14" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="size-6 rounded-full" /></TableCell>

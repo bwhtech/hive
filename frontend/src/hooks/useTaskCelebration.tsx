@@ -35,7 +35,7 @@ function CelebrationOverlay({ visible }: { visible: boolean }) {
       style={{ visibility: visible ? "visible" : "hidden" }}
     >
       <div
-        className={`absolute bottom-0 left-64 ${visible ? "animate-celebration-slide-up" : ""}`}
+        className={`absolute bottom-0 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-64 ${visible ? "animate-celebration-slide-up" : ""}`}
         style={visible ? undefined : { transform: "translateY(100%)" }}
       >
         <DotLottieReact
@@ -68,12 +68,13 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
 
     setVisible(true)
 
-    // Confetti burst from bottom-left (delayed 1s to sync with Lottie slide-up)
+    // Confetti burst (delayed 1s to sync with Lottie slide-up)
+    const isMobile = window.innerWidth < 768
     setTimeout(() => {
       confetti({
         particleCount: 80,
         spread: 70,
-        origin: { x: 0.25, y: 0.9 },
+        origin: { x: isMobile ? 0.5 : 0.25, y: 0.9 },
         colors: ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"],
       })
     }, 1000)

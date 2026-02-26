@@ -180,6 +180,15 @@ export function ProjectDetailPage() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState("")
 
+  // Tab-switching shortcuts — disabled when any dialog/sheet is open
+  const anyDialogOpen = createOpen || sheetOpen || deleteDialogOpen || linksDialogOpen || newClientOpen || editingTitle || createFeatureRequestOpen
+  const switchTab = useCallback((tab: string) => () => setActiveTab(tab), [])
+  useHotkey("o", switchTab("overview"), { enabled: !anyDialogOpen })
+  useHotkey("m", switchTab("milestones"), { enabled: !anyDialogOpen })
+  useHotkey("u", switchTab("updates"), { enabled: !anyDialogOpen })
+  useHotkey("r", switchTab("requests"), { enabled: !anyDialogOpen })
+  useHotkey("a", switchTab("activity"), { enabled: !anyDialogOpen })
+
   const { data: project, isLoading: projectLoading, mutate: mutateProject } = useFrappeGetDoc<HiveProject>(
     "Hive Project",
     id ?? "",

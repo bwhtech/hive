@@ -46,6 +46,29 @@ export function useHotkey(
  * Register a two-key chord shortcut (e.g. G then D).
  * Press the leader key, then the second key within 1 second.
  */
+/**
+ * Register a Cmd/Ctrl + key keyboard shortcut.
+ */
+export function useMetaHotkey(
+  key: string,
+  callback: () => void,
+  options?: { enabled?: boolean },
+) {
+  useEffect(() => {
+    if (options?.enabled === false) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === key.toLowerCase()) {
+        e.preventDefault()
+        callback()
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [key, callback, options?.enabled])
+}
+
 export function useChordHotkey(
   leader: string,
   chords: Record<string, () => void>,

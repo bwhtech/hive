@@ -140,6 +140,9 @@
 
 /* Tiptap editor styles */
 .tiptap-content {
+  overflow-wrap: break-word;
+  word-break: break-word;
+
   > *:first-child {
     margin-top: 0;
   }
@@ -218,6 +221,7 @@
   a {
     color: var(--primary);
     text-decoration: underline;
+    word-break: break-all;
   }
 
   img {

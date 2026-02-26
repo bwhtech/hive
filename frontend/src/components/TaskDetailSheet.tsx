@@ -586,7 +586,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
           <Label>Description</Label>
           {isClient ? (
             task.description ? (
-              <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: task.description }} />
+              <div className="prose prose-sm max-w-none text-sm break-words" dangerouslySetInnerHTML={{ __html: task.description }} />
             ) : (
               <p className="text-sm text-muted-foreground py-1">No description</p>
             )

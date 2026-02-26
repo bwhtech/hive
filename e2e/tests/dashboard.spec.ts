@@ -66,14 +66,17 @@ test.describe("Dashboard", () => {
 			priority: "High",
 		});
 
-		// Assign tasks to Administrator via the legacy assigned_to field
-		// (The dashboard API uses assigned_to to find user's tasks)
-		const { updateDoc } = await import("../helpers/frappe");
-		await updateDoc(request, "Hive Task", assignedTask.name, {
-			assigned_to: "Administrator",
+		// Assign tasks to Administrator via Frappe's standard _assign mechanism
+		// (The dashboard API uses _assign to find user's tasks)
+		await callMethod(request, "frappe.desk.form.assign_to.add", {
+			doctype: "Hive Task",
+			name: assignedTask.name,
+			assign_to: ["Administrator"],
 		});
-		await updateDoc(request, "Hive Task", inProgressTask.name, {
-			assigned_to: "Administrator",
+		await callMethod(request, "frappe.desk.form.assign_to.add", {
+			doctype: "Hive Task",
+			name: inProgressTask.name,
+			assign_to: ["Administrator"],
 		});
 	});
 
@@ -115,7 +118,7 @@ test.describe("Dashboard", () => {
 
 		// My Work tab should be active by default
 		// The summary cards show: Open tasks, In progress, Unread updates
-		await expect(page.getByText("Open tasks")).toBeVisible({
+		await expect(page.getByText("Open tasks", { exact: true })).toBeVisible({
 			timeout: 10000,
 		});
 		await expect(page.getByText("In progress")).toBeVisible();

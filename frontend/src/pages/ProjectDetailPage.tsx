@@ -59,6 +59,7 @@ import { OverviewTab } from "@/components/project/OverviewTab"
 import { ActivityTab } from "@/components/project/ActivityTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
+import { useCelebration } from "@/hooks/useTaskCelebration"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
@@ -99,6 +100,7 @@ export function ProjectDetailPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const { isClient } = useUser()
+  const { celebrate } = useCelebration()
   const [searchParams, setSearchParams] = useSearchParams()
   const [createOpen, setCreateOpen] = useState(false)
   const [createFeatureRequestOpen, setCreateFeatureRequestOpen] = useState(false)
@@ -252,9 +254,19 @@ export function ProjectDetailPage() {
   }, [pendingTaskName, tasks])
 
   const handleStatusChange = async (taskName: string, newStatus: string) => {
+    const optimistic = (current: HiveTask[] | undefined) =>
+      current?.map((t) =>
+        t.name === taskName ? { ...t, status: newStatus as HiveTask["status"] } : t
+      )
     try {
-      await updateDoc("Hive Task", taskName, { status: newStatus })
-      mutateTasks()
+      await mutateTasks(
+        async (current) => {
+          await updateDoc("Hive Task", taskName, { status: newStatus })
+          return optimistic(current)
+        },
+        { optimisticData: optimistic, rollbackOnError: true, revalidate: true },
+      )
+      if (newStatus === "Done") celebrate()
     } catch {
       toast.error("Failed to update task status")
     }

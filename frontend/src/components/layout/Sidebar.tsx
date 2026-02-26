@@ -2,6 +2,7 @@ import { useState, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router"
 import { useFrappeAuth, useFrappeGetDocList, useFrappeDeleteDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
+import EmojiPicker, { Theme } from "emoji-picker-react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   DashboardSquare02Icon,
@@ -50,6 +51,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { useUser } from "@/context/UserContext"
@@ -81,6 +83,7 @@ export function AppSidebar({
   const [editLabel, setEditLabel] = useState("")
   const [editEmoji, setEditEmoji] = useState("")
   const [editPublic, setEditPublic] = useState(false)
+  const [editEmojiPickerOpen, setEditEmojiPickerOpen] = useState(false)
 
   const { data: savedViews, mutate: mutateSavedViews } = useFrappeGetDocList<HiveView>(
     "Hive View",
@@ -322,7 +325,10 @@ export function AppSidebar({
       </SidebarFooter>
 
       <Dialog open={!!editingView} onOpenChange={(open) => {
-        if (!open) setEditingView(null)
+        if (!open) {
+          setEditingView(null)
+          setEditEmojiPickerOpen(false)
+        }
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -331,15 +337,31 @@ export function AppSidebar({
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-3">
               <div>
-                <Label htmlFor="edit-view-emoji">Emoji</Label>
-                <Input
-                  id="edit-view-emoji"
-                  value={editEmoji}
-                  onChange={(e) => setEditEmoji(e.target.value)}
-                  placeholder="📋"
-                  className="mt-1.5 w-16 text-center text-lg"
-                  maxLength={2}
-                />
+                <Label>Emoji</Label>
+                <Popover open={editEmojiPickerOpen} onOpenChange={setEditEmojiPickerOpen}>
+                  <PopoverTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="mt-1.5 flex h-9 w-16 items-center justify-center rounded-md border border-input bg-background text-lg hover:bg-accent transition-colors"
+                      >
+                        {editEmoji || "📋"}
+                      </button>
+                    }
+                  />
+                  <PopoverContent className="w-auto p-0" side="bottom" align="start">
+                    <EmojiPicker
+                      onEmojiClick={(emojiData) => {
+                        setEditEmoji(emojiData.emoji)
+                        setEditEmojiPickerOpen(false)
+                      }}
+                      theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
+                      skinTonesDisabled
+                      height={400}
+                      width={350}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="flex-1">
                 <Label htmlFor="edit-view-label">Name</Label>

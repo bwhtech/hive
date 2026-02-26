@@ -23,7 +23,7 @@ import { TASK_PRIORITY_VARIANT, TASK_SIZE_VARIANT } from "@/lib/variants"
 
 interface TaskKanbanProps {
   tasksByStatus: Record<string, HiveTask[]>
-  onStatusChange: (taskName: string, newStatus: string) => void
+  onStatusChange: (taskName: string, newStatus: string) => void | Promise<void>
   onTaskClick?: (task: HiveTask) => void
   assigneesByTask?: Record<string, HiveTaskAssignee[]>
   hasClient?: boolean
@@ -31,16 +31,40 @@ interface TaskKanbanProps {
 
 export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigneesByTask, hasClient = true }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<HiveTask | null>(null)
+  const [pendingMoves, setPendingMoves] = useState<Record<string, string>>({})
+
+  // Apply pending moves on top of prop data for instant visual feedback
+  const effectiveTasksByStatus = useMemo(() => {
+    if (Object.keys(pendingMoves).length === 0) return tasksByStatus
+
+    const result: Record<string, HiveTask[]> = {}
+    for (const status of TASK_STATUSES) {
+      result[status] = []
+    }
+    for (const [status, tasks] of Object.entries(tasksByStatus)) {
+      for (const task of tasks) {
+        const effectiveStatus = pendingMoves[task.name] ?? status
+        if (result[effectiveStatus]) {
+          result[effectiveStatus].push(
+            pendingMoves[task.name]
+              ? { ...task, status: effectiveStatus as HiveTask["status"] }
+              : task
+          )
+        }
+      }
+    }
+    return result
+  }, [tasksByStatus, pendingMoves])
 
   const taskMap = useMemo(() => {
     const map: Record<string, HiveTask> = {}
-    for (const tasks of Object.values(tasksByStatus)) {
+    for (const tasks of Object.values(effectiveTasksByStatus)) {
       for (const t of tasks) {
         map[t.name] = t
       }
     }
     return map
-  }, [tasksByStatus])
+  }, [effectiveTasksByStatus])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -48,14 +72,22 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
     }),
   )
 
+  const findTask = (id: string): HiveTask | undefined => {
+    for (const tasks of Object.values(effectiveTasksByStatus)) {
+      const found = tasks.find((t) => t.name === id)
+      if (found) return found
+    }
+    return undefined
+  }
+
   const handleDragStart = (event: DragStartEvent) => {
     const task = findTask(String(event.active.id))
     if (task) setActiveTask(task)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveTask(null)
     const { active, over } = event
+    setActiveTask(null)
     if (!over) return
 
     const taskName = String(active.id)
@@ -64,21 +96,22 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
     if (TASK_STATUSES.includes(newStatus as typeof TASK_STATUSES[number])) {
       const task = findTask(taskName)
       if (task && task.status !== newStatus) {
-        onStatusChange(taskName, newStatus)
+        // Instant visual update — card appears in new column immediately
+        setPendingMoves(prev => ({ ...prev, [taskName]: newStatus }))
+
+        // Fire API call; clear pending on completion (SWR handles cache)
+        Promise.resolve(onStatusChange(taskName, newStatus)).finally(() => {
+          setPendingMoves(prev => {
+            const { [taskName]: _, ...rest } = prev
+            return rest
+          })
+        })
       }
     }
   }
 
   const handleDragOver = (_event: DragOverEvent) => {
     // Could be used for live reorder within columns later
-  }
-
-  const findTask = (id: string): HiveTask | undefined => {
-    for (const tasks of Object.values(tasksByStatus)) {
-      const found = tasks.find((t) => t.name === id)
-      if (found) return found
-    }
-    return undefined
   }
 
   return (
@@ -93,7 +126,7 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
           <KanbanColumn
             key={status}
             status={status}
-            tasks={tasksByStatus[status] ?? []}
+            tasks={effectiveTasksByStatus[status] ?? []}
             onTaskClick={onTaskClick}
             assigneesByTask={assigneesByTask}
             hasClient={hasClient}

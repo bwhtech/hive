@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react"
 import { Routes, Route, Navigate } from "react-router"
 import { useFrappeAuth } from "frappe-react-sdk"
 import { UserProvider } from "@/context/UserContext"
+import { CelebrationProvider } from "@/hooks/useTaskCelebration"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -45,7 +46,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  return <UserProvider>{children}</UserProvider>
+  return (
+    <UserProvider>
+      <CelebrationProvider>{children}</CelebrationProvider>
+    </UserProvider>
+  )
 }
 
 export default function App() {

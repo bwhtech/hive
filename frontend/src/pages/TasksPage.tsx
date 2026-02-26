@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react"
 import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc, useFrappeUpdateDoc, useSWRConfig } from "frappe-react-sdk"
 import { useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
+import EmojiPicker, { Theme } from "emoji-picker-react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   TaskDaily01Icon,
@@ -66,9 +67,12 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { useTheme } from "@/components/theme-provider"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskKanban } from "@/components/TaskKanban"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
+import { useCelebration } from "@/hooks/useTaskCelebration"
 
 interface TaskRow {
   task: HiveTask
@@ -247,9 +251,12 @@ export function TasksPage() {
   const [saveViewLabel, setSaveViewLabel] = useState("")
   const [saveViewEmoji, setSaveViewEmoji] = useState("")
   const [saveViewPublic, setSaveViewPublic] = useState(false)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const { createDoc } = useFrappeCreateDoc()
   const { updateDoc } = useFrappeUpdateDoc()
   const { mutate: globalMutate } = useSWRConfig()
+  const { resolvedTheme } = useTheme()
+  const { celebrate } = useCelebration()
 
   const { data: tasks, isLoading: tasksLoading, mutate: tasksMutate } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
@@ -393,13 +400,23 @@ export function TasksPage() {
   }, [filteredTasks])
 
   const handleStatusChange = useCallback(async (taskName: string, newStatus: string) => {
+    const optimistic = (current: HiveTask[] | undefined) =>
+      current?.map((t) =>
+        t.name === taskName ? { ...t, status: newStatus as HiveTask["status"] } : t
+      )
     try {
-      await updateDoc("Hive Task", taskName, { status: newStatus })
-      tasksMutate()
+      await tasksMutate(
+        async (current) => {
+          await updateDoc("Hive Task", taskName, { status: newStatus })
+          return optimistic(current)
+        },
+        { optimisticData: optimistic, rollbackOnError: true, revalidate: true },
+      )
+      if (newStatus === "Done") celebrate()
     } catch {
       toast.error("Failed to update task status")
     }
-  }, [updateDoc, tasksMutate])
+  }, [updateDoc, tasksMutate, celebrate])
 
   const handleTaskClick = useCallback((task: HiveTask) => {
     if (document.activeElement instanceof HTMLElement) {
@@ -730,15 +747,31 @@ export function TasksPage() {
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-3">
               <div>
-                <Label htmlFor="save-view-emoji">Emoji</Label>
-                <Input
-                  id="save-view-emoji"
-                  value={saveViewEmoji}
-                  onChange={(e) => setSaveViewEmoji(e.target.value)}
-                  placeholder="📋"
-                  className="mt-1.5 w-16 text-center text-lg"
-                  maxLength={2}
-                />
+                <Label>Emoji</Label>
+                <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+                  <PopoverTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="mt-1.5 flex h-9 w-16 items-center justify-center rounded-md border border-input bg-background text-lg hover:bg-accent transition-colors"
+                      >
+                        {saveViewEmoji || "📋"}
+                      </button>
+                    }
+                  />
+                  <PopoverContent className="w-auto p-0" side="bottom" align="start">
+                    <EmojiPicker
+                      onEmojiClick={(emojiData) => {
+                        setSaveViewEmoji(emojiData.emoji)
+                        setEmojiPickerOpen(false)
+                      }}
+                      theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
+                      skinTonesDisabled
+                      height={400}
+                      width={350}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="flex-1">
                 <Label htmlFor="save-view-label">Name</Label>

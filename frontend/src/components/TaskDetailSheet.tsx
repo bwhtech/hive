@@ -50,6 +50,7 @@ import { useUser } from "@/context/UserContext"
 import { TaskCommentsSection } from "@/components/TaskCommentsSection"
 import { TaskAttachments } from "@/components/TaskAttachments"
 import { LinkField } from "@/components/LinkField"
+import { useCelebration } from "@/hooks/useTaskCelebration"
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember } from "@/types"
 
 interface TaskDetailSheetProps {
@@ -75,6 +76,7 @@ interface TaskAssigneeRow {
 export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient = true }: TaskDetailSheetProps) {
   const isMobile = useIsMobile()
   const { isClient, user } = useUser()
+  const { celebrate } = useCelebration()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("Backlog")
@@ -221,6 +223,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     setStatus(newStatus)
     if (newStatus === "Done" && !completedOn) {
       setCompletedOn(new Date())
+      celebrate()
     } else if (newStatus !== "Done") {
       setCompletedOn(undefined)
     }

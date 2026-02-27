@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
-import { useFrappeGetDocList, useFrappePostCall, useFrappeCreateDoc, useFrappeUpdateDoc, useSWRConfig } from "frappe-react-sdk"
-import { useNavigate, useSearchParams } from "react-router"
+import { useFrappeGetDocList, useFrappeGetDoc, useFrappePostCall, useFrappeCreateDoc, useFrappeUpdateDoc, useSWRConfig } from "frappe-react-sdk"
+import { useNavigate, useSearchParams, Link } from "react-router"
 import { toast } from "sonner"
 import EmojiPicker, { Theme } from "emoji-picker-react"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -48,7 +48,7 @@ import {
 import { LinkField } from "@/components/LinkField"
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { MemberAvatar } from "@/components/MemberAvatar"
-import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveMilestone, type HiveTaskAssignee } from "@/types"
+import { TASK_STATUSES, TASK_PRIORITIES, type HiveTask, type HiveProject, type HiveMilestone, type HiveTaskAssignee, type HiveView } from "@/types"
 import { TASK_PRIORITY_VARIANT, TASK_SIZE_VARIANT, TASK_STATUS_COLOR, PRIORITY_ORDER } from "@/lib/variants"
 import {
   Empty,
@@ -69,6 +69,14 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useTheme } from "@/components/theme-provider"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskKanban } from "@/components/TaskKanban"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
@@ -231,12 +239,18 @@ export function TasksPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
+  const viewId = searchParams.get("view_id") ?? ""
   const search = searchParams.get("q") ?? ""
   const statusFilter = searchParams.get("status") ?? "all"
   const priorityFilter = searchParams.get("priority") ?? "all"
   const projectFilter = searchParams.get("project") ?? "all"
   const assigneeFilter = searchParams.get("assignee") ?? "all"
   const viewMode = (searchParams.get("view") ?? "list") as "list" | "kanban"
+
+  const { data: activeView } = useFrappeGetDoc<HiveView>(
+    "Hive View",
+    viewId || null,
+  )
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams((prev) => {
@@ -335,14 +349,19 @@ export function TasksPage() {
     }
   }, [createDoc, callAssign, callAssignees, tasksMutate])
 
-  const handleSaveView = useCallback(async () => {
-    if (!saveViewLabel.trim()) return
+  const buildCurrentFilters = useCallback(() => {
     const filters: Record<string, string> = {}
     if (statusFilter !== "all") filters.status = statusFilter
     if (priorityFilter !== "all") filters.priority = priorityFilter
     if (projectFilter !== "all") filters.project = projectFilter
     if (assigneeFilter !== "all") filters.assignee = assigneeFilter
     if (search) filters.q = search
+    return filters
+  }, [statusFilter, priorityFilter, projectFilter, assigneeFilter, search])
+
+  const handleSaveView = useCallback(async () => {
+    if (!saveViewLabel.trim()) return
+    const filters = buildCurrentFilters()
     try {
       await createDoc("Hive View", {
         label: saveViewLabel.trim(),
@@ -361,7 +380,22 @@ export function TasksPage() {
     } catch {
       toast.error("Failed to save view")
     }
-  }, [saveViewLabel, saveViewEmoji, saveViewPublic, statusFilter, priorityFilter, projectFilter, assigneeFilter, search, viewMode, createDoc, globalMutate])
+  }, [saveViewLabel, saveViewEmoji, saveViewPublic, viewMode, buildCurrentFilters, createDoc, globalMutate])
+
+  const handleSaveViewChanges = useCallback(async () => {
+    if (!activeView) return
+    const filters = buildCurrentFilters()
+    try {
+      await updateDoc("Hive View", activeView.name, {
+        filters_json: JSON.stringify(filters),
+        view_type: viewMode,
+      })
+      toast.success("View updated")
+      globalMutate((key: unknown) => typeof key === "string" && key.includes("Hive View"), undefined, { revalidate: true })
+    } catch {
+      toast.error("Failed to update view")
+    }
+  }, [activeView, viewMode, buildCurrentFilters, updateDoc, globalMutate])
 
   const projectMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -496,14 +530,56 @@ export function TasksPage() {
 
   const activeFilterCount = [statusFilter, priorityFilter, projectFilter, assigneeFilter].filter(f => f !== "all").length
 
+  // Detect if the user has modified filters from the saved view's originals
+  const viewFiltersModified = useMemo(() => {
+    if (!activeView) return false
+    const saved: Record<string, string> = (() => {
+      try { return JSON.parse(activeView.filters_json || "{}") } catch { return {} }
+    })()
+    const current: Record<string, string> = {}
+    if (statusFilter !== "all") current.status = statusFilter
+    if (priorityFilter !== "all") current.priority = priorityFilter
+    if (projectFilter !== "all") current.project = projectFilter
+    if (assigneeFilter !== "all") current.assignee = assigneeFilter
+    if (search) current.q = search
+    const savedKeys = Object.keys(saved).sort()
+    const currentKeys = Object.keys(current).sort()
+    if (savedKeys.length !== currentKeys.length) return true
+    return savedKeys.some((k, i) => currentKeys[i] !== k || saved[k] !== current[k])
+  }, [activeView, statusFilter, priorityFilter, projectFilter, assigneeFilter, search])
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-          <p className="mt-1 text-muted-foreground">
-            All tasks across your projects.
-          </p>
+          {activeView ? (
+            <>
+              <Breadcrumb className="mb-2">
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink render={<Link to="/tasks" />}>
+                      Tasks
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{activeView.label}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                {activeView.emoji && <span className="text-xl">{activeView.emoji}</span>}
+                {activeView.label}
+              </h1>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+              <p className="mt-1 text-muted-foreground">
+                All tasks across your projects.
+              </p>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-md border p-0.5">
@@ -524,10 +600,22 @@ export function TasksPage() {
               <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
             </Button>
           </div>
-          <Button variant="outline" onClick={() => setSaveViewOpen(true)}>
-            <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} data-icon="inline-start" />
-            Save View
-          </Button>
+          {activeView && viewFiltersModified ? (
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" onClick={handleSaveViewChanges}>
+                <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} data-icon="inline-start" />
+                Save Changes
+              </Button>
+              <Button variant="outline" onClick={() => setSaveViewOpen(true)}>
+                Save as New View
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" onClick={() => setSaveViewOpen(true)}>
+              <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} data-icon="inline-start" />
+              Save View
+            </Button>
+          )}
           <Button onClick={() => setCreateOpen(true)}>
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
             Add Task

@@ -152,10 +152,13 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
+                const hasViewId = new URLSearchParams(location.search).get("view_id")
                 const isActive =
                   item.to === "/"
                     ? location.pathname === "/"
-                    : location.pathname.startsWith(item.to)
+                    : item.to === "/tasks" && hasViewId
+                      ? false
+                      : location.pathname.startsWith(item.to)
 
                 return (
                   <SidebarMenuItem key={item.to}>
@@ -216,12 +219,13 @@ export function AppSidebar({
                     try { return JSON.parse(view.filters_json || "{}") } catch { return {} }
                   })()
                   const params = new URLSearchParams()
+                  params.set("view_id", view.name)
                   for (const [k, v] of Object.entries(filters)) {
                     if (v) params.set(k, v as string)
                   }
                   if (view.view_type === "kanban") params.set("view", "kanban")
-                  const to = `/tasks${params.toString() ? `?${params.toString()}` : ""}`
-                  const isActive = location.pathname === "/tasks" && location.search === `?${params.toString()}`
+                  const to = `/tasks?${params.toString()}`
+                  const isActive = location.pathname === "/tasks" && new URLSearchParams(location.search).get("view_id") === view.name
 
                   const canDelete = view.owner === user?.email
 

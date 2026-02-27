@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from "react"
+import { useState, useMemo, memo, createContext, use } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -20,6 +20,19 @@ import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from "@/types"
 import { TASK_PRIORITY_VARIANT, TASK_SIZE_VARIANT } from "@/lib/variants"
+
+// Lifted state: eliminates hasClient / taskMap / onTaskClick prop drilling
+// through KanbanColumn → DraggableTaskCard → TaskCard (4 levels)
+interface KanbanContextValue {
+  hasClient: boolean
+  taskMap: Record<string, HiveTask>
+  onTaskClick?: (task: HiveTask) => void
+}
+
+const KanbanContext = createContext<KanbanContextValue>({
+  hasClient: true,
+  taskMap: {},
+})
 
 interface TaskKanbanProps {
   tasksByStatus: Record<string, HiveTask[]>
@@ -106,47 +119,45 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
     // Could be used for live reorder within columns later
   }
 
+  const kanbanCtx = useMemo<KanbanContextValue>(
+    () => ({ hasClient, taskMap, onTaskClick }),
+    [hasClient, taskMap, onTaskClick],
+  )
+
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragOver={handleDragOver}
-    >
-      <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
-        {TASK_STATUSES.map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            tasks={effectiveTasksByStatus[status] ?? []}
-            onTaskClick={onTaskClick}
-            assigneesByTask={assigneesByTask}
-            hasClient={hasClient}
-            taskMap={taskMap}
-          />
-        ))}
-      </div>
-      <DragOverlay dropAnimation={null}>
-        {activeTask ? <TaskCard task={activeTask} isDragOverlay assignees={assigneesByTask?.[activeTask.name]} hasClient={hasClient} taskMap={taskMap} /> : null}
-      </DragOverlay>
-    </DndContext>
+    <KanbanContext value={kanbanCtx}>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+      >
+        <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
+          {TASK_STATUSES.map((status) => (
+            <KanbanColumn
+              key={status}
+              status={status}
+              tasks={effectiveTasksByStatus[status] ?? []}
+              assigneesByTask={assigneesByTask}
+            />
+          ))}
+        </div>
+        <DragOverlay dropAnimation={null}>
+          {activeTask ? <TaskCard task={activeTask} isDragOverlay assignees={assigneesByTask?.[activeTask.name]} /> : null}
+        </DragOverlay>
+      </DndContext>
+    </KanbanContext>
   )
 }
 
 const KanbanColumn = memo(function KanbanColumn({
   status,
   tasks,
-  onTaskClick,
   assigneesByTask,
-  hasClient,
-  taskMap,
 }: {
   status: string
   tasks: HiveTask[]
-  onTaskClick?: (task: HiveTask) => void
   assigneesByTask?: Record<string, HiveTaskAssignee[]>
-  hasClient?: boolean
-  taskMap: Record<string, HiveTask>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -167,7 +178,7 @@ const KanbanColumn = memo(function KanbanColumn({
       </div>
       <div className="flex flex-col gap-2 min-h-[60px]">
         {tasks.map((task) => (
-          <DraggableTaskCard key={task.name} task={task} onTaskClick={onTaskClick} assignees={assigneesByTask?.[task.name]} hasClient={hasClient} taskMap={taskMap} />
+          <DraggableTaskCard key={task.name} task={task} assignees={assigneesByTask?.[task.name]} />
         ))}
       </div>
     </div>
@@ -176,17 +187,12 @@ const KanbanColumn = memo(function KanbanColumn({
 
 function DraggableTaskCard({
   task,
-  onTaskClick,
   assignees,
-  hasClient,
-  taskMap,
 }: {
   task: HiveTask
-  onTaskClick?: (task: HiveTask) => void
   assignees?: HiveTaskAssignee[]
-  hasClient?: boolean
-  taskMap: Record<string, HiveTask>
 }) {
+  const { onTaskClick } = use(KanbanContext)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.name,
   })
@@ -204,12 +210,13 @@ function DraggableTaskCard({
       className={`[content-visibility:auto] [contain-intrinsic-size:auto_120px] ${isDragging ? "opacity-0" : ""}`}
       onClick={() => onTaskClick?.(task)}
     >
-      <TaskCard task={task} assignees={assignees} hasClient={hasClient} taskMap={taskMap} />
+      <TaskCard task={task} assignees={assignees} />
     </div>
   )
 }
 
-const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees, hasClient, taskMap }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[]; hasClient?: boolean; taskMap?: Record<string, HiveTask> }) {
+const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[] }) {
+  const { hasClient, taskMap } = use(KanbanContext)
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
 
   // Use new assignees if available, fall back to legacy assigned_to

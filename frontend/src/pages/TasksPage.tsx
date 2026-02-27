@@ -294,7 +294,7 @@ export function TasksPage() {
       fields: [
         "name", "title", "project", "status", "priority", "size", "milestone",
         "depends_on", "assigned_to", "is_internal", "start_date", "due_date", "pr_link",
-        "uat_status", "creation", "modified",
+        "completed_on", "uat_status", "creation", "modified",
       ],
       filters: [["is_archived", "=", 0]],
       orderBy: { field: "due_date", order: "asc" },
@@ -472,9 +472,14 @@ export function TasksPage() {
   }, [filteredTasks])
 
   const handleStatusChange = useCallback(async (taskName: string, newStatus: string) => {
+    const today = new Date().toISOString().split("T")[0]
     const optimistic = (current: HiveTask[] | undefined) =>
       current?.map((t) =>
-        t.name === taskName ? { ...t, status: newStatus as HiveTask["status"] } : t
+        t.name === taskName ? {
+          ...t,
+          status: newStatus as HiveTask["status"],
+          completed_on: newStatus === "Done" ? (t.completed_on || today) : null,
+        } : t
       )
     try {
       await tasksMutate(

@@ -88,6 +88,7 @@ const TASK_FIELDS = [
   "due_date",
   "start_date",
   "pr_link",
+  "completed_on",
   "uat_status",
   "uat_approved_by",
   "uat_date",
@@ -265,9 +266,14 @@ export function ProjectDetailPage() {
   }, [pendingTaskName, tasks])
 
   const handleStatusChange = useCallback(async (taskName: string, newStatus: string) => {
+    const today = new Date().toISOString().split("T")[0]
     const optimistic = (current: HiveTask[] | undefined) =>
       current?.map((t) =>
-        t.name === taskName ? { ...t, status: newStatus as HiveTask["status"] } : t
+        t.name === taskName ? {
+          ...t,
+          status: newStatus as HiveTask["status"],
+          completed_on: newStatus === "Done" ? (t.completed_on || today) : null,
+        } : t
       )
     try {
       await mutateTasks(

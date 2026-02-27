@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useFrappeAuth, useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -52,17 +53,28 @@ export function NotificationSheet({ open, onOpenChange }: NotificationSheetProps
     open && currentUser ? undefined : null,
   )
 
+  const uniqueFromUsers = useMemo(
+    () => [...new Set((notifications ?? []).map((n) => n.from_user).filter(Boolean))],
+    [notifications],
+  )
+
   const { data: userInfo } = useFrappeGetDocList<{ name: string; full_name: string; user_image: string }>(
     "User",
     {
       fields: ["name", "full_name", "user_image"],
-      filters: [["name", "in", [...new Set((notifications ?? []).map((n) => n.from_user).filter(Boolean))]]],
+      filters: [["name", "in", uniqueFromUsers]],
     },
     notifications && notifications.length > 0 ? undefined : null,
   )
 
-  const userMap = new Map((userInfo ?? []).map((u) => [u.name, u]))
-  const unreadCount = (notifications ?? []).filter((n) => !n.read).length
+  const userMap = useMemo(
+    () => new Map((userInfo ?? []).map((u) => [u.name, u])),
+    [userInfo],
+  )
+  const unreadCount = useMemo(
+    () => (notifications ?? []).filter((n) => !n.read).length,
+    [notifications],
+  )
 
   const handleMarkAllRead = async () => {
     await markAllRead({})

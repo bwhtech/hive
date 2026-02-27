@@ -142,6 +142,11 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks, onTa
     }
   }, [dashboardResult])
 
+  const teamMemberSet = useMemo(
+    () => new Set(teamMembers.map((m) => m.member)),
+    [teamMembers],
+  )
+
   const saveProjectMembers = async (
     members: { member: string; member_name: string; role: string }[],
   ) => {
@@ -156,7 +161,7 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks, onTa
   }
 
   const toggleTeamMember = (member: HiveMember) => {
-    const exists = teamMembers.some((m) => m.member === member.name)
+    const exists = teamMemberSet.has(member.name)
     const next = exists
       ? teamMembers.filter((m) => m.member !== member.name)
       : [
@@ -339,9 +344,7 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks, onTa
                     <div className="space-y-1 max-h-48 overflow-y-auto">
                       {allMembers?.length ? (
                         allMembers.map((m) => {
-                          const isAssigned = teamMembers.some(
-                            (tm) => tm.member === m.name,
-                          )
+                          const isAssigned = teamMemberSet.has(m.name)
                           return (
                             <button
                               key={m.name}

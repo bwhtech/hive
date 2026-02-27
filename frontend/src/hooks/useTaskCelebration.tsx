@@ -4,6 +4,7 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react"
 import type { DotLottie } from "@lottiefiles/dotlottie-web"
 import { motion } from "motion/react"
 import confetti from "canvas-confetti"
+import { useCelebrationSettings } from "@/hooks/useCelebrationSettings"
 
 const LOTTIE_SRC = "/assets/bwh_hive/frontend/sounds/celebration.lottie"
 
@@ -73,6 +74,7 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
   const dismissRef = useRef<ReturnType<typeof setTimeout>>()
   const fadeRef = useRef<ReturnType<typeof setTimeout>>()
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const { animation: animationEnabled, sound: soundEnabled } = useCelebrationSettings()
 
   // Preload the audio file
   useEffect(() => {
@@ -81,53 +83,57 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const celebrate = useCallback(() => {
+    if (!animationEnabled && !soundEnabled) return
     if (visible) return
 
-    setVisible(true)
+    if (animationEnabled) {
+      setVisible(true)
 
-    // Confetti burst
-    const isMobile = window.innerWidth < 768
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { x: isMobile ? 0.5 : 0.25, y: 0.9 },
-      colors: ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"],
-    })
+      // Confetti burst
+      const isMobile = window.innerWidth < 768
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { x: isMobile ? 0.5 : 0.25, y: 0.9 },
+        colors: ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"],
+      })
 
-    // Play celebration sound with fade-out
-    try {
-      const audio = audioRef.current
-      if (audio) {
-        audio.volume = 0.5
-        audio.currentTime = 0
-        audio.play().catch(() => {})
-
-        // Start fading out after 3s (over the last 2s)
-        if (fadeRef.current) clearTimeout(fadeRef.current)
-        fadeRef.current = setTimeout(() => {
-          const fadeSteps = 40
-          const fadeInterval = 2000 / fadeSteps
-          let step = 0
-          const fade = setInterval(() => {
-            step++
-            audio.volume = Math.max(0, 0.5 * (1 - step / fadeSteps))
-            if (step >= fadeSteps) {
-              clearInterval(fade)
-              audio.pause()
-            }
-          }, fadeInterval)
-        }, 3000)
-      }
-    } catch {
-      // Audio playback may be blocked by browser policy — ignore
+      // Auto-dismiss overlay after 5 seconds
+      if (dismissRef.current) clearTimeout(dismissRef.current)
+      dismissRef.current = setTimeout(() => {
+        setVisible(false)
+      }, 5000)
     }
 
-    // Auto-dismiss overlay after 5 seconds
-    if (dismissRef.current) clearTimeout(dismissRef.current)
-    dismissRef.current = setTimeout(() => {
-      setVisible(false)
-    }, 5000)
-  }, [visible])
+    if (soundEnabled) {
+      try {
+        const audio = audioRef.current
+        if (audio) {
+          audio.volume = 0.5
+          audio.currentTime = 0
+          audio.play().catch(() => {})
+
+          // Start fading out after 3s (over the last 2s)
+          if (fadeRef.current) clearTimeout(fadeRef.current)
+          fadeRef.current = setTimeout(() => {
+            const fadeSteps = 40
+            const fadeInterval = 2000 / fadeSteps
+            let step = 0
+            const fade = setInterval(() => {
+              step++
+              audio.volume = Math.max(0, 0.5 * (1 - step / fadeSteps))
+              if (step >= fadeSteps) {
+                clearInterval(fade)
+                audio.pause()
+              }
+            }, fadeInterval)
+          }, 3000)
+        }
+      } catch {
+        // Audio playback may be blocked by browser policy — ignore
+      }
+    }
+  }, [visible, animationEnabled, soundEnabled])
 
   return (
     <CelebrationContext.Provider value={{ celebrate }}>

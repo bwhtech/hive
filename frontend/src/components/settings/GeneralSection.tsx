@@ -3,13 +3,16 @@ import {
   useFrappeCreateDoc,
   useFrappeUpdateDoc,
 } from "frappe-react-sdk"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Cancel01Icon, Add01Icon } from "@hugeicons/core-free-icons"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { useCelebrationSettings, notify, CELEBRATION_KEYS } from "@/hooks/useCelebrationSettings"
 
 interface HiveProjectType {
   name: string
@@ -17,6 +20,18 @@ interface HiveProjectType {
 }
 
 export function GeneralSection() {
+  const { animation, sound } = useCelebrationSettings()
+
+  const setAnimation = useCallback((v: boolean) => {
+    localStorage.setItem(CELEBRATION_KEYS.ANIMATION_KEY, String(v))
+    notify()
+  }, [])
+
+  const setSound = useCallback((v: boolean) => {
+    localStorage.setItem(CELEBRATION_KEYS.SOUND_KEY, String(v))
+    notify()
+  }, [])
+
   const {
     data: projectTypes,
     isLoading,
@@ -137,6 +152,45 @@ export function GeneralSection() {
             No project types yet. Add one above.
           </p>
         )}
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold">Task Completion</h3>
+          <p className="text-xs text-muted-foreground">
+            Configure what happens when a task is marked as done.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="celebration-animation" className="flex flex-col gap-1 cursor-pointer">
+              <span className="text-sm font-medium">Play animation on task done</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                Show a celebration animation when a task is marked as done
+              </span>
+            </Label>
+            <Switch
+              id="celebration-animation"
+              checked={animation}
+              onCheckedChange={setAnimation}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="celebration-sound" className="flex flex-col gap-1 cursor-pointer">
+              <span className="text-sm font-medium">Play sound on task done</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                Play a celebration sound when a task is marked as done
+              </span>
+            </Label>
+            <Switch
+              id="celebration-sound"
+              checked={sound}
+              onCheckedChange={setSound}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )

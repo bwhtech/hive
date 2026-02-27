@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
+import { createContext, use, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { DotLottieReact } from "@lottiefiles/dotlottie-react"
 import type { DotLottie } from "@lottiefiles/dotlottie-web"
@@ -15,7 +15,7 @@ interface CelebrationContextValue {
 const CelebrationContext = createContext<CelebrationContextValue | null>(null)
 
 export function useCelebration() {
-  const ctx = useContext(CelebrationContext)
+  const ctx = use(CelebrationContext)
   if (!ctx) throw new Error("useCelebration must be used within CelebrationProvider")
   return ctx
 }

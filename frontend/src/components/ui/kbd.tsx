@@ -1,12 +1,12 @@
-import { forwardRef } from "react"
 import { cn } from "@/lib/utils"
 
 interface KbdProps extends React.HTMLAttributes<HTMLElement> {
   keys: string[]
+  ref?: React.Ref<HTMLElement>
 }
 
-const Kbd = forwardRef<HTMLElement, KbdProps>(
-  ({ keys, className, ...props }, ref) => (
+function Kbd({ keys, className, ref, ...props }: KbdProps) {
+  return (
     <span ref={ref} className={cn("inline-flex items-center gap-0.5", className)} {...props}>
       {keys.map((key, i) => (
         <kbd
@@ -17,8 +17,7 @@ const Kbd = forwardRef<HTMLElement, KbdProps>(
         </kbd>
       ))}
     </span>
-  ),
-)
-Kbd.displayName = "Kbd"
+  )
+}
 
 export { Kbd }

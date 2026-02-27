@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useFrappeGetCall } from "frappe-react-sdk"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import {
@@ -52,7 +52,8 @@ export function LinkField({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [displayLabel, setDisplayLabel] = useState("")
+  // Ref cache: stores label from dropdown selection for immediate feedback
+  const selectedLabelRef = useRef<{ value: string; label: string } | null>(null)
 
   // Debounce search input
   useEffect(() => {
@@ -80,10 +81,10 @@ export function LinkField({
   /** Prefer label (title field) over description (name) */
   const getOptionLabel = (o: SearchLinkResult) => o.label || o.description || o.value
 
-  // Resolve display label for current value
+  // Resolve display label for current value (fires once per unique value, SWR caches)
   const { data: resolveData } = useFrappeGetCall<{ message: SearchLinkResult[] }>(
     "frappe.desk.search.search_link",
-    value && !displayLabel
+    value
       ? {
           doctype,
           txt: value,
@@ -91,35 +92,37 @@ export function LinkField({
           page_length: 1,
         }
       : undefined,
-    value && !displayLabel ? `resolve-${doctype}-${value}` : null,
+    value ? `resolve-${doctype}-${value}` : null,
     { revalidateOnFocus: false },
   )
 
-  useEffect(() => {
+  // Derive displayLabel instead of syncing via useEffect (rerender-derived-state-no-effect)
+  const displayLabel = useMemo(() => {
+    if (!value) return ""
+    // Prefer cached label from dropdown selection (immediate feedback)
+    if (selectedLabelRef.current?.value === value) return selectedLabelRef.current.label
+    // Fall back to resolved data from API
     if (resolveData?.message?.length) {
       const match = resolveData.message.find((r) => r.value === value)
-      if (match) {
-        setDisplayLabel(getOptionLabel(match))
-      }
+      if (match) return getOptionLabel(match)
     }
-  }, [resolveData, value])
-
-  // Clear display label when value is cleared
-  useEffect(() => {
-    if (!value) setDisplayLabel("")
-  }, [value])
+    return ""
+  }, [value, resolveData])
 
   const handleSelect = useCallback(
     (selectedValue: string) => {
       if (selectedValue === value) {
         // Deselect
+        selectedLabelRef.current = null
         onChange("")
-        setDisplayLabel("")
       } else {
-        onChange(selectedValue)
-        // Find display label from current options
+        // Cache label for immediate feedback before re-render
         const option = options.find((o) => o.value === selectedValue)
-        setDisplayLabel(option ? getOptionLabel(option) : selectedValue)
+        selectedLabelRef.current = {
+          value: selectedValue,
+          label: option ? getOptionLabel(option) : selectedValue,
+        }
+        onChange(selectedValue)
       }
       setOpen(false)
       setSearch("")
@@ -130,8 +133,8 @@ export function LinkField({
   const handleClear = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      selectedLabelRef.current = null
       onChange("")
-      setDisplayLabel("")
     },
     [onChange],
   )

@@ -152,15 +152,23 @@ def member_query(user: str | None) -> str:
 	return f"`tabHive Member`.`client` = {frappe.db.escape(client)}"
 
 
-def project_has_permission(doc, ptype: str | None = None, user: str | None = None) -> bool | None:
-	"""Block access to private projects for non-owners."""
+def project_has_permission(doc, ptype: str | None = None, user: str | None = None) -> bool:
+	"""Block access to private projects for non-owners and restrict client access."""
 	if not user:
 		user = frappe.session.user
-	if user == "Administrator":
-		return None
+
+	# Private projects: only the owner can access
 	if doc.is_private and doc.owner != user:
 		return False
-	return None
+
+	# Client users: can only access projects linked to their client org
+	roles = frappe.get_roles(user)
+	if "Hive Client" in roles and "Hive Team" not in roles:
+		client = frappe.db.get_value("Hive Member", user, "client")
+		if not client or doc.client != client:
+			return False
+
+	return True
 
 
 def client_query(user: str | None) -> str:

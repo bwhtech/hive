@@ -20,12 +20,22 @@ def _is_hive_client() -> bool:
 	)
 
 
+def _private_project_condition(table: str, user: str) -> str:
+	"""Return SQL condition that hides other users' private projects."""
+	user_escaped = frappe.db.escape(user)
+	return f"(`{table}`.`is_private` = 0 OR `{table}`.`owner` = {user_escaped})"
+
+
 def project_query(user: str | None) -> str:
 	if not user:
 		user = frappe.session.user
 
-	if user == "Administrator" or not _is_hive_client():
+	if user == "Administrator":
 		return ""
+
+	if not _is_hive_client():
+		# Team members: hide other users' private projects
+		return _private_project_condition("tabHive Project", user)
 
 	projects = _get_client_projects()
 	if not projects:
@@ -35,12 +45,25 @@ def project_query(user: str | None) -> str:
 	return f"`tabHive Project`.`name` IN ({project_list})"
 
 
+def _private_task_condition(user: str) -> str:
+	"""Return SQL condition that hides tasks belonging to other users' private projects."""
+	user_escaped = frappe.db.escape(user)
+	return (
+		f"`tabHive Task`.`project` NOT IN "
+		f"(SELECT `name` FROM `tabHive Project` WHERE `is_private` = 1 AND `owner` != {user_escaped})"
+	)
+
+
 def task_query(user: str | None) -> str:
 	if not user:
 		user = frappe.session.user
 
-	if user == "Administrator" or not _is_hive_client():
+	if user == "Administrator":
 		return ""
+
+	if not _is_hive_client():
+		# Team members: hide tasks from other users' private projects
+		return _private_task_condition(user)
 
 	projects = _get_client_projects()
 	if not projects:
@@ -50,12 +73,24 @@ def task_query(user: str | None) -> str:
 	return f"`tabHive Task`.`project` IN ({project_list}) AND `tabHive Task`.`is_internal` = 0"
 
 
+def _private_project_subquery_condition(table: str, project_field: str, user: str) -> str:
+	"""Return SQL condition for child tables that reference a project."""
+	user_escaped = frappe.db.escape(user)
+	return (
+		f"`{table}`.`{project_field}` NOT IN "
+		f"(SELECT `name` FROM `tabHive Project` WHERE `is_private` = 1 AND `owner` != {user_escaped})"
+	)
+
+
 def feature_request_query(user: str | None) -> str:
 	if not user:
 		user = frappe.session.user
 
-	if user == "Administrator" or not _is_hive_client():
+	if user == "Administrator":
 		return ""
+
+	if not _is_hive_client():
+		return _private_project_subquery_condition("tabHive Feature Request", "project", user)
 
 	projects = _get_client_projects()
 	if not projects:
@@ -69,8 +104,11 @@ def project_update_query(user: str | None) -> str:
 	if not user:
 		user = frappe.session.user
 
-	if user == "Administrator" or not _is_hive_client():
+	if user == "Administrator":
 		return ""
+
+	if not _is_hive_client():
+		return _private_project_subquery_condition("tabHive Project Update", "project", user)
 
 	projects = _get_client_projects()
 	if not projects:
@@ -84,8 +122,11 @@ def milestone_query(user: str | None) -> str:
 	if not user:
 		user = frappe.session.user
 
-	if user == "Administrator" or not _is_hive_client():
+	if user == "Administrator":
 		return ""
+
+	if not _is_hive_client():
+		return _private_project_subquery_condition("tabHive Milestone", "project", user)
 
 	projects = _get_client_projects()
 	if not projects:
@@ -109,6 +150,17 @@ def member_query(user: str | None) -> str:
 		return f"`tabHive Member`.`name` = {frappe.db.escape(user)}"
 
 	return f"`tabHive Member`.`client` = {frappe.db.escape(client)}"
+
+
+def project_has_permission(doc, ptype: str | None = None, user: str | None = None) -> bool | None:
+	"""Block access to private projects for non-owners."""
+	if not user:
+		user = frappe.session.user
+	if user == "Administrator":
+		return None
+	if doc.is_private and doc.owner != user:
+		return False
+	return None
 
 
 def client_query(user: str | None) -> str:

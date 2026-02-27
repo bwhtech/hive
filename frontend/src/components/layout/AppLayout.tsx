@@ -61,13 +61,14 @@ export function AppLayout() {
     setSettingsOpen(true)
   }
 
-  const handleCreateProject = useCallback(async (values: { title: string; project_type?: string; client?: string }) => {
+  const handleCreateProject = useCallback(async (values: { title: string; project_type?: string; client?: string; is_private?: 0 | 1 }) => {
     try {
       const doc = await createDoc("Hive Project", {
         title: values.title,
         status: "Open",
         ...(values.project_type && { project_type: values.project_type }),
         ...(values.client && { client: values.client }),
+        ...(values.is_private && { is_private: values.is_private }),
       })
       setCreateProjectOpen(false)
       toast.success("Project created")

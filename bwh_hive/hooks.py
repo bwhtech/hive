@@ -121,6 +121,10 @@ after_migrate = "bwh_hive.install.after_migrate"
 # -----------
 # Permissions evaluated in scripted ways
 
+has_permission = {
+	"Hive Project": "bwh_hive.bwh_hive.permissions.project_has_permission",
+}
+
 permission_query_conditions = {
 	"Hive Project": "bwh_hive.bwh_hive.permissions.project_query",
 	"Hive Task": "bwh_hive.bwh_hive.permissions.task_query",

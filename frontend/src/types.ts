@@ -5,7 +5,9 @@ export interface HiveProject {
   project_type: string
   client: string
   description: string
+  is_private: 0 | 1
   is_archived: 0 | 1
+  owner: string
   links?: HiveProjectLink[]
   creation: string
   modified: string

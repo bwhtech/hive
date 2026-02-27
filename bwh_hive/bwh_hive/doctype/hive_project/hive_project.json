@@ -11,6 +11,7 @@
  "field_order": [
   "title",
   "status",
+  "is_private",
   "project_type",
   "client",
   "description",
@@ -28,6 +29,13 @@
    "in_standard_filter": 1,
    "label": "Title",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "Private projects are only visible to the creator",
+   "fieldname": "is_private",
+   "fieldtype": "Check",
+   "label": "Private"
   },
   {
    "default": "Open",

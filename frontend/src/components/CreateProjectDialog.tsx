@@ -16,6 +16,13 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,13 +34,14 @@ import { toast } from "sonner"
 interface CreateProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (values: { title: string; project_type?: string; client?: string }) => void
+  onSubmit: (values: { title: string; project_type?: string; client?: string; is_private?: 0 | 1 }) => void
 }
 
 export function CreateProjectDialog({ open, onOpenChange, onSubmit }: CreateProjectDialogProps) {
   const [title, setTitle] = useState("")
   const [projectType, setProjectType] = useState("")
   const [client, setClient] = useState("")
+  const [visibility, setVisibility] = useState<"Public" | "Private">("Public")
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [newClientName, setNewClientName] = useState("")
 
@@ -46,10 +54,12 @@ export function CreateProjectDialog({ open, onOpenChange, onSubmit }: CreateProj
       title: title.trim(),
       ...(projectType && { project_type: projectType }),
       ...(client && { client }),
+      is_private: visibility === "Private" ? 1 : 0,
     })
     setTitle("")
     setProjectType("")
     setClient("")
+    setVisibility("Public")
   }
 
   const handleCreateClient = async (e: React.FormEvent) => {
@@ -86,6 +96,24 @@ export function CreateProjectDialog({ open, onOpenChange, onSubmit }: CreateProj
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Visibility</Label>
+              <Select value={visibility} onValueChange={(v) => setVisibility(v as "Public" | "Private")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Public">Public</SelectItem>
+                  <SelectItem value="Private">Private</SelectItem>
+                </SelectContent>
+              </Select>
+              {visibility === "Private" && (
+                <p className="text-xs text-muted-foreground">
+                  Only you will be able to see this project and its tasks.
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2">

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
 import { Link, useOutletContext } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Folder01Icon, Search01Icon, Add01Icon } from "@hugeicons/core-free-icons"
+import { Folder01Icon, Search01Icon, Add01Icon, LockIcon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -34,7 +34,7 @@ export function ProjectsPage() {
   const [scopeFilter, setScopeFilter] = useState("External")
 
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
-    fields: ["name", "title", "status", "project_type", "client", "description", "creation", "modified"],
+    fields: ["name", "title", "status", "project_type", "client", "description", "is_private", "creation", "modified"],
     filters: [["is_archived", "=", 0]],
     orderBy: { field: "modified", order: "desc" },
     limit: 100,
@@ -156,6 +156,12 @@ export function ProjectsPage() {
                       <Badge variant={PROJECT_STATUS_VARIANT[project.status] ?? "outline"}>
                         {project.status}
                       </Badge>
+                      {project.is_private === 1 && (
+                        <Badge variant="outline" className="gap-1">
+                          <HugeiconsIcon icon={LockIcon} strokeWidth={2} className="size-3" />
+                          Private
+                        </Badge>
+                      )}
                       {project.project_type && (
                         <Badge variant="outline">{project.project_type}</Badge>
                       )}

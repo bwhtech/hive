@@ -113,6 +113,16 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks, onTa
     },
   )
 
+  const allMembersByName = useMemo(() => {
+    const map = new Map<string, HiveMember>()
+    if (allMembers) {
+      for (const m of allMembers) {
+        map.set(m.name, m)
+      }
+    }
+    return map
+  }, [allMembers])
+
   const [teamMembers, setTeamMembers] = useState<
     { member: string; member_name: string; role: string }[]
   >([])
@@ -370,9 +380,7 @@ export function OverviewTab({ projectId, project, stats, milestones, tasks, onTa
             {teamMembers.length ? (
               <div className="space-y-2">
                 {teamMembers.map((m) => {
-                  const memberData = allMembers?.find(
-                    (am) => am.name === m.member,
-                  )
+                  const memberData = allMembersByName.get(m.member)
                   return (
                     <div
                       key={m.member}

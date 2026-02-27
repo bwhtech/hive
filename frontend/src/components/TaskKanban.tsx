@@ -72,16 +72,8 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
     }),
   )
 
-  const findTask = (id: string): HiveTask | undefined => {
-    for (const tasks of Object.values(effectiveTasksByStatus)) {
-      const found = tasks.find((t) => t.name === id)
-      if (found) return found
-    }
-    return undefined
-  }
-
   const handleDragStart = (event: DragStartEvent) => {
-    const task = findTask(String(event.active.id))
+    const task = taskMap[String(event.active.id)]
     if (task) setActiveTask(task)
   }
 
@@ -94,7 +86,7 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
     const newStatus = String(over.id)
 
     if (TASK_STATUSES.includes(newStatus as typeof TASK_STATUSES[number])) {
-      const task = findTask(taskName)
+      const task = taskMap[taskName]
       if (task && task.status !== newStatus) {
         // Instant visual update — card appears in new column immediately
         setPendingMoves(prev => ({ ...prev, [taskName]: newStatus }))

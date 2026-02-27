@@ -46,8 +46,18 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
     taskName ? undefined : null,
   )
 
+  const memberByEmail = useMemo(() => {
+    const map = new Map<string, HiveMember>()
+    if (members) {
+      for (const m of members) {
+        map.set(m.user, m)
+      }
+    }
+    return map
+  }, [members])
+
   const getMemberInfo = (email: string) => {
-    const member = members?.find((m) => m.user === email)
+    const member = memberByEmail.get(email)
     return {
       name: member?.member_name || email,
       image: member?.user_image || null,

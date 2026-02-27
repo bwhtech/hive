@@ -77,7 +77,7 @@ export function NotificationSheet({ open, onOpenChange }: NotificationSheetProps
     // Navigate based on notification document type
     if (notification.document_type === "Hive Task" && notification.document_name) {
       onOpenChange(false)
-      navigate(`/tasks?q=${encodeURIComponent(notification.document_name)}`)
+      navigate(`/tasks/${encodeURIComponent(notification.document_name)}`)
     } else if (notification.document_type === "Hive Project" && notification.document_name) {
       onOpenChange(false)
       navigate(`/projects/${notification.document_name}?tab=updates`)

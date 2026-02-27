@@ -42,7 +42,7 @@ class HiveTaskComment(Document):
 
 		from frappe.utils import get_url
 
-		task_link = f"{get_url()}/hive/tasks?q={self.task}"
+		task_link = f"{get_url()}/hive/tasks/{self.task}"
 		enqueue_create_notification(
 			mentioned_emails,
 			{

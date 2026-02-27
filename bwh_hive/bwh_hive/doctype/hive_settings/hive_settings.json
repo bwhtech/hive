@@ -6,7 +6,10 @@
  "engine": "InnoDB",
  "field_order": [
   "app_name",
-  "onboarding_completed"
+  "onboarding_completed",
+  "erpnext_sync_section",
+  "enable_erpnext_sync",
+  "default_company"
  ],
  "fields": [
   {
@@ -20,6 +23,25 @@
    "fieldname": "onboarding_completed",
    "fieldtype": "Check",
    "label": "Onboarding Completed"
+  },
+  {
+   "fieldname": "erpnext_sync_section",
+   "fieldtype": "Section Break",
+   "label": "ERPNext Sync"
+  },
+  {
+   "default": "0",
+   "description": "Automatically create ERPNext Projects when Hive Projects are created. Requires ERPNext to be installed.",
+   "fieldname": "enable_erpnext_sync",
+   "fieldtype": "Check",
+   "label": "Enable ERPNext Sync"
+  },
+  {
+   "depends_on": "eval:doc.enable_erpnext_sync",
+   "description": "ERPNext Company to use when creating synced Projects",
+   "fieldname": "default_company",
+   "fieldtype": "Data",
+   "label": "Default Company"
   }
  ],
  "grid_page_length": 50,

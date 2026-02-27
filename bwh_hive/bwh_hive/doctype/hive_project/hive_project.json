@@ -19,7 +19,8 @@
   "members",
   "links_section",
   "links",
-  "is_archived"
+  "is_archived",
+  "erp_project"
  ],
  "fields": [
   {
@@ -96,6 +97,13 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Archived"
+  },
+  {
+   "fieldname": "erp_project",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "ERPNext Project",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

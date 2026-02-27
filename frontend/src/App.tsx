@@ -5,23 +5,24 @@ import { UserProvider } from "@/context/UserContext"
 import { CelebrationProvider } from "@/hooks/useTaskCelebration"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { Spinner } from "@/components/ui/spinner"
+import { lazyWithRetry } from "@/utils/lazyWithRetry"
 
-const DashboardPage = lazy(() =>
+const DashboardPage = lazyWithRetry(() =>
   import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 )
-const ProjectsPage = lazy(() =>
+const ProjectsPage = lazyWithRetry(() =>
   import("@/pages/ProjectsPage").then((m) => ({ default: m.ProjectsPage })),
 )
-const TasksPage = lazy(() =>
+const TasksPage = lazyWithRetry(() =>
   import("@/pages/TasksPage").then((m) => ({ default: m.TasksPage })),
 )
-const TeamPage = lazy(() =>
+const TeamPage = lazyWithRetry(() =>
   import("@/pages/TeamPage").then((m) => ({ default: m.TeamPage })),
 )
-const ProjectDetailPage = lazy(() =>
+const ProjectDetailPage = lazyWithRetry(() =>
   import("@/pages/ProjectDetailPage").then((m) => ({ default: m.ProjectDetailPage })),
 )
-const TaskRedirectPage = lazy(() =>
+const TaskRedirectPage = lazyWithRetry(() =>
   import("@/pages/TaskRedirectPage").then((m) => ({ default: m.TaskRedirectPage })),
 )
 

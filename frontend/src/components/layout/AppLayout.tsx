@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router"
 import { useFrappeCreateDoc, useFrappeGetDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
@@ -12,14 +12,15 @@ import { OnboardingDialog } from "@/components/OnboardingDialog"
 import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
 import { useCommandPalette } from "@/hooks/useCommandPalette"
 import { useCelebration } from "@/hooks/useTaskCelebration"
+import { lazyWithRetry } from "@/utils/lazyWithRetry"
 
-const SettingsDialog = lazy(() =>
+const SettingsDialog = lazyWithRetry(() =>
   import("@/components/SettingsDialog").then((m) => ({ default: m.SettingsDialog })),
 )
-const CommandPalette = lazy(() =>
+const CommandPalette = lazyWithRetry(() =>
   import("@/components/CommandPalette").then((m) => ({ default: m.CommandPalette })),
 )
-const NotificationSheet = lazy(() =>
+const NotificationSheet = lazyWithRetry(() =>
   import("@/components/NotificationSheet").then((m) => ({ default: m.NotificationSheet })),
 )
 

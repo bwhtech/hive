@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   UserGroup03Icon,
@@ -23,9 +23,12 @@ const dashboardTabs = [
   { value: "team", label: "Team", icon: UserGroup03Icon },
 ] as const
 
+const tabMap = new Map(dashboardTabs.map((t) => [t.value, t]))
+
 export function DashboardPage() {
   const [tab, setTab] = useState("my")
   const isMobile = useIsMobile()
+  const activeTab = useMemo(() => tabMap.get(tab) ?? dashboardTabs[0], [tab])
 
   return (
     <div className="space-y-6">
@@ -42,11 +45,11 @@ export function DashboardPage() {
             <SelectTrigger className="w-full">
               <span className="flex items-center gap-2">
                 <HugeiconsIcon
-                  icon={dashboardTabs.find((t) => t.value === tab)?.icon ?? UserIcon}
+                  icon={activeTab.icon}
                   strokeWidth={2}
                   className="size-4"
                 />
-                {dashboardTabs.find((t) => t.value === tab)?.label}
+                {activeTab.label}
               </span>
             </SelectTrigger>
             <SelectContent>

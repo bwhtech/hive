@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router"
 import { useFrappeAuth, useFrappeGetDocList, useFrappeDeleteDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
@@ -131,11 +131,32 @@ export function AppSidebar({
     }
   }, [editingView, editLabel, editEmoji, editPublic, updateDoc, mutateSavedViews, mutateMyViews])
 
-  const allViews = [...(savedViews ?? []), ...(myViews ?? [])]
-  // Deduplicate by name
-  const viewMap = new Map<string, HiveView>()
-  for (const v of allViews) viewMap.set(v.name, v)
-  const views = Array.from(viewMap.values())
+  const views = useMemo(() => {
+    const allViews = [...(savedViews ?? []), ...(myViews ?? [])]
+    const viewMap = new Map<string, HiveView>()
+    for (const v of allViews) viewMap.set(v.name, v)
+    return Array.from(viewMap.values())
+  }, [savedViews, myViews])
+
+  const currentViewId = useMemo(
+    () => new URLSearchParams(location.search).get("view_id"),
+    [location.search],
+  )
+
+  const viewLinks = useMemo(() => {
+    return views.map((view) => {
+      const filters = (() => {
+        try { return JSON.parse(view.filters_json || "{}") } catch { return {} }
+      })()
+      const params = new URLSearchParams()
+      params.set("view_id", view.name)
+      for (const [k, v] of Object.entries(filters)) {
+        if (v) params.set(k, v as string)
+      }
+      if (view.view_type === "kanban") params.set("view", "kanban")
+      return { ...view, to: `/tasks?${params.toString()}` }
+    })
+  }, [views])
 
   const handleLogout = () => {
     logout()
@@ -152,11 +173,10 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const hasViewId = new URLSearchParams(location.search).get("view_id")
                 const isActive =
                   item.to === "/"
                     ? location.pathname === "/"
-                    : item.to === "/tasks" && hasViewId
+                    : item.to === "/tasks" && currentViewId
                       ? false
                       : location.pathname.startsWith(item.to)
 
@@ -214,19 +234,8 @@ export function AppSidebar({
             <SidebarGroupLabel>Views</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {views.map((view) => {
-                  const filters = (() => {
-                    try { return JSON.parse(view.filters_json || "{}") } catch { return {} }
-                  })()
-                  const params = new URLSearchParams()
-                  params.set("view_id", view.name)
-                  for (const [k, v] of Object.entries(filters)) {
-                    if (v) params.set(k, v as string)
-                  }
-                  if (view.view_type === "kanban") params.set("view", "kanban")
-                  const to = `/tasks?${params.toString()}`
-                  const isActive = location.pathname === "/tasks" && new URLSearchParams(location.search).get("view_id") === view.name
-
+                {viewLinks.map((view) => {
+                  const isActive = location.pathname === "/tasks" && currentViewId === view.name
                   const canDelete = view.owner === user?.email
 
                   return (
@@ -236,7 +245,7 @@ export function AppSidebar({
                         tooltip={view.label}
                         onClick={() => {
                           setOpenMobile(false)
-                          navigate(to)
+                          navigate(view.to)
                         }}
                       >
                         <span className="text-base leading-none">{view.emoji || "📋"}</span>

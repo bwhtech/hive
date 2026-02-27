@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
 import { Link } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -29,6 +30,25 @@ export function ProjectsTab() {
     },
   )
 
+  const tasksByProject = useMemo(() => {
+    const map: Record<string, { total: number; open: number; clientOpen: number }> = {}
+    if (tasks) {
+      for (const task of tasks) {
+        if (!map[task.project]) {
+          map[task.project] = { total: 0, open: 0, clientOpen: 0 }
+        }
+        map[task.project].total++
+        if (task.status !== "Done") {
+          map[task.project].open++
+          if (task.is_internal) {
+            map[task.project].clientOpen++
+          }
+        }
+      }
+    }
+    return map
+  }, [tasks])
+
   if (projectsLoading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -59,23 +79,6 @@ export function ProjectsTab() {
         </EmptyHeader>
       </Empty>
     )
-  }
-
-  // Group tasks by project
-  const tasksByProject: Record<string, { total: number; open: number; clientOpen: number }> = {}
-  if (tasks) {
-    for (const task of tasks) {
-      if (!tasksByProject[task.project]) {
-        tasksByProject[task.project] = { total: 0, open: 0, clientOpen: 0 }
-      }
-      tasksByProject[task.project].total++
-      if (task.status !== "Done") {
-        tasksByProject[task.project].open++
-        if (task.is_internal) {
-          tasksByProject[task.project].clientOpen++
-        }
-      }
-    }
   }
 
   return (

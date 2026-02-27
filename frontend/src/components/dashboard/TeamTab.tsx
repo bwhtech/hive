@@ -59,7 +59,30 @@ export function TeamTab() {
   const { data: staleData } = useFrappeGetCall<{ message: string[] }>(
     "bwh_hive.bwh_hive.api.get_stale_members",
   )
-  const staleUsers = new Set(staleData?.message ?? [])
+  const staleUsers = useMemo(() => new Set(staleData?.message ?? []), [staleData])
+
+  const { tasksByUser, projectsByUser } = useMemo(() => {
+    const tbu: Record<string, HiveTask[]> = {}
+    const pbu: Record<string, Set<string>> = {}
+    if (tasks) {
+      for (const task of tasks) {
+        if (!task.assigned_to) continue
+        if (!tbu[task.assigned_to]) tbu[task.assigned_to] = []
+        tbu[task.assigned_to].push(task)
+        if (!pbu[task.assigned_to]) pbu[task.assigned_to] = new Set()
+        pbu[task.assigned_to].add(task.project)
+      }
+    }
+    return { tasksByUser: tbu, projectsByUser: pbu }
+  }, [tasks])
+
+  const projectMap = useMemo(() => {
+    const map: Record<string, HiveProject> = {}
+    if (projects) {
+      for (const p of projects) map[p.name] = p
+    }
+    return map
+  }, [projects])
 
   if (membersLoading) {
     return (
@@ -96,32 +119,6 @@ export function TeamTab() {
         </EmptyHeader>
       </Empty>
     )
-  }
-
-  // Group tasks and projects by user
-  const tasksByUser: Record<string, HiveTask[]> = {}
-  const projectsByUser: Record<string, Set<string>> = {}
-
-  if (tasks) {
-    for (const task of tasks) {
-      if (!task.assigned_to) continue
-      if (!tasksByUser[task.assigned_to]) {
-        tasksByUser[task.assigned_to] = []
-      }
-      tasksByUser[task.assigned_to].push(task)
-      if (!projectsByUser[task.assigned_to]) {
-        projectsByUser[task.assigned_to] = new Set()
-      }
-      projectsByUser[task.assigned_to].add(task.project)
-    }
-  }
-
-  // Build project name lookup
-  const projectMap: Record<string, HiveProject> = {}
-  if (projects) {
-    for (const p of projects) {
-      projectMap[p.name] = p
-    }
   }
 
   return (

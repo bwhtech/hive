@@ -101,8 +101,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   }
 
   const { updateDoc } = useFrappeUpdateDoc()
-  const { call: approveUat, loading: approvingUat } = useFrappePostCall("frappe.client.run_doc_method")
-  const { call: rejectUat, loading: rejectingUat } = useFrappePostCall("frappe.client.run_doc_method")
+  const { call: approveUat, loading: approvingUat } = useFrappePostCall("run_doc_method")
+  const { call: rejectUat, loading: rejectingUat } = useFrappePostCall("run_doc_method")
   const { call: callAssign } = useFrappePostCall("frappe.desk.form.assign_to.add")
   const { call: callUnassign } = useFrappePostCall("frappe.desk.form.assign_to.remove")
 

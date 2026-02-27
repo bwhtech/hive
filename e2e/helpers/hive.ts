@@ -197,6 +197,28 @@ export async function listFeatureRequests(
 }
 
 /**
+ * Create a test Hive Feature Request via API.
+ */
+export async function createTestFeatureRequest(
+	request: APIRequestContext,
+	options: {
+		title?: string;
+		project: string;
+		priority?: string;
+		description?: string;
+	},
+): Promise<HiveFeatureRequest> {
+	const title = options.title || `E2E Test FR ${Date.now()}`;
+
+	return createDoc<HiveFeatureRequest>(request, "Hive Feature Request", {
+		title,
+		project: options.project,
+		priority: options.priority ?? "Nice to Have",
+		description: options.description,
+	});
+}
+
+/**
  * Delete a test feature request via API.
  */
 export async function deleteTestFeatureRequest(

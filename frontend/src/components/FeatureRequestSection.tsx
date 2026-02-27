@@ -116,7 +116,7 @@ export function FeatureRequestSection({
 
   const { createDoc } = useFrappeCreateDoc()
   const { call: callReview } = useFrappePostCall(
-    "frappe.client.run_doc_method",
+    "run_doc_method",
   )
 
   const handleCreate = async (values: {

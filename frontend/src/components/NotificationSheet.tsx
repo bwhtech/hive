@@ -31,11 +31,15 @@ interface NotificationSheetProps {
   onOpenChange: (open: boolean) => void
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+}
+
 export function NotificationSheet({ open, onOpenChange }: NotificationSheetProps) {
   const navigate = useNavigate()
   const { currentUser } = useFrappeAuth()
-  const { call: markAllRead } = useFrappePostCall("frappe.desk.notifications.mark_all_as_read")
-  const { call: markRead } = useFrappePostCall("frappe.desk.notifications.mark_as_read")
+  const { call: markAllRead } = useFrappePostCall("frappe.desk.doctype.notification_log.notification_log.mark_all_as_read")
+  const { call: markRead } = useFrappePostCall("frappe.desk.doctype.notification_log.notification_log.mark_as_read")
 
   const { data: notifications, isLoading, mutate } = useFrappeGetDocList<NotificationLog>(
     "Notification Log",
@@ -152,7 +156,7 @@ export function NotificationSheet({ open, onOpenChange }: NotificationSheetProps
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className={`text-sm leading-snug ${!notification.read ? "font-medium" : "text-muted-foreground"}`}>
-                        {notification.subject}
+                        {stripHtml(notification.subject)}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(notification.creation), { addSuffix: true })}

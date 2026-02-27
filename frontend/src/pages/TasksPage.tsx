@@ -389,10 +389,11 @@ export function TasksPage() {
     return tasks.filter((task) => {
       if (search) {
         const q = search.toLowerCase()
+        const matchName = task.name.toLowerCase().includes(q)
         const matchTitle = task.title.toLowerCase().includes(q)
         const matchProject = (projectMap[task.project] ?? task.project).toLowerCase().includes(q)
         const matchAssignee = (task.assigned_to ?? "").toLowerCase().includes(q)
-        if (!matchTitle && !matchProject && !matchAssignee) return false
+        if (!matchName && !matchTitle && !matchProject && !matchAssignee) return false
       }
       if (statusFilter !== "all" && task.status !== statusFilter) return false
       if (priorityFilter !== "all" && task.priority !== priorityFilter) return false
@@ -459,10 +460,11 @@ export function TasksPage() {
       .filter((task) => {
         if (search) {
           const q = search.toLowerCase()
+          const matchName = task.name.toLowerCase().includes(q)
           const matchTitle = task.title.toLowerCase().includes(q)
           const matchProject = (projectMap[task.project] ?? task.project).toLowerCase().includes(q)
           const matchAssignee = (task.assigned_to ?? "").toLowerCase().includes(q)
-          if (!matchTitle && !matchProject && !matchAssignee) return false
+          if (!matchName && !matchTitle && !matchProject && !matchAssignee) return false
         }
         if (statusFilter !== "all" && task.status !== statusFilter) return false
         if (priorityFilter !== "all" && task.priority !== priorityFilter) return false

@@ -30,7 +30,8 @@ export function ProjectsPage() {
   const { openCreateProject } = useOutletContext<{ openCreateProject: () => void }>()
   const { isClient } = useUser()
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("Open")
+  const [scopeFilter, setScopeFilter] = useState("all")
 
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
     fields: ["name", "title", "status", "project_type", "client", "description", "creation", "modified"],
@@ -50,9 +51,11 @@ export function ProjectsPage() {
         if (!matchTitle && !matchClient && !matchType) return false
       }
       if (statusFilter !== "all" && project.status !== statusFilter) return false
+      if (scopeFilter === "internal" && project.client) return false
+      if (scopeFilter === "external" && !project.client) return false
       return true
     })
-  }, [data, search, statusFilter])
+  }, [data, search, statusFilter, scopeFilter])
 
   return (
     <div className="space-y-6">
@@ -95,6 +98,16 @@ export function ProjectsPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={scopeFilter} onValueChange={setScopeFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Scope" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All projects</SelectItem>
+            <SelectItem value="internal">Internal</SelectItem>
+            <SelectItem value="external">External</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -118,10 +131,10 @@ export function ProjectsPage() {
               <HugeiconsIcon icon={Folder01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
             </EmptyMedia>
             <EmptyTitle>
-              {search || statusFilter !== "all" ? "No projects match your filters" : "No projects yet"}
+              {search || statusFilter !== "all" || scopeFilter !== "all" ? "No projects match your filters" : "No projects yet"}
             </EmptyTitle>
             <EmptyDescription>
-              {search || statusFilter !== "all"
+              {search || statusFilter !== "all" || scopeFilter !== "all"
                 ? "Try adjusting your search or filters."
                 : "Projects will appear here once created."}
             </EmptyDescription>
@@ -131,7 +144,7 @@ export function ProjectsPage() {
         <>
           <p className="text-xs text-muted-foreground">
             {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
-            {(search || statusFilter !== "all") && " matching filters"}
+            {(search || statusFilter !== "all" || scopeFilter !== "all") && " matching filters"}
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project) => (

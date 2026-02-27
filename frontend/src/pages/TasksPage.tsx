@@ -15,6 +15,7 @@ import {
   LeftToRightListBulletIcon,
   DashboardSquare01Icon,
   FloppyDiskIcon,
+  MoreHorizontalIcon,
 } from "@hugeicons/core-free-icons"
 import { format } from "date-fns"
 import {
@@ -67,6 +68,13 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useTheme } from "@/components/theme-provider"
 import {
@@ -560,8 +568,8 @@ export function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           {activeView ? (
             <>
               <Breadcrumb className="mb-2">
@@ -577,9 +585,9 @@ export function TasksPage() {
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 truncate">
                 {activeView.emoji && <span className="text-xl">{activeView.emoji}</span>}
-                {activeView.label}
+                <span className="truncate">{activeView.label}</span>
               </h1>
             </>
           ) : (
@@ -591,7 +599,7 @@ export function TasksPage() {
             </>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center rounded-md border p-0.5">
             <Button
               variant={viewMode === "list" ? "secondary" : "ghost"}
@@ -610,25 +618,35 @@ export function TasksPage() {
               <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
             </Button>
           </div>
-          {activeView && viewFiltersModified ? (
-            <div className="flex items-center gap-1.5">
-              <Button variant="outline" onClick={handleSaveViewChanges}>
-                <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} data-icon="inline-start" />
-                Save Changes
-              </Button>
-              <Button variant="outline" onClick={() => setSaveViewOpen(true)}>
-                Save as New View
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={() => setSaveViewOpen(true)}>
-              <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} data-icon="inline-start" />
-              Save View
-            </Button>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" size="icon" className="h-8 w-8" />}
+            >
+              <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {activeView && viewFiltersModified ? (
+                <>
+                  <DropdownMenuItem onClick={handleSaveViewChanges}>
+                    <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} />
+                    Save Changes
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSaveViewOpen(true)}>
+                    Save as New View
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={() => setSaveViewOpen(true)}>
+                  <HugeiconsIcon icon={FloppyDiskIcon} strokeWidth={2} />
+                  Save View
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => setCreateOpen(true)}>
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
-            Add Task
+            <span className="hidden sm:inline">Add Task</span>
           </Button>
         </div>
       </div>
@@ -777,7 +795,7 @@ export function TasksPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-md border">
+          <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (

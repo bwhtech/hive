@@ -50,7 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-import { TiptapEditor } from "@/components/TiptapEditor"
+import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 import {
   FEATURE_REQUEST_PRIORITIES,
   type HiveFeatureRequest,
@@ -418,7 +418,7 @@ function CreateFeatureRequestDialog({
           </div>
           <div className="grid gap-2">
             <Label>Description</Label>
-            <TiptapEditor
+            <LazyTiptapEditor
               key={editorKey}
               content={description}
               onChange={(html) => setDescription(html)}

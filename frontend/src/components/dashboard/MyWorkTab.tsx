@@ -98,11 +98,12 @@ export function MyWorkTab() {
   const dashboard = data?.message
   if (!dashboard) return null
 
-  const totalTasks = dashboard.tasks_by_project.reduce(
-    (sum, g) => sum + g.tasks.length, 0
-  )
-  const inProgressTasks = dashboard.tasks_by_project.reduce(
-    (sum, g) => sum + g.tasks.filter((t) => t.status === "In Progress").length, 0
+  const { totalTasks, inProgressTasks } = dashboard.tasks_by_project.reduce(
+    (acc, g) => ({
+      totalTasks: acc.totalTasks + g.tasks.length,
+      inProgressTasks: acc.inProgressTasks + g.tasks.filter((t) => t.status === "In Progress").length,
+    }),
+    { totalTasks: 0, inProgressTasks: 0 },
   )
 
   return (

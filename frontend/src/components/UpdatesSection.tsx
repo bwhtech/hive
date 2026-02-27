@@ -40,7 +40,7 @@ import {
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { TiptapEditor } from "@/components/TiptapEditor"
+import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 import type { HiveProjectUpdate, HiveMember } from "@/types"
 
 const REACTION_EMOJIS = ["\ud83d\udc4d", "\u2764\ufe0f", "\ud83c\udf89", "\ud83d\ude80", "\ud83d\udc40", "\ud83d\ude4f"]
@@ -305,7 +305,7 @@ export function UpdatesSection({ projectId, onDraftChange }: UpdatesSectionProps
       {/* Compose */}
       <Card>
         <CardContent className="pt-4">
-          <TiptapEditor
+          <LazyTiptapEditor
             key={editorKey}
             onChange={setContent}
             placeholder="Share an update with the team..."
@@ -452,7 +452,7 @@ function DraftCard({
 
         {editing ? (
           <div>
-            <TiptapEditor
+            <LazyTiptapEditor
               key={editorKey}
               onChange={setEditContent}
               placeholder="Edit your draft..."

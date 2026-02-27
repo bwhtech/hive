@@ -6,7 +6,7 @@ import { Delete02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { TiptapEditor } from "@/components/TiptapEditor"
+import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { useUser } from "@/context/UserContext"
 import type { HiveTaskComment, HiveMember } from "@/types"
@@ -140,7 +140,7 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
 
       {/* New comment input */}
       <div className="px-6 space-y-2">
-        <TiptapEditor
+        <LazyTiptapEditor
           key={`comment-${taskName}-${editorKey}`}
           content=""
           onChange={setNewComment}

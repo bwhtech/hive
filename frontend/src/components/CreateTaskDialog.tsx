@@ -32,7 +32,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { LinkField } from "@/components/LinkField"
 import { TASK_PRIORITIES, TASK_STATUSES, type HiveMember } from "@/types"
 import { useUser } from "@/context/UserContext"
-import { TiptapEditor } from "@/components/TiptapEditor"
+import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 
 interface AssigneeRow {
   member: string
@@ -202,7 +202,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
 
           <div className="grid gap-2">
             <Label>Description</Label>
-            <TiptapEditor
+            <LazyTiptapEditor
               key={editorKey}
               content=""
               onChange={setDescription}

@@ -45,7 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "sonner"
-import { TiptapEditor } from "@/components/TiptapEditor"
+import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 import { useUser } from "@/context/UserContext"
 import { TaskCommentsSection } from "@/components/TaskCommentsSection"
 import { TaskAttachments } from "@/components/TaskAttachments"
@@ -143,6 +143,9 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       return aIsCurrent - bIsCurrent
     })
   }, [allMembers, user?.email])
+
+  const milestoneFilters = useMemo(() => ({ project: task?.project }), [task?.project])
+  const dependsOnFilters = useMemo(() => ({ project: task?.project, is_archived: 0 }), [task?.project])
 
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false)
 
@@ -446,7 +449,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
               value={milestone}
               onChange={(v) => { setMilestone(v); markEdited() }}
               placeholder="None"
-              filters={{ project: task.project }}
+              filters={milestoneFilters}
               className="w-full"
             />
           )}
@@ -465,7 +468,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
               value={dependsOn}
               onChange={(v) => { setDependsOn(v); markEdited() }}
               placeholder="None"
-              filters={{ project: task.project, is_archived: 0 }}
+              filters={dependsOnFilters}
               className="w-full"
             />
           )}
@@ -610,7 +613,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
               <p className="text-sm text-muted-foreground py-1">No description</p>
             )
           ) : (
-            <TiptapEditor
+            <LazyTiptapEditor
               key={task.name}
               content={task.description || ""}
               onChange={(v) => { setDescription(v); markEdited() }}

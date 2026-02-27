@@ -1,19 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router"
 import { useFrappeCreateDoc, useFrappeGetDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
 import { AppSidebar } from "./Sidebar"
 import { Header } from "./Header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { SettingsDialog } from "@/components/SettingsDialog"
-import { CommandPalette, useCommandPalette } from "@/components/CommandPalette"
 import { ShortcutHelpDialog } from "@/components/ShortcutHelpDialog"
 import { CreateProjectDialog } from "@/components/CreateProjectDialog"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { OnboardingDialog } from "@/components/OnboardingDialog"
-import { NotificationSheet } from "@/components/NotificationSheet"
 import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
+import { useCommandPalette } from "@/hooks/useCommandPalette"
 import { useCelebration } from "@/hooks/useTaskCelebration"
+
+const SettingsDialog = lazy(() =>
+  import("@/components/SettingsDialog").then((m) => ({ default: m.SettingsDialog })),
+)
+const CommandPalette = lazy(() =>
+  import("@/components/CommandPalette").then((m) => ({ default: m.CommandPalette })),
+)
+const NotificationSheet = lazy(() =>
+  import("@/components/NotificationSheet").then((m) => ({ default: m.NotificationSheet })),
+)
 
 export function AppLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -122,20 +130,24 @@ export function AppLayout() {
           <Outlet context={{ openCreateProject: () => setCreateProjectOpen(true) }} />
         </div>
       </SidebarInset>
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        activeTab={settingsTab}
-        onTabChange={setSettingsTab}
-      />
-      <CommandPalette
-        open={commandPalette.open}
-        onOpenChange={commandPalette.setOpen}
-        onOpenSettings={openSettings}
-        onCreateProject={() => setCreateProjectOpen(true)}
-        onCreateTask={handleCmdkCreateTask}
-        onCreateFeatureRequest={handleCmdkCreateFeatureRequest}
-      />
+      <Suspense fallback={null}>
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          activeTab={settingsTab}
+          onTabChange={setSettingsTab}
+        />
+      </Suspense>
+      <Suspense fallback={null}>
+        <CommandPalette
+          open={commandPalette.open}
+          onOpenChange={commandPalette.setOpen}
+          onOpenSettings={openSettings}
+          onCreateProject={() => setCreateProjectOpen(true)}
+          onCreateTask={handleCmdkCreateTask}
+          onCreateFeatureRequest={handleCmdkCreateFeatureRequest}
+        />
+      </Suspense>
       <CreateProjectDialog
         open={createProjectOpen}
         onOpenChange={setCreateProjectOpen}
@@ -150,10 +162,12 @@ export function AppLayout() {
         open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}
       />
-      <NotificationSheet
-        open={notificationsOpen}
-        onOpenChange={setNotificationsOpen}
-      />
+      <Suspense fallback={null}>
+        <NotificationSheet
+          open={notificationsOpen}
+          onOpenChange={setNotificationsOpen}
+        />
+      </Suspense>
       <OnboardingDialog
         open={showOnboarding}
         onOpenChange={(open) => {

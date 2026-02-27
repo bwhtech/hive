@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useLocation } from "react-router"
 import { useFrappeGetCall } from "frappe-react-sdk"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -26,7 +26,6 @@ import {
 import { PartyIcon } from "@hugeicons/core-free-icons"
 import { useUser } from "@/context/UserContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
-import { useMetaHotkey } from "@/hooks/use-hotkey"
 
 interface CommandPaletteProps {
   open: boolean
@@ -339,16 +338,3 @@ export function CommandPalette({
   )
 }
 
-/**
- * Hook to register Cmd+K keyboard shortcut
- */
-export function useCommandPalette() {
-  const [open, setOpen] = useState(false)
-  const setOpenRef = useRef(setOpen)
-  setOpenRef.current = setOpen
-
-  const toggle = useCallback(() => setOpenRef.current((prev) => !prev), [])
-  useMetaHotkey("k", toggle)
-
-  return { open, setOpen }
-}

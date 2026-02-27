@@ -75,7 +75,7 @@ function sortTasksByDueDate(tasks: HiveTask[]): HiveTask[] {
 export function OverviewTab({ projectId, project, stats, milestones, tasks, onTaskClick }: OverviewTabProps) {
   const { isClient } = useUser()
   const { updateDoc } = useFrappeUpdateDoc()
-  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set())
+  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(() => new Set())
 
   const toggleExpanded = (name: string) => {
     setExpandedMilestones((prev) => {

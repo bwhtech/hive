@@ -65,7 +65,7 @@ function sortTasksByDueDate(tasks: HiveTask[]): HiveTask[] {
 export function MilestoneSection({ projectId, tasks, onTaskClick }: MilestoneSectionProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingMilestone, setEditingMilestone] = useState<HiveMilestone | null>(null)
-  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set())
+  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(() => new Set())
 
   const toggleExpanded = (name: string) => {
     setExpandedMilestones((prev) => {

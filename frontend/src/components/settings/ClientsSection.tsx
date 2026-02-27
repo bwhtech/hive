@@ -4,7 +4,7 @@ import {
   useFrappeUpdateDoc,
   useFrappePostCall,
 } from "frappe-react-sdk"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -232,8 +232,8 @@ function ClientMembersView({
     },
   )
 
-  const assignedNames = new Set(members?.map((m) => m.name) ?? [])
-  const availableMembers = allMembers?.filter((m) => !assignedNames.has(m.name)) ?? []
+  const assignedNames = useMemo(() => new Set(members?.map((m) => m.name) ?? []), [members])
+  const availableMembers = useMemo(() => allMembers?.filter((m) => !assignedNames.has(m.name)) ?? [], [allMembers, assignedNames])
 
   const { updateDoc } = useFrappeUpdateDoc()
   const { call: inviteClientMember, loading: inviting } = useFrappePostCall(

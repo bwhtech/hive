@@ -226,6 +226,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }, [title, description, status, priority, size, milestone, dependsOn, prLink, dueDate, startDate, completedOn, open, isClient])
 
+  const assignedMemberNames = useMemo(() => new Set(assignees.map((a) => a.member)), [assignees])
+
   if (!task) return null
 
   const handleStatusChange = (newStatus: string) => {
@@ -359,8 +361,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       mutateTaskDoc()
     }
   }
-
-  const assignedMemberNames = new Set(assignees.map((a) => a.member))
 
   const formContent = (
     <div className="min-h-0 flex-1 overflow-y-auto">

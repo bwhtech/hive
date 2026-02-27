@@ -164,7 +164,9 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     setAssignees((prev) => prev.filter((a) => a.member !== memberName))
   }
 
-  const assignedMemberNames = new Set(assignees.map((a) => a.member))
+  const assignedMemberNames = useMemo(() => new Set(assignees.map((a) => a.member)), [assignees])
+
+  const milestoneFilters = useMemo(() => ({ project: resolvedProject }), [resolvedProject])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -250,7 +252,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
                 value={selectedMilestone}
                 onChange={setSelectedMilestone}
                 placeholder="None"
-                filters={{ project: resolvedProject }}
+                filters={milestoneFilters}
                 className="w-full"
               />
             </div>

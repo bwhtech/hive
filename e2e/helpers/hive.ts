@@ -40,6 +40,8 @@ export interface HiveProject {
 	status: string;
 	project_type?: string;
 	client?: string;
+	is_private?: 0 | 1;
+	owner?: string;
 	creation?: string;
 	modified?: string;
 }
@@ -92,6 +94,7 @@ export async function createTestProject(
 		status?: string;
 		project_type?: string;
 		client?: string;
+		is_private?: 0 | 1;
 	} = {},
 ): Promise<HiveProject> {
 	const title = options.title || generateProjectTitle();
@@ -101,6 +104,7 @@ export async function createTestProject(
 		status: options.status ?? "Open",
 		project_type: options.project_type,
 		client: options.client,
+		is_private: options.is_private ?? 0,
 	});
 }
 
@@ -135,7 +139,7 @@ export async function listProjects(
 	} = {},
 ): Promise<HiveProject[]> {
 	return getList<HiveProject>(request, "Hive Project", {
-		fields: ["name", "title", "status", "project_type", "client", "creation"],
+		fields: ["name", "title", "status", "project_type", "client", "is_private", "owner", "creation"],
 		filters: options.filters,
 		limit: options.limit,
 	});

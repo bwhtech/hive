@@ -460,6 +460,54 @@ export function ProjectDetailPage() {
     }
   }
 
+  // Filter tasks by milestone (for kanban view)
+  const filteredTasks = useMemo(() =>
+    tasks?.filter((task) => {
+      if (milestoneFilter === "all") return true
+      if (milestoneFilter === "none") return !task.milestone
+      return task.milestone === milestoneFilter
+    }),
+  [tasks, milestoneFilter])
+
+  // Group filtered tasks by status, sorted by due date ascending (nulls last)
+  const tasksByStatus = useMemo(() => {
+    const grouped: Record<string, HiveTask[]> = {}
+    for (const status of TASK_STATUSES) {
+      grouped[status] = []
+    }
+    if (filteredTasks) {
+      for (const task of filteredTasks) {
+        if (grouped[task.status]) {
+          grouped[task.status].push(task)
+        }
+      }
+    }
+    for (const status of TASK_STATUSES) {
+      grouped[status].sort((a, b) => {
+        const da = a.due_date || "9999-12-31"
+        const db = b.due_date || "9999-12-31"
+        return da < db ? -1 : da > db ? 1 : 0
+      })
+    }
+    return grouped
+  }, [filteredTasks])
+
+  // Compute stats (always from all tasks, not filtered) — single pass
+  const { totalTasks, doneTasks, inProgressTasks, blockedTasks } = useMemo(() => {
+    let done = 0, inProgress = 0, blocked = 0
+    if (tasks) {
+      for (const t of tasks) {
+        if (t.status === "Done") done++
+        else if (t.status === "In Progress") inProgress++
+        else if (t.status === "Blocked") blocked++
+      }
+    }
+    return { totalTasks: tasks?.length ?? 0, doneTasks: done, inProgressTasks: inProgress, blockedTasks: blocked }
+  }, [tasks])
+
+  // Assignees data
+  const assigneesByTask = (assigneesResult?.message ?? EMPTY_ASSIGNEES) as Record<string, HiveTaskAssignee[]>
+
   if (projectLoading) {
     return (
       <div className="space-y-6">
@@ -484,42 +532,6 @@ export function ProjectDetailPage() {
       </div>
     )
   }
-
-  // Filter tasks by milestone (for kanban view)
-  const filteredTasks = tasks?.filter((task) => {
-    if (milestoneFilter === "all") return true
-    if (milestoneFilter === "none") return !task.milestone
-    return task.milestone === milestoneFilter
-  })
-
-  // Group filtered tasks by status, sorted by due date ascending (nulls last)
-  const tasksByStatus: Record<string, HiveTask[]> = {}
-  for (const status of TASK_STATUSES) {
-    tasksByStatus[status] = []
-  }
-  if (filteredTasks) {
-    for (const task of filteredTasks) {
-      if (tasksByStatus[task.status]) {
-        tasksByStatus[task.status].push(task)
-      }
-    }
-  }
-  for (const status of TASK_STATUSES) {
-    tasksByStatus[status].sort((a, b) => {
-      const da = a.due_date || "9999-12-31"
-      const db = b.due_date || "9999-12-31"
-      return da < db ? -1 : da > db ? 1 : 0
-    })
-  }
-
-  // Compute stats (always from all tasks, not filtered)
-  const totalTasks = tasks?.length ?? 0
-  const doneTasks = tasks?.filter((t) => t.status === "Done").length ?? 0
-  const inProgressTasks = tasks?.filter((t) => t.status === "In Progress").length ?? 0
-  const blockedTasks = tasks?.filter((t) => t.status === "Blocked").length ?? 0
-
-  // Assignees data
-  const assigneesByTask = (assigneesResult?.message ?? EMPTY_ASSIGNEES) as Record<string, HiveTaskAssignee[]>
 
   return (
     <div className="space-y-6">
@@ -642,9 +654,9 @@ export function ProjectDetailPage() {
             {/* Related Links */}
             {(project.links?.length ?? 0) > 0 && (
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                {project.links!.map((link, i) => (
+                {project.links!.map((link) => (
                   <a
-                    key={i}
+                    key={link.name || link.url}
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"

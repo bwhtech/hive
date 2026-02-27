@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react"
 import { useFrappeGetDocList, useFrappeGetDoc, useFrappePostCall, useFrappeCreateDoc, useFrappeUpdateDoc, useSWRConfig } from "frappe-react-sdk"
 import { useNavigate, useSearchParams, Link } from "react-router"
 import { toast } from "sonner"
-import EmojiPicker, { Theme } from "emoji-picker-react"
+import { LazyEmojiPicker } from "@/components/LazyEmojiPicker"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   TaskDaily01Icon,
@@ -877,12 +877,12 @@ export function TasksPage() {
                     }
                   />
                   <PopoverContent className="w-auto p-0" side="bottom" align="start">
-                    <EmojiPicker
+                    <LazyEmojiPicker
                       onEmojiClick={(emojiData) => {
                         setSaveViewEmoji(emojiData.emoji)
                         setEmojiPickerOpen(false)
                       }}
-                      theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
+                      theme={resolvedTheme === "dark" ? "dark" : "light"}
                       skinTonesDisabled
                       height={400}
                       width={350}

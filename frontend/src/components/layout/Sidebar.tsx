@@ -2,7 +2,7 @@ import { useState, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router"
 import { useFrappeAuth, useFrappeGetDocList, useFrappeDeleteDoc, useFrappeUpdateDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
-import EmojiPicker, { Theme } from "emoji-picker-react"
+import { LazyEmojiPicker } from "@/components/LazyEmojiPicker"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   DashboardSquare02Icon,
@@ -361,12 +361,12 @@ export function AppSidebar({
                     }
                   />
                   <PopoverContent className="w-auto p-0" side="bottom" align="start">
-                    <EmojiPicker
+                    <LazyEmojiPicker
                       onEmojiClick={(emojiData) => {
                         setEditEmoji(emojiData.emoji)
                         setEditEmojiPickerOpen(false)
                       }}
-                      theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
+                      theme={resolvedTheme === "dark" ? "dark" : "light"}
                       skinTonesDisabled
                       height={400}
                       width={350}

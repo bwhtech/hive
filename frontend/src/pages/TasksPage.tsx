@@ -363,7 +363,7 @@ export function TasksPage() {
     if (!saveViewLabel.trim()) return
     const filters = buildCurrentFilters()
     try {
-      await createDoc("Hive View", {
+      const doc = await createDoc("Hive View", {
         label: saveViewLabel.trim(),
         emoji: saveViewEmoji || "",
         view_type: viewMode,
@@ -377,10 +377,18 @@ export function TasksPage() {
       setSaveViewPublic(false)
       // Revalidate sidebar views
       globalMutate((key: unknown) => typeof key === "string" && key.includes("Hive View"), undefined, { revalidate: true })
+      // Navigate to the newly created view
+      const params = new URLSearchParams()
+      params.set("view_id", doc.name)
+      for (const [k, v] of Object.entries(filters)) {
+        if (v) params.set(k, v)
+      }
+      if (viewMode === "kanban") params.set("view", "kanban")
+      navigate(`/tasks?${params.toString()}`, { replace: true })
     } catch {
       toast.error("Failed to save view")
     }
-  }, [saveViewLabel, saveViewEmoji, saveViewPublic, viewMode, buildCurrentFilters, createDoc, globalMutate])
+  }, [saveViewLabel, saveViewEmoji, saveViewPublic, viewMode, buildCurrentFilters, createDoc, globalMutate, navigate])
 
   const handleSaveViewChanges = useCallback(async () => {
     if (!activeView) return
@@ -488,34 +496,15 @@ export function TasksPage() {
     setSheetOpen(true)
   }, [])
 
-  const tableData = useMemo<TaskRow[]>(() => {
-    if (!tasks) return []
-    return tasks
-      .filter((task) => {
-        if (search) {
-          const q = search.toLowerCase()
-          const matchName = task.name.toLowerCase().includes(q)
-          const matchTitle = task.title.toLowerCase().includes(q)
-          const matchProject = (projectMap[task.project] ?? task.project).toLowerCase().includes(q)
-          const matchAssignee = (task.assigned_to ?? "").toLowerCase().includes(q)
-          if (!matchName && !matchTitle && !matchProject && !matchAssignee) return false
-        }
-        if (statusFilter !== "all" && task.status !== statusFilter) return false
-        if (priorityFilter !== "all" && task.priority !== priorityFilter) return false
-        if (projectFilter !== "all" && task.project !== projectFilter) return false
-        if (assigneeFilter !== "all") {
-          const taskAssignees = assigneesByTask[task.name] ?? []
-          if (!taskAssignees.some((a) => a.member === assigneeFilter)) return false
-        }
-        return true
-      })
-      .map((task) => ({
-        task,
-        projectTitle: projectMap[task.project] ?? task.project,
-        milestoneTitle: task.milestone ? (milestoneMap[task.milestone] ?? "") : "",
-        assignees: assigneesByTask[task.name] ?? [],
-      }))
-  }, [tasks, search, statusFilter, priorityFilter, projectFilter, assigneeFilter, projectMap, milestoneMap, assigneesByTask])
+  const tableData = useMemo<TaskRow[]>(
+    () => filteredTasks.map((task) => ({
+      task,
+      projectTitle: projectMap[task.project] ?? task.project,
+      milestoneTitle: task.milestone ? (milestoneMap[task.milestone] ?? "") : "",
+      assignees: assigneesByTask[task.name] ?? [],
+    })),
+    [filteredTasks, projectMap, milestoneMap, assigneesByTask],
+  )
 
   const table = useReactTable({
     data: tableData,
@@ -530,9 +519,13 @@ export function TasksPage() {
 
   const activeFilterCount = [statusFilter, priorityFilter, projectFilter, assigneeFilter].filter(f => f !== "all").length
 
-  // Detect if the user has modified filters from the saved view's originals
+  // Detect if the user has modified filters or view type from the saved view's originals
   const viewFiltersModified = useMemo(() => {
     if (!activeView) return false
+    // Check view type change (list vs kanban)
+    const savedViewType = activeView.view_type || "list"
+    if (viewMode !== savedViewType) return true
+    // Check filter changes
     const saved: Record<string, string> = (() => {
       try { return JSON.parse(activeView.filters_json || "{}") } catch { return {} }
     })()
@@ -546,7 +539,7 @@ export function TasksPage() {
     const currentKeys = Object.keys(current).sort()
     if (savedKeys.length !== currentKeys.length) return true
     return savedKeys.some((k, i) => currentKeys[i] !== k || saved[k] !== current[k])
-  }, [activeView, statusFilter, priorityFilter, projectFilter, assigneeFilter, search])
+  }, [activeView, statusFilter, priorityFilter, projectFilter, assigneeFilter, search, viewMode])
 
   return (
     <div className="space-y-6">

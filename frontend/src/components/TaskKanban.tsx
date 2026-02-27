@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, memo } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -141,7 +141,7 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
   )
 }
 
-function KanbanColumn({
+const KanbanColumn = memo(function KanbanColumn({
   status,
   tasks,
   onTaskClick,
@@ -180,7 +180,7 @@ function KanbanColumn({
       </div>
     </div>
   )
-}
+})
 
 function DraggableTaskCard({
   task,
@@ -217,7 +217,7 @@ function DraggableTaskCard({
   )
 }
 
-function TaskCard({ task, isDragOverlay, assignees, hasClient, taskMap }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[]; hasClient?: boolean; taskMap?: Record<string, HiveTask> }) {
+const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees, hasClient, taskMap }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[]; hasClient?: boolean; taskMap?: Record<string, HiveTask> }) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
 
   // Use new assignees if available, fall back to legacy assigned_to
@@ -303,4 +303,4 @@ function TaskCard({ task, isDragOverlay, assignees, hasClient, taskMap }: { task
       </CardHeader>
     </Card>
   )
-}
+})

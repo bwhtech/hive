@@ -89,6 +89,8 @@ interface TaskRow {
   assignees: HiveTaskAssignee[]
 }
 
+const EMPTY_ASSIGNEES: Record<string, HiveTaskAssignee[]> = {}
+
 function SortHeader({ label, column }: { label: string; column: { getIsSorted: () => false | "asc" | "desc"; toggleSorting: (desc?: boolean) => void } }) {
   const sorted = column.getIsSorted()
   return (
@@ -324,7 +326,7 @@ export function TasksPage() {
     callAssignees({})
   }, [callAssignees])
 
-  const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
+  const assigneesByTask = (assigneesResult?.message ?? EMPTY_ASSIGNEES) as Record<string, HiveTaskAssignee[]>
 
   const { call: callAssign } = useFrappePostCall("frappe.desk.form.assign_to.add")
 
@@ -495,6 +497,16 @@ export function TasksPage() {
     setSelectedTask(task)
     setSheetOpen(true)
   }, [])
+
+  const handleSheetOpenChange = useCallback((open: boolean) => {
+    setSheetOpen(open)
+    if (!open) setSelectedTask(null)
+  }, [])
+
+  const handleTaskUpdated = useCallback(() => {
+    tasksMutate()
+    callAssignees({})
+  }, [tasksMutate, callAssignees])
 
   const tableData = useMemo<TaskRow[]>(
     () => filteredTasks.map((task) => ({
@@ -827,14 +839,8 @@ export function TasksPage() {
       <TaskDetailSheet
         task={selectedTask}
         open={sheetOpen}
-        onOpenChange={(open) => {
-          setSheetOpen(open)
-          if (!open) setSelectedTask(null)
-        }}
-        onUpdated={() => {
-          tasksMutate()
-          callAssignees({})
-        }}
+        onOpenChange={handleSheetOpenChange}
+        onUpdated={handleTaskUpdated}
       />
 
       <CreateTaskDialog

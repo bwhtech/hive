@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { getInitials } from "@/lib/utils"
 
@@ -9,7 +10,7 @@ interface MemberAvatarProps {
   fallbackClassName?: string
 }
 
-export function MemberAvatar({
+export const MemberAvatar = memo(function MemberAvatar({
   name,
   image,
   size,
@@ -24,4 +25,4 @@ export function MemberAvatar({
       </AvatarFallback>
     </Avatar>
   )
-}
+})

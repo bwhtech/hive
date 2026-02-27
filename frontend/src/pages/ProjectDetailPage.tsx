@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams, useSearchParams, Link, useNavigate } from "react-router"
 import {
   useFrappeAuth,
@@ -94,6 +94,8 @@ const TASK_FIELDS = [
   "creation",
   "modified",
 ] as const
+
+const EMPTY_ASSIGNEES: Record<string, HiveTaskAssignee[]> = {}
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -262,7 +264,7 @@ export function ProjectDetailPage() {
     }
   }, [pendingTaskName, tasks])
 
-  const handleStatusChange = async (taskName: string, newStatus: string) => {
+  const handleStatusChange = useCallback(async (taskName: string, newStatus: string) => {
     const optimistic = (current: HiveTask[] | undefined) =>
       current?.map((t) =>
         t.name === taskName ? { ...t, status: newStatus as HiveTask["status"] } : t
@@ -279,7 +281,7 @@ export function ProjectDetailPage() {
     } catch {
       toast.error("Failed to update task status")
     }
-  }
+  }, [updateDoc, mutateTasks, celebrate])
 
   const { call: callAssign } = useFrappePostCall("frappe.desk.form.assign_to.add")
 
@@ -312,7 +314,7 @@ export function ProjectDetailPage() {
     }
   }
 
-  const handleTaskClick = (task: HiveTask) => {
+  const handleTaskClick = useCallback((task: HiveTask) => {
     // Blur the draggable card so the sheet's focus manager doesn't
     // conflict with aria-hidden applied to the kanban board
     if (document.activeElement instanceof HTMLElement) {
@@ -325,9 +327,9 @@ export function ProjectDetailPage() {
       next.set("task", task.name)
       return next
     }, { replace: true })
-  }
+  }, [setSearchParams])
 
-  const handleSheetOpenChange = (open: boolean) => {
+  const handleSheetOpenChange = useCallback((open: boolean) => {
     setSheetOpen(open)
     if (!open) {
       setSearchParams((prev) => {
@@ -336,17 +338,12 @@ export function ProjectDetailPage() {
         return next
       }, { replace: true })
     }
-  }
+  }, [setSearchParams])
 
-  const handleTaskUpdated = () => {
+  const handleTaskUpdated = useCallback(() => {
     mutateTasks()
     callAssignees({ project: id }).catch(() => {})
-    // Refresh the selected task from the list
-    if (selectedTask && tasks) {
-      const updated = tasks.find((t) => t.name === selectedTask.name)
-      if (updated) setSelectedTask(updated)
-    }
-  }
+  }, [mutateTasks, callAssignees, id])
 
   // -- Related links management --
   const saveProjectLinks = async (links: HiveProjectLink[]) => {
@@ -522,7 +519,7 @@ export function ProjectDetailPage() {
   const blockedTasks = tasks?.filter((t) => t.status === "Blocked").length ?? 0
 
   // Assignees data
-  const assigneesByTask = (assigneesResult?.message ?? {}) as Record<string, HiveTaskAssignee[]>
+  const assigneesByTask = (assigneesResult?.message ?? EMPTY_ASSIGNEES) as Record<string, HiveTaskAssignee[]>
 
   return (
     <div className="space-y-6">

@@ -137,7 +137,7 @@ export function NotificationSheet({ open, onOpenChange }: NotificationSheetProps
                   <button
                     key={notification.name}
                     onClick={() => handleClick(notification)}
-                    className={`flex items-start gap-3 px-6 py-3 text-left transition-colors hover:bg-muted/50 ${
+                    className={`flex items-start gap-3 px-6 py-3 text-left transition-colors hover:bg-muted/50 [content-visibility:auto] [contain-intrinsic-size:auto_64px] ${
                       !notification.read ? "bg-muted/30" : ""
                     }`}
                   >

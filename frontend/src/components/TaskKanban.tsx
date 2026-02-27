@@ -209,7 +209,7 @@ function DraggableTaskCard({
       style={style}
       {...listeners}
       {...attributes}
-      className={isDragging ? "opacity-0" : ""}
+      className={`[content-visibility:auto] [contain-intrinsic-size:auto_120px] ${isDragging ? "opacity-0" : ""}`}
       onClick={() => onTaskClick?.(task)}
     >
       <TaskCard task={task} assignees={assignees} hasClient={hasClient} taskMap={taskMap} />

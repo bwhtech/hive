@@ -169,7 +169,7 @@ function ActivityEntry({ activity }: { activity: ActivityItem }) {
   const iconClasses = getIconClasses(activity.type)
 
   return (
-    <div className="flex gap-3 py-2">
+    <div className="flex gap-3 py-2 [content-visibility:auto] [contain-intrinsic-size:auto_56px]">
       <div className={`mt-0.5 flex-shrink-0 size-7 rounded-full flex items-center justify-center ${iconClasses}`}>
         <HugeiconsIcon icon={icon} className="size-3.5" strokeWidth={2} />
       </div>

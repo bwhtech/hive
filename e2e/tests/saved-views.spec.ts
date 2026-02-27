@@ -30,6 +30,14 @@ function sidebarView(page: import("@playwright/test").Page, label: string) {
 		.filter({ hasText: label });
 }
 
+/**
+ * Open the view-actions dropdown menu (the "..." button in the tasks toolbar).
+ * The Save View / Save Changes / Save as New View items live inside this menu.
+ */
+async function openViewActionsMenu(page: import("@playwright/test").Page) {
+	await page.getByRole("button", { name: "View actions" }).click();
+}
+
 test.describe("Saved Views", () => {
 	let testProject: HiveProject;
 
@@ -62,8 +70,9 @@ test.describe("Saved Views", () => {
 		await page.goto("/hive/tasks");
 		await page.waitForLoadState("networkidle");
 
-		// Click "Save View" button in the toolbar
-		await page.getByRole("button", { name: "Save View" }).click();
+		// Open the view-actions dropdown and click "Save View"
+		await openViewActionsMenu(page);
+		await page.getByRole("menuitem", { name: "Save View" }).click();
 
 		// Dialog should open with "Save View" heading
 		const dialog = page.getByRole("dialog");
@@ -271,8 +280,9 @@ test.describe("Saved Views", () => {
 			.filter({ hasText: "Done" })
 			.click();
 
-		// Click "Save View"
-		await page.getByRole("button", { name: "Save View" }).click();
+		// Open the view-actions dropdown and click "Save View"
+		await openViewActionsMenu(page);
+		await page.getByRole("menuitem", { name: "Save View" }).click();
 
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible({ timeout: 5000 });
@@ -311,10 +321,13 @@ test.describe("Saved Views", () => {
 		await page.goto(`/hive/tasks?view_id=${view.name}&priority=High`);
 		await page.waitForLoadState("networkidle");
 
-		// Initially, "Save Changes" should NOT be visible (filters match saved view)
+		// Initially, dropdown should show "Save View" (filters match saved view)
+		await openViewActionsMenu(page);
 		await expect(
-			page.getByRole("button", { name: "Save Changes" }),
-		).not.toBeVisible({ timeout: 3000 });
+			page.getByRole("menuitem", { name: "Save View" }),
+		).toBeVisible({ timeout: 3000 });
+		// Close the dropdown by pressing Escape
+		await page.keyboard.press("Escape");
 
 		// Change the status filter to diverge from the saved view
 		const statusTrigger = page
@@ -326,12 +339,13 @@ test.describe("Saved Views", () => {
 			.filter({ hasText: "Done" })
 			.click();
 
-		// "Save Changes" and "Save as New View" should now appear
+		// Open dropdown again — "Save Changes" and "Save as New View" should now appear
+		await openViewActionsMenu(page);
 		await expect(
-			page.getByRole("button", { name: "Save Changes" }),
+			page.getByRole("menuitem", { name: "Save Changes" }),
 		).toBeVisible({ timeout: 5000 });
 		await expect(
-			page.getByRole("button", { name: "Save as New View" }),
+			page.getByRole("menuitem", { name: "Save as New View" }),
 		).toBeVisible();
 	});
 
@@ -360,8 +374,9 @@ test.describe("Saved Views", () => {
 			.filter({ hasText: "High" })
 			.click();
 
-		// Click "Save Changes"
-		await page.getByRole("button", { name: "Save Changes" }).click();
+		// Open the view-actions dropdown and click "Save Changes"
+		await openViewActionsMenu(page);
+		await page.getByRole("menuitem", { name: "Save Changes" }).click();
 
 		// Verify success toast
 		await expect(page.getByText("View updated")).toBeVisible({
@@ -386,8 +401,9 @@ test.describe("Saved Views", () => {
 		const viewToggle = page.locator(".rounded-md.border.p-0\\.5");
 		await viewToggle.locator("button").nth(1).click();
 
-		// Click "Save View"
-		await page.getByRole("button", { name: "Save View" }).click();
+		// Open the view-actions dropdown and click "Save View"
+		await openViewActionsMenu(page);
+		await page.getByRole("menuitem", { name: "Save View" }).click();
 
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible({ timeout: 5000 });

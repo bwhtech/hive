@@ -620,7 +620,7 @@ export function TasksPage() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="outline" size="icon" className="h-8 w-8" />}
+              render={<Button variant="outline" size="icon" className="h-8 w-8" aria-label="View actions" />}
             >
               <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} className="size-4" />
             </DropdownMenuTrigger>

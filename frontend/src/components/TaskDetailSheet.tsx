@@ -11,6 +11,8 @@ import {
   UserAdd01Icon,
   Cancel02Icon,
   Delete02Icon,
+  PinIcon,
+  PinOffIcon,
 } from "@hugeicons/core-free-icons"
 import {
   Sheet,
@@ -59,6 +61,8 @@ interface TaskDetailSheetProps {
   onOpenChange: (open: boolean) => void
   onUpdated: () => void
   hasClient?: boolean
+  isPinned?: boolean
+  onTogglePin?: (taskName: string) => void
 }
 
 const uatVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -73,7 +77,7 @@ interface AssigneeDisplay {
   user_image?: string
 }
 
-export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient = true }: TaskDetailSheetProps) {
+export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient = true, isPinned, onTogglePin }: TaskDetailSheetProps) {
   const isMobile = useIsMobile()
   const { isClient, user } = useUser()
   const { celebrate } = useCelebration()
@@ -701,7 +705,14 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh]">
           <DrawerHeader>
-            <DrawerTitle>Task Details</DrawerTitle>
+            <div className="flex items-center justify-between">
+              <DrawerTitle>Task Details</DrawerTitle>
+              {onTogglePin && (
+                <Button variant="ghost" size="icon-sm" onClick={() => onTogglePin(task.name)} className="text-muted-foreground hover:text-foreground">
+                  <HugeiconsIcon icon={isPinned ? PinOffIcon : PinIcon} strokeWidth={2} className="size-4" />
+                </Button>
+              )}
+            </div>
             <DrawerDescription>{task.name}</DrawerDescription>
           </DrawerHeader>
           {formContent}
@@ -719,7 +730,14 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="data-[side=right]:sm:w-[40vw] data-[side=right]:sm:max-w-[40vw]">
         <SheetHeader>
-          <SheetTitle>Task Details</SheetTitle>
+          <div className="flex items-center justify-between pr-8">
+            <SheetTitle>Task Details</SheetTitle>
+            {onTogglePin && (
+              <Button variant="ghost" size="icon-sm" onClick={() => onTogglePin(task.name)} className="text-muted-foreground hover:text-foreground" aria-label={isPinned ? "Unpin task" : "Pin task"}>
+                <HugeiconsIcon icon={isPinned ? PinOffIcon : PinIcon} strokeWidth={2} className="size-4" />
+              </Button>
+            )}
+          </div>
           <SheetDescription>{task.name}</SheetDescription>
         </SheetHeader>
         {formContent}

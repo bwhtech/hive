@@ -60,6 +60,7 @@ import { ActivityTab } from "@/components/project/ActivityTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
+import { PinnedTasksDock } from "@/components/PinnedTasksDock"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
@@ -110,6 +111,7 @@ export function ProjectDetailPage() {
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [milestoneFilter, setMilestoneFilter] = useState<string>("all")
+  const [pinnedTaskNames, setPinnedTaskNames] = useState<string[]>([])
 
   // "T" keyboard shortcut to open create task dialog (not for client users)
   const openCreateDialog = useCallback(() => {
@@ -350,6 +352,18 @@ export function ProjectDetailPage() {
     mutateTasks()
     callAssignees({ project: id }).catch(() => {})
   }, [mutateTasks, callAssignees, id])
+
+  const handleTogglePin = useCallback((taskName: string) => {
+    setPinnedTaskNames((prev) =>
+      prev.includes(taskName)
+        ? prev.filter((n) => n !== taskName)
+        : [...prev, taskName]
+    )
+  }, [])
+
+  const handleUnpinAll = useCallback(() => {
+    setPinnedTaskNames([])
+  }, [])
 
   // -- Related links management --
   const saveProjectLinks = async (links: HiveProjectLink[]) => {
@@ -907,6 +921,16 @@ export function ProjectDetailPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Pinned Tasks Dock */}
+      {tasks && pinnedTaskNames.length > 0 && (
+        <PinnedTasksDock
+          pinnedTaskNames={pinnedTaskNames}
+          tasks={tasks}
+          onUnpin={handleTogglePin}
+          onUnpinAll={handleUnpinAll}
+        />
+      )}
+
       {/* Create Task Dialog */}
       <CreateTaskDialog
         open={createOpen}
@@ -922,6 +946,8 @@ export function ProjectDetailPage() {
         onOpenChange={handleSheetOpenChange}
         onUpdated={handleTaskUpdated}
         hasClient={!!project?.client}
+        isPinned={selectedTask ? pinnedTaskNames.includes(selectedTask.name) : false}
+        onTogglePin={handleTogglePin}
       />
 
       {/* Manage Links Dialog */}

@@ -17,6 +17,7 @@ import {
   Delete02Icon,
   MoreHorizontalIcon,
   PencilEdit01Icon,
+  Bug01Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Sidebar,
@@ -312,6 +313,12 @@ export function AppSidebar({
                     strokeWidth={2}
                   />
                   {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => window.open("https://github.com/BuildWithHussain/hive/issues/new", "_blank")}
+                >
+                  <HugeiconsIcon icon={Bug01Icon} strokeWidth={2} />
+                  Raise an issue
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

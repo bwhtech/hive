@@ -2,6 +2,21 @@ import { APIRequestContext } from "@playwright/test";
 import { createDoc, deleteDoc, getDoc, getList, updateDoc, callMethod } from "./frappe";
 
 /**
+ * Hive View document interface.
+ */
+export interface HiveView {
+	name: string;
+	label: string;
+	emoji: string;
+	view_type: "list" | "kanban";
+	filters_json: string;
+	is_public: 0 | 1;
+	owner: string;
+	creation?: string;
+	modified?: string;
+}
+
+/**
  * Hive Feature Request document interface.
  */
 export interface HiveFeatureRequest {
@@ -360,6 +375,62 @@ export async function cleanupTestUpdates(
 			await deleteDoc(request, "Hive Project Update", update.name);
 		} catch (error) {
 			console.warn(`Failed to delete update ${update.name}:`, error);
+		}
+	}
+}
+
+/**
+ * Create a test Hive View via API.
+ */
+export async function createTestView(
+	request: APIRequestContext,
+	options: {
+		label?: string;
+		emoji?: string;
+		view_type?: "list" | "kanban";
+		filters_json?: string;
+		is_public?: 0 | 1;
+	} = {},
+): Promise<HiveView> {
+	const label = options.label || `E2E Test View ${Date.now()}`;
+
+	return createDoc<HiveView>(request, "Hive View", {
+		label,
+		emoji: options.emoji ?? "",
+		view_type: options.view_type ?? "list",
+		filters_json: options.filters_json ?? "{}",
+		is_public: options.is_public ?? 0,
+	});
+}
+
+/**
+ * Delete a test Hive View via API.
+ */
+export async function deleteTestView(
+	request: APIRequestContext,
+	name: string,
+): Promise<void> {
+	await deleteDoc(request, "Hive View", name);
+}
+
+/**
+ * Cleanup test views matching a label pattern.
+ */
+export async function cleanupTestViews(
+	request: APIRequestContext,
+	labelPattern = "E2E Test View",
+): Promise<void> {
+	const views = await getList<HiveView>(request, "Hive View", {
+		fields: ["name"],
+		filters: { label: ["like", `${labelPattern}%`] },
+		limit: 100,
+	});
+
+	for (const view of views) {
+		try {
+			await deleteDoc(request, "Hive View", view.name);
+		} catch (error) {
+			console.warn(`Failed to delete view ${view.name}:`, error);
 		}
 	}
 }

@@ -30,8 +30,22 @@ export function ProjectsPage() {
   const { openCreateProject } = useOutletContext<{ openCreateProject: () => void }>()
   const { isClient } = useUser()
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("Open")
-  const [scopeFilter, setScopeFilter] = useState("External")
+  const [statusFilter, setStatusFilter] = useState(
+    () => localStorage.getItem("hive_projects_status_filter") ?? "all"
+  )
+  const [scopeFilter, setScopeFilter] = useState(
+    () => localStorage.getItem("hive_projects_scope_filter") ?? "All"
+  )
+
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value)
+    localStorage.setItem("hive_projects_status_filter", value)
+  }
+
+  const handleScopeFilter = (value: string) => {
+    setScopeFilter(value)
+    localStorage.setItem("hive_projects_scope_filter", value)
+  }
 
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
     fields: ["name", "title", "status", "project_type", "client", "description", "is_private", "creation", "modified"],
@@ -87,7 +101,7 @@ export function ProjectsPage() {
             className="pl-8"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={handleStatusFilter}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -98,7 +112,7 @@ export function ProjectsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={scopeFilter} onValueChange={setScopeFilter}>
+        <Select value={scopeFilter} onValueChange={handleScopeFilter}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Scope" />
           </SelectTrigger>

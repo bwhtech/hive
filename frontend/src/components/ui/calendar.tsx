@@ -28,6 +28,14 @@ function Calendar({
 }) {
   const defaultClassNames = getDefaultClassNames()
 
+  const handleTodayClick = () => {
+    const today = new Date()
+    const onSelect = (props as any).onSelect
+    if (typeof onSelect === "function") {
+      onSelect(today)
+    }
+  }
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -135,14 +143,27 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Root: ({ className, rootRef, ...props }) => {
+        Root: ({ className, rootRef, children, ...rootProps }) => {
           return (
             <div
               data-slot="calendar"
               ref={rootRef}
               className={cn(className)}
-              {...props}
-            />
+              {...rootProps}
+            >
+              {children}
+              <div className="border-t border-border mx-3 pt-1 pb-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-sm text-muted-foreground"
+                  type="button"
+                  onClick={handleTodayClick}
+                >
+                  Today
+                </Button>
+              </div>
+            </div>
           )
         },
         Chevron: ({ className, orientation, ...props }) => {

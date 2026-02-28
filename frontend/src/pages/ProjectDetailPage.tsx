@@ -782,7 +782,7 @@ export function ProjectDetailPage() {
             </SelectContent>
           </Select>
         ) : (
-          <TabsList variant="line" className="w-full">
+          <TabsList variant="line">
             <TabsTrigger value="overview">
               <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
               Overview

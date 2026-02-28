@@ -17,6 +17,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetClose,
   SheetHeader,
   SheetTitle,
   SheetDescription,
@@ -728,15 +729,21 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="data-[side=right]:sm:w-[40vw] data-[side=right]:sm:max-w-[40vw]">
+      <SheetContent side="right" className="data-[side=right]:sm:w-[40vw] data-[side=right]:sm:max-w-[40vw]" showCloseButton={false}>
         <SheetHeader>
-          <div className="flex items-center justify-between pr-8">
+          <div className="flex items-center justify-between">
             <SheetTitle>Task Details</SheetTitle>
-            {onTogglePin && (
-              <Button variant="ghost" size="icon-sm" onClick={() => onTogglePin(task.name)} className="text-muted-foreground hover:text-foreground" aria-label={isPinned ? "Unpin task" : "Pin task"}>
-                <HugeiconsIcon icon={isPinned ? PinOffIcon : PinIcon} strokeWidth={2} className="size-4" />
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {onTogglePin && (
+                <Button variant="ghost" size="icon-sm" onClick={() => onTogglePin(task.name)} className="text-muted-foreground hover:text-foreground" aria-label={isPinned ? "Unpin task" : "Pin task"}>
+                  <HugeiconsIcon icon={isPinned ? PinOffIcon : PinIcon} strokeWidth={2} className="size-4" />
+                </Button>
+              )}
+              <SheetClose render={<Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" />}>
+                <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+                <span className="sr-only">Close</span>
+              </SheetClose>
+            </div>
           </div>
           <SheetDescription>{task.name}</SheetDescription>
         </SheetHeader>

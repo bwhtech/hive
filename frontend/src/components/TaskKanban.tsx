@@ -164,6 +164,20 @@ const KanbanColumn = memo(function KanbanColumn({
   assigneesByTask?: Record<string, HiveTaskAssignee[]>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
+  const { pinnedTaskNames } = use(KanbanContext)
+
+  // Float pinned tasks to the top of each column
+  const sortedTasks = useMemo(() => {
+    if (!pinnedTaskNames?.length) return tasks
+    const pinnedSet = new Set(pinnedTaskNames)
+    const pinned: HiveTask[] = []
+    const rest: HiveTask[] = []
+    for (const task of tasks) {
+      if (pinnedSet.has(task.name)) pinned.push(task)
+      else rest.push(task)
+    }
+    return pinned.length ? [...pinned, ...rest] : tasks
+  }, [tasks, pinnedTaskNames])
 
   return (
     <div
@@ -181,7 +195,7 @@ const KanbanColumn = memo(function KanbanColumn({
         </Badge>
       </div>
       <div className="flex flex-col gap-2 min-h-[60px]">
-        {tasks.map((task) => (
+        {sortedTasks.map((task) => (
           <DraggableTaskCard key={task.name} task={task} assignees={assigneesByTask?.[task.name]} />
         ))}
       </div>
@@ -233,7 +247,7 @@ const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { ta
   return (
     <Card
       size="sm"
-      className={`group/card cursor-grab active:cursor-grabbing ${isDragOverlay ? "rotate-2 shadow-lg" : ""}`}
+      className={`group/card cursor-grab active:cursor-grabbing ${isDragOverlay ? "rotate-2 shadow-lg" : ""} ${isPinned ? "ring-1 ring-primary/30 bg-primary/[0.03]" : ""}`}
     >
       <CardHeader className="gap-2">
         <div className="flex items-start gap-1">

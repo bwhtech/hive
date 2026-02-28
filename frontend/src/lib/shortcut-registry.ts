@@ -29,6 +29,7 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
 
   // Task Detail
   { keys: ["A"], description: "Add assignee", group: "Task Detail" },
+  { keys: ["P"], description: "Pin / unpin task", group: "Task Detail" },
 ]
 
 /** Group shortcuts by their group name, preserving registry order. */

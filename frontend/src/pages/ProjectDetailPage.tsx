@@ -111,7 +111,14 @@ export function ProjectDetailPage() {
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [milestoneFilter, setMilestoneFilter] = useState<string>("all")
-  const [pinnedTaskNames, setPinnedTaskNames] = useState<string[]>([])
+  const [pinnedTaskNames, setPinnedTaskNames] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(`hive-pinned-tasks-${id}`)
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  })
 
   // "T" keyboard shortcut to open create task dialog (not for client users)
   const openCreateDialog = useCallback(() => {
@@ -364,16 +371,19 @@ export function ProjectDetailPage() {
   }, [mutateTasks, callAssignees, id])
 
   const handleTogglePin = useCallback((taskName: string) => {
-    setPinnedTaskNames((prev) =>
-      prev.includes(taskName)
+    setPinnedTaskNames((prev) => {
+      const next = prev.includes(taskName)
         ? prev.filter((n) => n !== taskName)
         : [...prev, taskName]
-    )
-  }, [])
+      try { localStorage.setItem(`hive-pinned-tasks-${id}`, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }, [id])
 
   const handleUnpinAll = useCallback(() => {
     setPinnedTaskNames([])
-  }, [])
+    try { localStorage.removeItem(`hive-pinned-tasks-${id}`) } catch { /* ignore */ }
+  }, [id])
 
   // -- Related links management --
   const saveProjectLinks = async (links: HiveProjectLink[]) => {

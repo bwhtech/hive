@@ -196,6 +196,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
 
   // Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux) to save
   // 'A' key to open assignee popover (when not typing in an input)
+  // 'P' key to pin/unpin task
   useEffect(() => {
     if (!open || isClient) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -203,16 +204,24 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         e.preventDefault()
         saveRef.current()
       }
+      const tag = (e.target as HTMLElement)?.tagName
+      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable
       if (e.key === "a" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        const tag = (e.target as HTMLElement)?.tagName
-        if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return
+        if (isEditable) return
         e.preventDefault()
         setAssigneePopoverOpen(true)
+      }
+      if (e.key === "p" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (isEditable) return
+        if (onTogglePin && task) {
+          e.preventDefault()
+          onTogglePin(task.name)
+        }
       }
     }
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [open, isClient])
+  }, [open, isClient, onTogglePin, task])
 
   // Autosave: debounce 1.5s after user edits
   useEffect(() => {

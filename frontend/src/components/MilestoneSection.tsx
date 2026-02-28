@@ -390,26 +390,7 @@ function MilestoneDialog({
               autoFocus
             />
           </div>
-          <div className="grid gap-2">
-            <Label>Target Date</Label>
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button variant="outline" className="w-full justify-start text-left font-normal" />
-                }
-              >
-                <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="mr-2 size-4" />
-                {targetDate ? format(targetDate, "MMM d, yyyy") : <span className="text-muted-foreground">Pick a date</span>}
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={targetDate}
-                  onSelect={setTargetDate}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          <DatePickerField date={targetDate} onSelect={setTargetDate} label="Target Date" />
           <div className="grid gap-2">
             <Label htmlFor="ms-description">Description</Label>
             <Textarea
@@ -432,5 +413,35 @@ function MilestoneDialog({
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function DatePickerField({
+  date,
+  onSelect,
+  label,
+}: {
+  date: Date | undefined
+  onSelect: (date: Date | undefined) => void
+  label: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <Button variant="outline" className="w-full justify-start text-left font-normal" />
+          }
+        >
+          <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="mr-2 size-4" />
+          {date ? format(date, "MMM d, yyyy") : <span className="text-muted-foreground">Pick a date</span>}
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="single" selected={date} onSelect={(d) => { onSelect(d); setOpen(false) }} />
+        </PopoverContent>
+      </Popover>
+    </div>
   )
 }

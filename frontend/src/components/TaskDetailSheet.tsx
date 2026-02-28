@@ -765,8 +765,9 @@ function DatePicker({
   date: Date | undefined
   onSelect: (date: Date | undefined) => void
 }) {
+  const [open, setOpen] = useState(false)
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
           <Button variant="outline" className="w-full justify-start text-left font-normal" />
@@ -779,7 +780,7 @@ function DatePicker({
         <Calendar
           mode="single"
           selected={date}
-          onSelect={onSelect}
+          onSelect={(d) => { onSelect(d); setOpen(false) }}
         />
       </PopoverContent>
     </Popover>

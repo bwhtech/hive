@@ -316,46 +316,8 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>Start Date</Label>
-              <Popover>
-                <PopoverTrigger
-                  render={
-                    <Button type="button" variant="outline" className="w-full justify-start text-left font-normal" />
-                  }
-                >
-                  <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="mr-2 size-4" />
-                  {startDate ? (
-                    format(startDate, "MMM d, yyyy")
-                  ) : (
-                    <span className="text-muted-foreground">Pick date</span>
-                  )}
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={setStartDate} />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid gap-2">
-              <Label>Due Date</Label>
-              <Popover>
-                <PopoverTrigger
-                  render={
-                    <Button type="button" variant="outline" className="w-full justify-start text-left font-normal" />
-                  }
-                >
-                  <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="mr-2 size-4" />
-                  {dueDate ? (
-                    format(dueDate, "MMM d, yyyy")
-                  ) : (
-                    <span className="text-muted-foreground">Pick date</span>
-                  )}
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={dueDate} onSelect={setDueDate} />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <DatePickerField date={startDate} onSelect={setStartDate} label="Start Date" />
+            <DatePickerField date={dueDate} onSelect={setDueDate} label="Due Date" />
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">
@@ -376,5 +338,39 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function DatePickerField({
+  date,
+  onSelect,
+  label,
+}: {
+  date: Date | undefined
+  onSelect: (date: Date | undefined) => void
+  label: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <Button type="button" variant="outline" className="w-full justify-start text-left font-normal" />
+          }
+        >
+          <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} className="mr-2 size-4" />
+          {date ? (
+            format(date, "MMM d, yyyy")
+          ) : (
+            <span className="text-muted-foreground">Pick date</span>
+          )}
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="single" selected={date} onSelect={(d) => { onSelect(d); setOpen(false) }} />
+        </PopoverContent>
+      </Popover>
+    </div>
   )
 }

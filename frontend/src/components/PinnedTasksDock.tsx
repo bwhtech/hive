@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from "react"
+import { useState, useMemo, memo, useCallback, useRef, Fragment } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -6,6 +6,7 @@ import { Cancel01Icon, PinOffIcon, ArrowUp01Icon, ArrowDown01Icon } from "@hugei
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { TASK_STATUS_COLOR } from "@/lib/variants"
 import type { HiveTask, HiveTaskComment, HiveMember } from "@/types"
@@ -17,18 +18,55 @@ interface PinnedTasksDockProps {
   onUnpinAll: () => void
 }
 
+const MIN_DOCK_HEIGHT = 120
+const MAX_DOCK_HEIGHT_RATIO = 0.7
+const DEFAULT_DOCK_HEIGHT = 320
+
 export function PinnedTasksDock({ pinnedTaskNames, tasks, onUnpin, onUnpinAll }: PinnedTasksDockProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [dockHeight, setDockHeight] = useState(DEFAULT_DOCK_HEIGHT)
+  const isDragging = useRef(false)
+  const startY = useRef(0)
+  const startHeight = useRef(0)
 
   const pinnedTasks = useMemo(() => {
     const taskMap = new Map(tasks.map((t) => [t.name, t]))
     return pinnedTaskNames.map((name) => taskMap.get(name)).filter(Boolean) as HiveTask[]
   }, [pinnedTaskNames, tasks])
 
+  const handleDragStart = useCallback((e: React.PointerEvent) => {
+    isDragging.current = true
+    startY.current = e.clientY
+    startHeight.current = dockHeight
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }, [dockHeight])
+
+  const handleDragMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return
+    const delta = startY.current - e.clientY
+    const maxHeight = window.innerHeight * MAX_DOCK_HEIGHT_RATIO
+    setDockHeight(Math.min(maxHeight, Math.max(MIN_DOCK_HEIGHT, startHeight.current + delta)))
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    isDragging.current = false
+  }, [])
+
   if (pinnedTasks.length === 0) return null
 
   return (
     <div className="sticky bottom-0 z-40 -mx-4 md:-mx-6 -mb-4 md:-mb-6 !mt-0 border-t bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-2 duration-200">
+      {/* Vertical resize handle */}
+      {!isCollapsed && (
+        <div
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          className="h-1.5 cursor-row-resize flex items-center justify-center hover:bg-muted/50 transition-colors group"
+        >
+          <div className="w-8 h-0.5 rounded-full bg-border group-hover:bg-muted-foreground/40 transition-colors" />
+        </div>
+      )}
       <div className="flex items-center justify-between px-4 py-1.5 border-b bg-muted/30">
         <button
           type="button"
@@ -43,11 +81,16 @@ export function PinnedTasksDock({ pinnedTaskNames, tasks, onUnpin, onUnpinAll }:
         </Button>
       </div>
       {!isCollapsed && (
-        <div className="flex divide-x" style={{ height: "38vh" }}>
-          {pinnedTasks.map((task) => (
-            <PinnedTaskPanel key={task.name} task={task} onUnpin={() => onUnpin(task.name)} />
+        <ResizablePanelGroup direction="horizontal" style={{ height: dockHeight }}>
+          {pinnedTasks.map((task, i) => (
+            <Fragment key={task.name}>
+              {i > 0 && <ResizableHandle withHandle />}
+              <ResizablePanel minSize={15}>
+                <PinnedTaskPanel task={task} onUnpin={() => onUnpin(task.name)} />
+              </ResizablePanel>
+            </Fragment>
           ))}
-        </div>
+        </ResizablePanelGroup>
       )}
     </div>
   )
@@ -90,7 +133,7 @@ const PinnedTaskPanel = memo(function PinnedTaskPanel({
   }, [members])
 
   return (
-    <div className="flex-1 min-w-[280px] flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Panel header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/20 shrink-0">
         <span className={`size-2 rounded-full shrink-0 ${TASK_STATUS_COLOR[task.status] ?? "bg-muted-foreground/40"}`} />

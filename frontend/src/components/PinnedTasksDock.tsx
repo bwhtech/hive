@@ -1,6 +1,11 @@
-import { useState, useMemo, memo, useCallback } from "react"
+import { useState, useEffect, useRef, useMemo, memo, useCallback } from "react"
 import { useNavigate } from "react-router"
-import { useFrappeGetDoc, useFrappeGetDocList } from "frappe-react-sdk"
+import {
+  useFrappeGetDoc,
+  useFrappeGetDocList,
+  useFrappeUpdateDoc,
+  useFrappeCreateDoc,
+} from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -9,16 +14,20 @@ import {
   ArrowUp01Icon,
   ArrowDown01Icon,
   ArrowUpRight01Icon,
+  SentIcon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MemberAvatar } from "@/components/MemberAvatar"
+import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 import { TASK_STATUS_COLOR } from "@/lib/variants"
 import { usePinnedTasks } from "@/context/PinnedTasksContext"
+import { toast } from "sonner"
 import type { HiveTask, HiveTaskComment, HiveMember } from "@/types"
 
-const EXPANDED_HEIGHT = 360
+const EXPANDED_MAX_HEIGHT = "45vh"
+const DESCRIPTION_DEBOUNCE_MS = 1500
 
 export function PinnedTasksDock() {
   const { pinnedTaskNames, togglePin } = usePinnedTasks()
@@ -26,7 +35,7 @@ export function PinnedTasksDock() {
   if (pinnedTaskNames.length === 0) return null
 
   return (
-    <div className="fixed bottom-0 right-0 z-40 flex items-end gap-2 p-3 pointer-events-none">
+    <div className="fixed bottom-0 right-0 z-40 flex items-end gap-2 pr-3 pointer-events-none">
       {pinnedTaskNames.map((taskName) => (
         <PinnedTaskCard key={taskName} taskName={taskName} onUnpin={() => togglePin(taskName)} />
       ))}
@@ -43,8 +52,40 @@ const PinnedTaskCard = memo(function PinnedTaskCard({
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const navigate = useNavigate()
+  const { updateDoc } = useFrappeUpdateDoc()
 
-  const { data: task } = useFrappeGetDoc<HiveTask>("Hive Task", taskName)
+  const { data: task, mutate: mutateTask } = useFrappeGetDoc<HiveTask>("Hive Task", taskName)
+
+  // Debounced description save
+  const descriptionTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const descriptionRef = useRef<string>(task?.description || "")
+
+  useEffect(() => {
+    if (task) descriptionRef.current = task.description || ""
+  }, [task])
+
+  const handleDescriptionChange = useCallback(
+    (html: string) => {
+      descriptionRef.current = html
+      if (descriptionTimerRef.current) clearTimeout(descriptionTimerRef.current)
+      descriptionTimerRef.current = setTimeout(async () => {
+        try {
+          await updateDoc("Hive Task", taskName, { description: html })
+          mutateTask()
+        } catch {
+          toast.error("Failed to save description")
+        }
+      }, DESCRIPTION_DEBOUNCE_MS)
+    },
+    [taskName, updateDoc, mutateTask],
+  )
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (descriptionTimerRef.current) clearTimeout(descriptionTimerRef.current)
+    }
+  }, [])
 
   const handleNavigate = useCallback(() => {
     if (task) {
@@ -81,78 +122,89 @@ const PinnedTaskCard = memo(function PinnedTaskCard({
         />
       </button>
 
-      {/* Expanded content */}
-      {isExpanded && (
-        <div style={{ height: EXPANDED_HEIGHT }} className="flex flex-col">
-          {/* Action bar */}
-          <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/20 shrink-0">
-            <div className="flex items-center gap-1">
-              <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                {task.status}
-              </Badge>
-              <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                {task.priority}
-              </Badge>
+      {/* Expandable content — CSS grid animation for smooth height transition */}
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div style={{ maxHeight: EXPANDED_MAX_HEIGHT }} className="flex flex-col">
+            {/* Action bar */}
+            <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/20 shrink-0">
+              <div className="flex items-center gap-1">
+                <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                  {task.status}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                  {task.priority}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleNavigate}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Open in project"
+                >
+                  <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={onUnpin}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Unpin"
+                >
+                  <HugeiconsIcon icon={PinOffIcon} strokeWidth={2} className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setIsExpanded(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Minimize"
+                >
+                  <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3.5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleNavigate}
-                className="text-muted-foreground hover:text-foreground"
-                title="Open in project"
-              >
-                <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} className="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={onUnpin}
-                className="text-muted-foreground hover:text-foreground"
-                title="Unpin"
-              >
-                <HugeiconsIcon icon={PinOffIcon} strokeWidth={2} className="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setIsExpanded(false)}
-                className="text-muted-foreground hover:text-foreground"
-                title="Minimize"
-              >
-                <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3.5" />
-              </Button>
-            </div>
-          </div>
 
-          {/* Scrollable body */}
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-3">
-              {/* Description */}
-              {task.description && (
+            {/* Scrollable body */}
+            <ScrollArea className="flex-1">
+              <div className="p-3 space-y-3">
+                {/* Editable description */}
                 <div>
                   <h5 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
                     Description
                   </h5>
-                  <div
-                    className="prose prose-sm max-w-none text-xs [&>p]:my-0.5 break-words"
-                    dangerouslySetInnerHTML={{ __html: task.description }}
-                  />
+                  <div className="[&_.tiptap-editor]:!min-h-[60px] [&_.tiptap-editor]:!text-xs">
+                    <LazyTiptapEditor
+                      key={taskName}
+                      content={task.description || ""}
+                      onChange={handleDescriptionChange}
+                      placeholder="Add a description..."
+                    />
+                  </div>
                 </div>
-              )}
 
-              {/* Comments */}
-              <TaskComments taskName={task.name} />
-            </div>
-          </ScrollArea>
+                {/* Comments */}
+                <TaskComments taskName={task.name} />
+              </div>
+            </ScrollArea>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 })
 
 const TaskComments = memo(function TaskComments({ taskName }: { taskName: string }) {
-  const { data: comments } = useFrappeGetDocList<HiveTaskComment>("Hive Task Comment", {
+  const [newComment, setNewComment] = useState("")
+  const [posting, setPosting] = useState(false)
+  const { createDoc } = useFrappeCreateDoc()
+
+  const { data: comments, mutate } = useFrappeGetDocList<HiveTaskComment>("Hive Task Comment", {
     fields: ["name", "task", "posted_by", "content", "creation"],
     filters: [
       ["task", "=", taskName],
@@ -178,41 +230,91 @@ const TaskComments = memo(function TaskComments({ taskName }: { taskName: string
     return map
   }, [members])
 
-  if (!comments || comments.length === 0) return null
+  const handlePostComment = useCallback(async () => {
+    if (!newComment.trim() || posting) return
+    setPosting(true)
+    try {
+      await createDoc("Hive Task Comment", {
+        task: taskName,
+        content: newComment,
+      })
+      setNewComment("")
+      mutate()
+    } catch {
+      toast.error("Failed to add comment")
+    } finally {
+      setPosting(false)
+    }
+  }, [newComment, posting, createDoc, taskName, mutate])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        handlePostComment()
+      }
+    },
+    [handlePostComment],
+  )
 
   return (
     <div>
       <h5 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
-        Comments ({comments.length})
+        Comments {comments && comments.length > 0 ? `(${comments.length})` : ""}
       </h5>
-      <div className="space-y-2">
-        {comments.map((comment) => {
-          const member = memberByEmail.get(comment.posted_by)
-          return (
-            <div key={comment.name} className="flex gap-2">
-              <MemberAvatar
-                size="sm"
-                name={member?.member_name || comment.posted_by}
-                image={member?.user_image}
-                className="mt-0.5 shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-medium truncate">
-                    {member?.member_name || comment.posted_by}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {formatDistanceToNow(new Date(comment.creation), { addSuffix: true })}
-                  </span>
-                </div>
-                <div
-                  className="prose prose-sm max-w-none text-xs [&>p]:my-0 break-words"
-                  dangerouslySetInnerHTML={{ __html: comment.content }}
+
+      {/* Comment list */}
+      {comments && comments.length > 0 && (
+        <div className="space-y-2 mb-2">
+          {comments.map((comment) => {
+            const member = memberByEmail.get(comment.posted_by)
+            return (
+              <div key={comment.name} className="flex gap-2">
+                <MemberAvatar
+                  size="sm"
+                  name={member?.member_name || comment.posted_by}
+                  image={member?.user_image}
+                  className="mt-0.5 shrink-0"
                 />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-medium truncate">
+                      {member?.member_name || comment.posted_by}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {formatDistanceToNow(new Date(comment.creation), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div
+                    className="prose prose-sm max-w-none text-xs [&>p]:my-0 break-words"
+                    dangerouslySetInnerHTML={{ __html: comment.content }}
+                  />
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
+      )}
+
+      {/* Comment input */}
+      <div className="flex items-center gap-1.5">
+        <input
+          type="text"
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Add a comment..."
+          className="flex-1 text-xs h-7 rounded-md border border-input bg-background px-2 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handlePostComment}
+          disabled={posting || !newComment.trim()}
+          className="text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <HugeiconsIcon icon={SentIcon} strokeWidth={2} className="size-3.5" />
+        </Button>
       </div>
     </div>
   )

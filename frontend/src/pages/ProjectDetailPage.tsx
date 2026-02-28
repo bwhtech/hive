@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useParams, useSearchParams, Link, useNavigate } from "react-router"
 import {
   useFrappeAuth,
@@ -144,8 +144,8 @@ export function ProjectDetailPage() {
     }, { replace: true })
   }, [setSearchParams])
 
-  // Track task name from URL that needs to be opened once tasks load
-  const [pendingTaskName, setPendingTaskName] = useState<string | null>(taskParam)
+  // Track which task URL param value we last processed, to detect new ones
+  const lastProcessedTaskParam = useRef<string | null>(null)
 
   // Auto-open create dialogs from query params (e.g. from CMD K)
   useEffect(() => {
@@ -265,17 +265,19 @@ export function ProjectDetailPage() {
     }
   }, [id, callAssignees])
 
-  // Open task from URL param once tasks are loaded
+  // Open task from URL ?task= param once tasks are loaded.
+  // Re-triggers when taskParam changes (e.g. PinnedTasksDock "open in project").
   useEffect(() => {
-    if (pendingTaskName && tasks) {
-      const task = tasks.find((t) => t.name === pendingTaskName)
-      if (task) {
-        setSelectedTask(task)
-        setSheetOpen(true)
-      }
-      setPendingTaskName(null)
+    if (!taskParam || !tasks) return
+    if (taskParam === lastProcessedTaskParam.current) return
+    const task = tasks.find((t) => t.name === taskParam)
+    if (task) {
+      setSelectedTask(task)
+      setSheetOpen(true)
+      setActiveTab("tasks")
+      lastProcessedTaskParam.current = taskParam
     }
-  }, [pendingTaskName, tasks])
+  }, [taskParam, tasks])
 
   const handleStatusChange = useCallback(async (taskName: string, newStatus: string) => {
     const today = new Date().toISOString().split("T")[0]
@@ -350,6 +352,7 @@ export function ProjectDetailPage() {
   const handleSheetOpenChange = useCallback((open: boolean) => {
     setSheetOpen(open)
     if (!open) {
+      lastProcessedTaskParam.current = null
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev)
         next.delete("task")

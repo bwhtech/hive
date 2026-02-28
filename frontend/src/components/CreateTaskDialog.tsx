@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -61,18 +61,64 @@ interface CreateTaskDialogProps {
   projectId?: string | null
 }
 
+const DRAFT_KEY = "hive-create-task-draft"
+
+interface TaskDraft {
+  title: string
+  description: string
+  priority: string
+  status: string
+  dueDate: string | null
+  startDate: string | null
+  isInternal: boolean
+  assignees: AssigneeRow[]
+  selectedMilestone: string
+  selectedProject: string
+}
+
+function loadDraft(): Partial<TaskDraft> {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // ignore corrupted data
+  }
+  return {}
+}
+
 export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: CreateTaskDialogProps) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
+  const [initialDraft] = useState<Partial<TaskDraft>>(() => loadDraft())
+  const [title, setTitle] = useState(initialDraft.title ?? "")
+  const [description, setDescription] = useState(initialDraft.description ?? "")
+  const [editorInitialContent, setEditorInitialContent] = useState(initialDraft.description ?? "")
   const [editorKey, setEditorKey] = useState(0)
-  const [priority, setPriority] = useState("Medium")
-  const [status, setStatus] = useState("To Do")
-  const [dueDate, setDueDate] = useState<Date | undefined>()
-  const [startDate, setStartDate] = useState<Date | undefined>()
-  const [isInternal, setIsInternal] = useState(false)
-  const [assignees, setAssignees] = useState<AssigneeRow[]>([])
-  const [selectedMilestone, setSelectedMilestone] = useState("")
-  const [selectedProject, setSelectedProject] = useState("")
+  const [priority, setPriority] = useState(initialDraft.priority ?? "Medium")
+  const [status, setStatus] = useState(initialDraft.status ?? "To Do")
+  const [dueDate, setDueDate] = useState<Date | undefined>(initialDraft.dueDate ? new Date(initialDraft.dueDate) : undefined)
+  const [startDate, setStartDate] = useState<Date | undefined>(initialDraft.startDate ? new Date(initialDraft.startDate) : undefined)
+  const [isInternal, setIsInternal] = useState(initialDraft.isInternal ?? false)
+  const [assignees, setAssignees] = useState<AssigneeRow[]>(initialDraft.assignees ?? [])
+  const [selectedMilestone, setSelectedMilestone] = useState(initialDraft.selectedMilestone ?? "")
+  const [selectedProject, setSelectedProject] = useState(initialDraft.selectedProject ?? "")
+
+  // Sync form state to localStorage so drafts survive page navigations
+  useEffect(() => {
+    const hasContent =
+      title || description || priority !== "Medium" || status !== "To Do" ||
+      dueDate || startDate || isInternal || assignees.length > 0 ||
+      selectedMilestone || selectedProject
+    if (hasContent) {
+      const draft: TaskDraft = {
+        title, description, priority, status,
+        dueDate: dueDate?.toISOString() ?? null,
+        startDate: startDate?.toISOString() ?? null,
+        isInternal, assignees, selectedMilestone, selectedProject,
+      }
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+    } else {
+      localStorage.removeItem(DRAFT_KEY)
+    }
+  }, [title, description, priority, status, dueDate, startDate, isInternal, assignees, selectedMilestone, selectedProject])
 
   const { user } = useUser()
   const needsProjectPicker = !projectId
@@ -137,8 +183,10 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
       _assign_users: assignees.map((a) => a.member),
       project: resolvedProject,
     })
+    localStorage.removeItem(DRAFT_KEY)
     setTitle("")
     setDescription("")
+    setEditorInitialContent("")
     setEditorKey((k) => k + 1)
     setPriority("Medium")
     setStatus("To Do")
@@ -206,7 +254,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
             <Label>Description</Label>
             <LazyTiptapEditor
               key={editorKey}
-              content=""
+              content={editorInitialContent}
               onChange={setDescription}
               placeholder="Add a description..."
               className="max-h-[200px] overflow-y-auto [&_.tiptap-content]:min-h-[60px]"

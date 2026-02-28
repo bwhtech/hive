@@ -1,8 +1,8 @@
-import { useMemo, memo } from "react"
+import { useState, useMemo, memo } from "react"
 import { useFrappeGetDocList } from "frappe-react-sdk"
 import { formatDistanceToNow } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Cancel01Icon, PinOffIcon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, PinOffIcon, ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -18,6 +18,8 @@ interface PinnedTasksDockProps {
 }
 
 export function PinnedTasksDock({ pinnedTaskNames, tasks, onUnpin, onUnpinAll }: PinnedTasksDockProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
   const pinnedTasks = useMemo(() => {
     const taskMap = new Map(tasks.map((t) => [t.name, t]))
     return pinnedTaskNames.map((name) => taskMap.get(name)).filter(Boolean) as HiveTask[]
@@ -26,20 +28,27 @@ export function PinnedTasksDock({ pinnedTaskNames, tasks, onUnpin, onUnpinAll }:
   if (pinnedTasks.length === 0) return null
 
   return (
-    <div className="border-t bg-background animate-in slide-in-from-bottom-2 duration-200">
+    <div className="sticky bottom-0 z-40 -mx-4 md:-mx-6 -mb-4 md:-mb-6 !mt-0 border-t bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-2 duration-200">
       <div className="flex items-center justify-between px-4 py-1.5 border-b bg-muted/30">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed((v) => !v)}
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
+        >
+          <HugeiconsIcon icon={isCollapsed ? ArrowUp01Icon : ArrowDown01Icon} strokeWidth={2} className="size-3" />
           Pinned Tasks ({pinnedTasks.length})
-        </span>
+        </button>
         <Button variant="ghost" size="icon-sm" onClick={onUnpinAll} className="text-muted-foreground hover:text-foreground">
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3.5" />
         </Button>
       </div>
-      <div className="flex divide-x" style={{ height: "38vh" }}>
-        {pinnedTasks.map((task) => (
-          <PinnedTaskPanel key={task.name} task={task} onUnpin={() => onUnpin(task.name)} />
-        ))}
-      </div>
+      {!isCollapsed && (
+        <div className="flex divide-x" style={{ height: "38vh" }}>
+          {pinnedTasks.map((task) => (
+            <PinnedTaskPanel key={task.name} task={task} onUnpin={() => onUnpin(task.name)} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

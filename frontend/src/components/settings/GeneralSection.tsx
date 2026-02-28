@@ -164,7 +164,7 @@ export function GeneralSection() {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="celebration-animation" className="flex flex-col gap-1 cursor-pointer">
+            <Label htmlFor="celebration-animation" className="flex flex-col items-start gap-1 cursor-pointer">
               <span className="text-sm font-medium">Play animation on task done</span>
               <span className="text-xs text-muted-foreground font-normal">
                 Show a celebration animation when a task is marked as done
@@ -178,7 +178,7 @@ export function GeneralSection() {
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="celebration-sound" className="flex flex-col gap-1 cursor-pointer">
+            <Label htmlFor="celebration-sound" className="flex flex-col items-start gap-1 cursor-pointer">
               <span className="text-sm font-medium">Play sound on task done</span>
               <span className="text-xs text-muted-foreground font-normal">
                 Play a celebration sound when a task is marked as done

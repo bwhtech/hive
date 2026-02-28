@@ -88,6 +88,7 @@ import {
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskKanban } from "@/components/TaskKanban"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
+import { usePinnedTasks } from "@/context/PinnedTasksContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 
 interface TaskRow {
@@ -295,6 +296,7 @@ export function TasksPage() {
   const { mutate: globalMutate } = useSWRConfig()
   const { resolvedTheme } = useTheme()
   const { celebrate } = useCelebration()
+  const { pinnedTaskNames, togglePin, isPinned } = usePinnedTasks()
 
   const { data: tasks, isLoading: tasksLoading, mutate: tasksMutate } = useFrappeGetDocList<HiveTask>(
     "Hive Task",
@@ -787,6 +789,8 @@ export function TasksPage() {
             onStatusChange={handleStatusChange}
             onTaskClick={handleTaskClick}
             assigneesByTask={assigneesByTask}
+            pinnedTaskNames={pinnedTaskNames}
+            onTogglePin={togglePin}
           />
           <p className="text-xs text-muted-foreground">
             {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
@@ -864,6 +868,8 @@ export function TasksPage() {
         open={sheetOpen}
         onOpenChange={handleSheetOpenChange}
         onUpdated={handleTaskUpdated}
+        isPinned={selectedTask ? isPinned(selectedTask.name) : false}
+        onTogglePin={togglePin}
       />
 
       <CreateTaskDialog

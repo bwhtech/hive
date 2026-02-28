@@ -881,6 +881,8 @@ export function ProjectDetailPage() {
                 onTaskClick={handleTaskClick}
                 assigneesByTask={assigneesByTask}
                 hasClient={!!project?.client}
+                pinnedTaskNames={pinnedTaskNames}
+                onTogglePin={handleTogglePin}
               />
             )}
           </div>

@@ -13,7 +13,7 @@ import { useDroppable } from "@dnd-kit/core"
 import { useDraggable } from "@dnd-kit/core"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Calendar03Icon, GitBranchIcon, LinkBackwardIcon } from "@hugeicons/core-free-icons"
+import { Calendar03Icon, GitBranchIcon, LinkBackwardIcon, PinIcon, PinOffIcon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
@@ -27,6 +27,8 @@ interface KanbanContextValue {
   hasClient: boolean
   taskMap: Record<string, HiveTask>
   onTaskClick?: (task: HiveTask) => void
+  pinnedTaskNames?: string[]
+  onTogglePin?: (taskName: string) => void
 }
 
 const KanbanContext = createContext<KanbanContextValue>({
@@ -40,9 +42,11 @@ interface TaskKanbanProps {
   onTaskClick?: (task: HiveTask) => void
   assigneesByTask?: Record<string, HiveTaskAssignee[]>
   hasClient?: boolean
+  pinnedTaskNames?: string[]
+  onTogglePin?: (taskName: string) => void
 }
 
-export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigneesByTask, hasClient = true }: TaskKanbanProps) {
+export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigneesByTask, hasClient = true, pinnedTaskNames, onTogglePin }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<HiveTask | null>(null)
   const [pendingMoves, setPendingMoves] = useState<Record<string, string>>({})
 
@@ -120,8 +124,8 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
   }
 
   const kanbanCtx = useMemo<KanbanContextValue>(
-    () => ({ hasClient, taskMap, onTaskClick }),
-    [hasClient, taskMap, onTaskClick],
+    () => ({ hasClient, taskMap, onTaskClick, pinnedTaskNames, onTogglePin }),
+    [hasClient, taskMap, onTaskClick, pinnedTaskNames, onTogglePin],
   )
 
   return (
@@ -216,8 +220,9 @@ function DraggableTaskCard({
 }
 
 const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[] }) {
-  const { hasClient, taskMap } = use(KanbanContext)
+  const { hasClient, taskMap, pinnedTaskNames, onTogglePin } = use(KanbanContext)
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
+  const isPinned = pinnedTaskNames?.includes(task.name) ?? false
 
   // Use new assignees if available, fall back to legacy assigned_to
   const hasAssignees = assignees && assignees.length > 0
@@ -228,10 +233,29 @@ const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { ta
   return (
     <Card
       size="sm"
-      className={`cursor-grab active:cursor-grabbing ${isDragOverlay ? "rotate-2 shadow-lg" : ""}`}
+      className={`group/card cursor-grab active:cursor-grabbing ${isDragOverlay ? "rotate-2 shadow-lg" : ""}`}
     >
       <CardHeader className="gap-2">
-        <CardTitle className="text-sm leading-snug">{task.title}</CardTitle>
+        <div className="flex items-start gap-1">
+          <CardTitle className="text-sm leading-snug flex-1 min-w-0">{task.title}</CardTitle>
+          {onTogglePin && (
+            <button
+              type="button"
+              aria-label={isPinned ? "Unpin task" : "Pin task"}
+              className={`shrink-0 p-0.5 rounded transition-opacity ${
+                isPinned
+                  ? "opacity-100 text-foreground"
+                  : "opacity-0 group-hover/card:opacity-100 text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onTogglePin(task.name)
+              }}
+            >
+              <HugeiconsIcon icon={isPinned ? PinOffIcon : PinIcon} strokeWidth={2} className="size-3.5" />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           <Badge variant={TASK_PRIORITY_VARIANT[task.priority] ?? "outline"} className="text-[10px] h-4 px-1.5">
             {task.priority}

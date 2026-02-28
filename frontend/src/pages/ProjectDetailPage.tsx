@@ -120,14 +120,29 @@ export function ProjectDetailPage() {
   useHotkey("t", openCreateDialog)
 
   // Sync active tab from URL (e.g. ?tab=updates from dashboard click)
-  const tabParam = searchParams.get("tab")
   const taskParam = searchParams.get("task")
+  const validTabs = ["overview", "tasks", "milestones", "updates", "requests", "activity"]
+  const tabParam = searchParams.get("tab")
   const [activeTab, setActiveTab] = useState(() => {
     if (taskParam) return "tasks"
-    if (tabParam && ["overview", "tasks", "milestones", "updates", "requests", "activity"].includes(tabParam))
+    if (tabParam && validTabs.includes(tabParam))
       return tabParam
     return "overview"
   })
+
+  // Update both state and URL when switching tabs
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (tab === "overview") {
+        next.delete("tab")
+      } else {
+        next.set("tab", tab)
+      }
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
 
   // Track task name from URL that needs to be opened once tasks load
   const [pendingTaskName, setPendingTaskName] = useState<string | null>(taskParam)
@@ -136,27 +151,22 @@ export function ProjectDetailPage() {
   useEffect(() => {
     if (searchParams.get("create_task") === "1") {
       setCreateOpen(true)
-      setSearchParams({}, { replace: true })
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("create_task")
+        return next
+      }, { replace: true })
     }
     if (searchParams.get("create_feature_request") === "1") {
-      setActiveTab("requests")
+      handleTabChange("requests")
       setCreateFeatureRequestOpen(true)
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev)
         next.delete("create_feature_request")
-        next.delete("tab")
         return next
       }, { replace: true })
     }
-    // Clear tab param from URL after consuming it
-    if (searchParams.get("tab")) {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev)
-        next.delete("tab")
-        return next
-      }, { replace: true })
-    }
-  }, [searchParams, setSearchParams])
+  }, [searchParams, setSearchParams, handleTabChange])
 
   const { currentUser } = useFrappeAuth()
 
@@ -187,7 +197,7 @@ export function ProjectDetailPage() {
 
   // Tab-switching shortcuts — disabled when any dialog/sheet is open
   const anyDialogOpen = createOpen || sheetOpen || deleteDialogOpen || linksDialogOpen || newClientOpen || editingTitle || createFeatureRequestOpen
-  const switchTab = useCallback((tab: string) => () => setActiveTab(tab), [])
+  const switchTab = useCallback((tab: string) => () => handleTabChange(tab), [handleTabChange])
   useHotkey("o", switchTab("overview"), { enabled: !anyDialogOpen })
   useHotkey("m", switchTab("milestones"), { enabled: !anyDialogOpen })
   useHotkey("u", switchTab("updates"), { enabled: !anyDialogOpen })
@@ -739,9 +749,9 @@ export function ProjectDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         {isMobile ? (
-          <Select value={activeTab} onValueChange={setActiveTab}>
+          <Select value={activeTab} onValueChange={handleTabChange}>
             <SelectTrigger className="w-full">
               <span className="flex items-center gap-2">
                 <HugeiconsIcon

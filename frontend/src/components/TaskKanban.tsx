@@ -247,7 +247,7 @@ const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { ta
   return (
     <Card
       size="sm"
-      className={`group/card cursor-grab active:cursor-grabbing ${isDragOverlay ? "rotate-2 shadow-lg" : ""} ${isPinned ? "ring-1 ring-primary/30 bg-primary/[0.03]" : ""}`}
+      className={`group/card cursor-grab active:cursor-grabbing ${isDragOverlay ? "rotate-2 shadow-lg" : ""} ${isPinned ? "border-primary/30 bg-primary/[0.03]" : ""}`}
     >
       <CardHeader className="gap-2">
         <div className="flex items-start gap-1">

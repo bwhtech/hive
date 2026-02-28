@@ -12,6 +12,7 @@ import { OnboardingDialog } from "@/components/OnboardingDialog"
 import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
 import { useCommandPalette } from "@/hooks/useCommandPalette"
 import { useCelebration } from "@/hooks/useTaskCelebration"
+import { PinnedTasksDock } from "@/components/PinnedTasksDock"
 import { lazyWithRetry } from "@/utils/lazyWithRetry"
 
 const SettingsDialog = lazyWithRetry(() =>
@@ -178,6 +179,7 @@ export function AppLayout() {
           }
         }}
       />
+      <PinnedTasksDock />
     </SidebarProvider>
   )
 }

@@ -59,8 +59,8 @@ import { OverviewTab } from "@/components/project/OverviewTab"
 import { ActivityTab } from "@/components/project/ActivityTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
+import { usePinnedTasks } from "@/context/PinnedTasksContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
-import { PinnedTasksDock } from "@/components/PinnedTasksDock"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
@@ -111,14 +111,7 @@ export function ProjectDetailPage() {
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [milestoneFilter, setMilestoneFilter] = useState<string>("all")
-  const [pinnedTaskNames, setPinnedTaskNames] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem(`hive-pinned-tasks-${id}`)
-      return stored ? JSON.parse(stored) : []
-    } catch {
-      return []
-    }
-  })
+  const { pinnedTaskNames, togglePin, isPinned } = usePinnedTasks()
 
   // "T" keyboard shortcut to open create task dialog (not for client users)
   const openCreateDialog = useCallback(() => {
@@ -369,21 +362,6 @@ export function ProjectDetailPage() {
     mutateTasks()
     callAssignees({ project: id }).catch(() => {})
   }, [mutateTasks, callAssignees, id])
-
-  const handleTogglePin = useCallback((taskName: string) => {
-    setPinnedTaskNames((prev) => {
-      const next = prev.includes(taskName)
-        ? prev.filter((n) => n !== taskName)
-        : [...prev, taskName]
-      try { localStorage.setItem(`hive-pinned-tasks-${id}`, JSON.stringify(next)) } catch { /* ignore */ }
-      return next
-    })
-  }, [id])
-
-  const handleUnpinAll = useCallback(() => {
-    setPinnedTaskNames([])
-    try { localStorage.removeItem(`hive-pinned-tasks-${id}`) } catch { /* ignore */ }
-  }, [id])
 
   // -- Related links management --
   const saveProjectLinks = async (links: HiveProjectLink[]) => {
@@ -902,7 +880,7 @@ export function ProjectDetailPage() {
                 assigneesByTask={assigneesByTask}
                 hasClient={!!project?.client}
                 pinnedTaskNames={pinnedTaskNames}
-                onTogglePin={handleTogglePin}
+                onTogglePin={togglePin}
               />
             )}
           </div>
@@ -943,16 +921,6 @@ export function ProjectDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Pinned Tasks Dock */}
-      {tasks && pinnedTaskNames.length > 0 && (
-        <PinnedTasksDock
-          pinnedTaskNames={pinnedTaskNames}
-          tasks={tasks}
-          onUnpin={handleTogglePin}
-          onUnpinAll={handleUnpinAll}
-        />
-      )}
-
       {/* Create Task Dialog */}
       <CreateTaskDialog
         open={createOpen}
@@ -968,8 +936,8 @@ export function ProjectDetailPage() {
         onOpenChange={handleSheetOpenChange}
         onUpdated={handleTaskUpdated}
         hasClient={!!project?.client}
-        isPinned={selectedTask ? pinnedTaskNames.includes(selectedTask.name) : false}
-        onTogglePin={handleTogglePin}
+        isPinned={selectedTask ? isPinned(selectedTask.name) : false}
+        onTogglePin={togglePin}
       />
 
       {/* Manage Links Dialog */}

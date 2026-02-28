@@ -941,6 +941,7 @@ export function ProjectDetailPage() {
         hasClient={!!project?.client}
         isPinned={selectedTask ? isPinned(selectedTask.name) : false}
         onTogglePin={togglePin}
+        initialAssignees={selectedTask ? assigneesByTask[selectedTask.name] : undefined}
       />
 
       {/* Manage Links Dialog */}

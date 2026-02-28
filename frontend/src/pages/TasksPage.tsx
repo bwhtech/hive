@@ -870,6 +870,7 @@ export function TasksPage() {
         onUpdated={handleTaskUpdated}
         isPinned={selectedTask ? isPinned(selectedTask.name) : false}
         onTogglePin={togglePin}
+        initialAssignees={selectedTask ? assigneesByTask[selectedTask.name] : undefined}
       />
 
       <CreateTaskDialog

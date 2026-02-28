@@ -64,6 +64,7 @@ interface TaskDetailSheetProps {
   hasClient?: boolean
   isPinned?: boolean
   onTogglePin?: (taskName: string) => void
+  initialAssignees?: AssigneeDisplay[]
 }
 
 const uatVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -78,7 +79,7 @@ interface AssigneeDisplay {
   user_image?: string
 }
 
-export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient = true, isPinned, onTogglePin }: TaskDetailSheetProps) {
+export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient = true, isPinned, onTogglePin, initialAssignees }: TaskDetailSheetProps) {
   const isMobile = useIsMobile()
   const { isClient, user } = useUser()
   const { celebrate } = useCelebration()
@@ -112,7 +113,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const { call: callUnassign } = useFrappePostCall("frappe.desk.form.assign_to.remove")
 
   // Fetch full task doc when task changes
-  const { data: taskDoc, mutate: mutateTaskDoc } = useFrappeGetDoc<HiveTask & { _assign?: string }>(
+  const { data: taskDoc, mutate: mutateTaskDoc } = useFrappeGetDoc<HiveTask>(
     "Hive Task",
     task?.name ?? "",
     task?.name ? undefined : null,
@@ -174,22 +175,10 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }, [task?.name])
 
-  // Sync assignees from _assign field, resolve display info from allMembers
+  // Sync assignees from initialAssignees prop (REST API strips _assign field)
   useEffect(() => {
-    const raw = taskDoc?._assign
-    const emails: string[] = raw ? JSON.parse(raw) : []
-    if (emails.length > 0 && allMembers) {
-      const memberMap = new Map(allMembers.map((m) => [m.name, m]))
-      setAssignees(
-        emails.map((email) => {
-          const m = memberMap.get(email)
-          return { member: email, member_name: m?.member_name, user_image: m?.user_image }
-        }),
-      )
-    } else {
-      setAssignees([])
-    }
-  }, [taskDoc?._assign, allMembers])
+    setAssignees(initialAssignees ?? [])
+  }, [task?.name, initialAssignees])
 
   // Ref to hold latest save function for keyboard shortcut
   const saveRef = useRef<() => void>(() => {})

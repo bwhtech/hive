@@ -491,14 +491,21 @@ export function ProjectDetailPage() {
   [tasks, milestoneFilter])
 
   // Group filtered tasks by status, sorted by due date ascending (nulls last)
+  // Done column only shows tasks completed in the last 7 days (#143)
   const tasksByStatus = useMemo(() => {
     const grouped: Record<string, HiveTask[]> = {}
     for (const status of TASK_STATUSES) {
       grouped[status] = []
     }
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const cutoff = sevenDaysAgo.toISOString().split("T")[0]
     if (filteredTasks) {
       for (const task of filteredTasks) {
         if (grouped[task.status]) {
+          if (task.status === "Done" && (!task.completed_on || task.completed_on < cutoff)) {
+            continue
+          }
           grouped[task.status].push(task)
         }
       }

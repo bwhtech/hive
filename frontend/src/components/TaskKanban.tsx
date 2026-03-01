@@ -195,9 +195,13 @@ const KanbanColumn = memo(function KanbanColumn({
         </Badge>
       </div>
       <div className="flex flex-col gap-2 min-h-[60px]">
-        {sortedTasks.map((task) => (
-          <DraggableTaskCard key={task.name} task={task} assignees={assigneesByTask?.[task.name]} />
-        ))}
+        {sortedTasks.length === 0 && status === "Done" ? (
+          <p className="text-xs text-muted-foreground text-center py-4">Nothing done in the last 7 days</p>
+        ) : (
+          sortedTasks.map((task) => (
+            <DraggableTaskCard key={task.name} task={task} assignees={assigneesByTask?.[task.name]} />
+          ))
+        )}
       </div>
     </div>
   )

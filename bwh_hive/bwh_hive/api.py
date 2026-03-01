@@ -262,6 +262,21 @@ def get_task_assignees(project: str | None = None):
 	return result
 
 
+@frappe.whitelist()
+def get_my_project_memberships():
+	"""Return project names where the current user is a member.
+
+	The REST API strips parent/custom fields from child-table docs,
+	so we use frappe.get_all on the server side instead.
+	"""
+	rows = frappe.get_all(
+		"Hive Project Member",
+		filters={"member": frappe.session.user},
+		fields=["parent"],
+	)
+	return [r.parent for r in rows]
+
+
 @frappe.whitelist(methods=["GET"])
 def search(query: str, project: str | None = None, limit: int = 10):
 	"""Search projects and tasks using FTS with LIKE fallback."""

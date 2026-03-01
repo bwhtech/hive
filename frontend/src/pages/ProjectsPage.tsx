@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { useFrappeGetDocList, useFrappeAuth } from "frappe-react-sdk"
+import { useFrappeGetDocList, useFrappeGetCall } from "frappe-react-sdk"
 import { Link, useOutletContext } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Folder01Icon, Search01Icon, Add01Icon, LockIcon, UserIcon } from "@hugeicons/core-free-icons"
@@ -30,7 +30,6 @@ import {
 export function ProjectsPage() {
   const { openCreateProject } = useOutletContext<{ openCreateProject: () => void }>()
   const { isClient } = useUser()
-  const { currentUser } = useFrappeAuth()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState(
     () => localStorage.getItem("hive_projects_status_filter") ?? "all"
@@ -57,19 +56,13 @@ export function ProjectsPage() {
     localStorage.setItem("hive_projects_my_only", String(pressed))
   }
 
-  const { data: myMemberships } = useFrappeGetDocList<{ parent: string }>(
-    "Hive Project Member",
-    {
-      fields: ["parent"],
-      filters: [["member", "=", currentUser ?? ""]],
-      limit: 0,
-    },
-    currentUser ? undefined : null,
+  const { data: membershipData } = useFrappeGetCall<string[]>(
+    "bwh_hive.bwh_hive.api.get_my_project_memberships",
   )
 
   const myProjectNames = useMemo(
-    () => new Set(myMemberships?.map((m) => m.parent)),
-    [myMemberships],
+    () => new Set(membershipData?.message ?? []),
+    [membershipData],
   )
 
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import {
 	createTestProject,
 	createTestTask,
@@ -12,6 +12,31 @@ import { callMethod, deleteDoc, getList } from "../helpers/frappe";
 
 const PROJECT_PREFIX = "E2E Dashboard Project";
 const TASK_PREFIX = "E2E Dashboard Task";
+const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
+
+function todayISO(): string {
+	const d = new Date();
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Navigate to the dashboard with the overdue dialog suppressed.
+ */
+async function goToDashboard(page: Page) {
+	await page.addInitScript(
+		({ overdueKey, todayStr }) => {
+			localStorage.setItem(overdueKey, todayStr);
+		},
+		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
+	);
+	await page.goto("/hive");
+	await page.waitForLoadState("domcontentloaded");
+
+	// Wait for the dashboard heading to confirm the page is interactive
+	await expect(
+		page.getByRole("heading", { name: "Dashboard" }),
+	).toBeVisible({ timeout: 15000 });
+}
 
 /**
  * Cleanup test tasks matching a title pattern.
@@ -87,13 +112,7 @@ test.describe("Dashboard", () => {
 	});
 
 	test("should display dashboard page with three tabs", async ({ page }) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
-
-		// Verify dashboard heading
-		await expect(
-			page.getByRole("heading", { name: "Dashboard" }),
-		).toBeVisible({ timeout: 10000 });
+		await goToDashboard(page);
 
 		// Verify subtitle
 		await expect(
@@ -113,8 +132,7 @@ test.describe("Dashboard", () => {
 	test("should show correct summary cards with task counts", async ({
 		page,
 	}) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await goToDashboard(page);
 
 		// My Work tab should be active by default
 		// The summary cards show: Open tasks, In progress, Unread updates
@@ -145,8 +163,7 @@ test.describe("Dashboard", () => {
 	});
 
 	test("should display my tasks grouped by project", async ({ page }) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await goToDashboard(page);
 
 		// The "My Tasks" section should be visible
 		await expect(page.getByText("My Tasks")).toBeVisible({
@@ -168,8 +185,7 @@ test.describe("Dashboard", () => {
 	});
 
 	test("should show my projects section", async ({ page }) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await goToDashboard(page);
 
 		// My Projects section should be visible
 		await expect(page.getByText("My Projects")).toBeVisible({
@@ -195,14 +211,12 @@ test.describe("Dashboard", () => {
 	test("should switch to Projects tab and show project list", async ({
 		page,
 	}) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await goToDashboard(page);
 
 		// Switch to Projects tab
-		await page.getByRole("tab", { name: /Projects/ }).click();
-
-		// Wait for projects to load
-		await page.waitForLoadState("networkidle");
+		const projectsTab = page.getByRole("tab", { name: /Projects/ });
+		await expect(projectsTab).toBeVisible();
+		await projectsTab.click();
 
 		// Our test project should be visible as a project card
 		await expect(

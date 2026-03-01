@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import {
 	createTestProject,
 	createTestTask,
@@ -10,6 +10,31 @@ import { getList, deleteDoc, callMethod } from "../helpers/frappe";
 
 const TEST_PREFIX = "E2E Assign";
 const PROJECT_PREFIX = "E2E Assign Project";
+const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
+
+function todayISO(): string {
+	const d = new Date();
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Navigate to a project page with the overdue dialog suppressed and wait for the Tasks tab.
+ */
+async function goToProjectTasks(page: Page, projectName: string) {
+	await page.addInitScript(
+		({ overdueKey, todayStr }) => {
+			localStorage.setItem(overdueKey, todayStr);
+		},
+		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
+	);
+	await page.goto(`/hive/projects/${projectName}`);
+	await page.waitForLoadState("domcontentloaded");
+
+	// Wait for the Tasks tab to be visible, then click it
+	const tasksTab = page.getByRole("tab", { name: /Tasks/ });
+	await expect(tasksTab).toBeVisible({ timeout: 15000 });
+	await tasksTab.click();
+}
 
 async function cleanupTestTasks(
 	request: import("@playwright/test").APIRequestContext,
@@ -79,9 +104,7 @@ test.describe("Task Assignees", () => {
 	});
 
 	test("should display assignee avatar on kanban card", async ({ page }) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
+		await goToProjectTasks(page, testProject.name);
 
 		// The task card with an assignee should show an avatar
 		const assignedCard = page
@@ -97,9 +120,7 @@ test.describe("Task Assignees", () => {
 	test("should not display assignee avatar on unassigned task card", async ({
 		page,
 	}) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
+		await goToProjectTasks(page, testProject.name);
 
 		const unassignedCard = page
 			.locator(".group\\/card")
@@ -112,9 +133,7 @@ test.describe("Task Assignees", () => {
 	});
 
 	test("should display assignee in task detail sheet", async ({ page }) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
+		await goToProjectTasks(page, testProject.name);
 
 		// Open task detail sheet
 		await page.getByText(taskWithAssignee.title).first().click();
@@ -132,9 +151,7 @@ test.describe("Task Assignees", () => {
 	test("should show empty assignees for unassigned task in detail sheet", async ({
 		page,
 	}) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
+		await goToProjectTasks(page, testProject.name);
 
 		// Open task detail sheet for unassigned task
 		await page.getByText(taskNoAssignee.title).first().click();
@@ -159,9 +176,7 @@ test.describe("Task Assignees", () => {
 			status: "To Do",
 		});
 
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
+		await goToProjectTasks(page, testProject.name);
 
 		// Open task detail sheet
 		await page.getByText(freshTask.title).first().click();

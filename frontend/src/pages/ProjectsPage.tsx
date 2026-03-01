@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react"
-import { useFrappeGetDocList } from "frappe-react-sdk"
+import { useFrappeGetDocList, useFrappeAuth } from "frappe-react-sdk"
 import { Link, useOutletContext } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Folder01Icon, Search01Icon, Add01Icon, LockIcon } from "@hugeicons/core-free-icons"
+import { Folder01Icon, Search01Icon, Add01Icon, LockIcon, UserIcon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +18,7 @@ import {
 import { PROJECT_STATUSES, type HiveProject } from "@/types"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
 import { useUser } from "@/context/UserContext"
+import { Toggle } from "@/components/ui/toggle"
 import {
   Empty,
   EmptyHeader,
@@ -29,12 +30,16 @@ import {
 export function ProjectsPage() {
   const { openCreateProject } = useOutletContext<{ openCreateProject: () => void }>()
   const { isClient } = useUser()
+  const { currentUser } = useFrappeAuth()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState(
     () => localStorage.getItem("hive_projects_status_filter") ?? "all"
   )
   const [scopeFilter, setScopeFilter] = useState(
     () => localStorage.getItem("hive_projects_scope_filter") ?? "All"
+  )
+  const [myProjectsOnly, setMyProjectsOnly] = useState(
+    () => localStorage.getItem("hive_projects_my_only") === "true"
   )
 
   const handleStatusFilter = (value: string) => {
@@ -47,6 +52,26 @@ export function ProjectsPage() {
     localStorage.setItem("hive_projects_scope_filter", value)
   }
 
+  const handleMyProjectsToggle = (pressed: boolean) => {
+    setMyProjectsOnly(pressed)
+    localStorage.setItem("hive_projects_my_only", String(pressed))
+  }
+
+  const { data: myMemberships } = useFrappeGetDocList<{ parent: string }>(
+    "Hive Project Member",
+    {
+      fields: ["parent"],
+      filters: [["member", "=", currentUser ?? ""]],
+      limit: 0,
+    },
+    currentUser ? undefined : null,
+  )
+
+  const myProjectNames = useMemo(
+    () => new Set(myMemberships?.map((m) => m.parent)),
+    [myMemberships],
+  )
+
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
     fields: ["name", "title", "status", "project_type", "client", "description", "is_private", "creation", "modified"],
     filters: [["is_archived", "=", 0]],
@@ -57,6 +82,7 @@ export function ProjectsPage() {
   const filteredProjects = useMemo(() => {
     if (!data) return []
     return data.filter((project) => {
+      if (myProjectsOnly && !myProjectNames.has(project.name)) return false
       if (search) {
         const q = search.toLowerCase()
         const matchTitle = project.title.toLowerCase().includes(q)
@@ -69,7 +95,7 @@ export function ProjectsPage() {
       if (scopeFilter === "External" && !project.client) return false
       return true
     })
-  }, [data, search, statusFilter, scopeFilter])
+  }, [data, search, statusFilter, scopeFilter, myProjectsOnly, myProjectNames])
 
   return (
     <div className="space-y-6">
@@ -122,6 +148,16 @@ export function ProjectsPage() {
             <SelectItem value="External">External</SelectItem>
           </SelectContent>
         </Select>
+        <Toggle
+          pressed={myProjectsOnly}
+          onPressedChange={handleMyProjectsToggle}
+          variant="outline"
+          size="sm"
+          className="gap-1.5 aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+        >
+          <HugeiconsIcon icon={UserIcon} strokeWidth={2} className="size-3.5" />
+          My Projects
+        </Toggle>
       </div>
 
       {isLoading ? (
@@ -145,10 +181,10 @@ export function ProjectsPage() {
               <HugeiconsIcon icon={Folder01Icon} strokeWidth={1.5} className="size-10 text-muted-foreground" />
             </EmptyMedia>
             <EmptyTitle>
-              {search || statusFilter !== "all" || scopeFilter !== "All" ? "No projects match your filters" : "No projects yet"}
+              {search || statusFilter !== "all" || scopeFilter !== "All" || myProjectsOnly ? "No projects match your filters" : "No projects yet"}
             </EmptyTitle>
             <EmptyDescription>
-              {search || statusFilter !== "all" || scopeFilter !== "All"
+              {search || statusFilter !== "all" || scopeFilter !== "All" || myProjectsOnly
                 ? "Try adjusting your search or filters."
                 : "Projects will appear here once created."}
             </EmptyDescription>
@@ -158,7 +194,7 @@ export function ProjectsPage() {
         <>
           <p className="text-xs text-muted-foreground">
             {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
-            {(search || statusFilter !== "all" || scopeFilter !== "All") && " matching filters"}
+            {(search || statusFilter !== "all" || scopeFilter !== "All" || myProjectsOnly) && " matching filters"}
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project) => (

@@ -1,5 +1,6 @@
 import {
   useFrappeGetDocList,
+  useFrappeGetDoc,
   useFrappeCreateDoc,
   useFrappeUpdateDoc,
 } from "frappe-react-sdk"
@@ -19,8 +20,17 @@ interface HiveProjectType {
   type_name: string
 }
 
+interface HiveSettings {
+  lock_due_date_on_or_after: 0 | 1
+}
+
 export function GeneralSection() {
   const { animation, sound } = useCelebrationSettings()
+
+  const { data: hiveSettings, mutate: mutateSettings } = useFrappeGetDoc<HiveSettings>(
+    "Hive Settings",
+    "Hive Settings",
+  )
 
   const setAnimation = useCallback((v: boolean) => {
     localStorage.setItem(CELEBRATION_KEYS.ANIMATION_KEY, String(v))
@@ -190,6 +200,39 @@ export function GeneralSection() {
               onCheckedChange={setSound}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold">Due Dates</h3>
+          <p className="text-xs text-muted-foreground">
+            Control how due dates can be edited.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <Label htmlFor="lock-due-date" className="flex flex-col items-start gap-1 cursor-pointer">
+            <span className="text-sm font-medium">Lock due date on or after due date</span>
+            <span className="text-xs text-muted-foreground font-normal">
+              Prevent changing a task's due date once the due date has arrived or passed
+            </span>
+          </Label>
+          <Switch
+            id="lock-due-date"
+            checked={hiveSettings?.lock_due_date_on_or_after === 1}
+            onCheckedChange={async (checked) => {
+              try {
+                await updateDoc("Hive Settings", "Hive Settings", {
+                  lock_due_date_on_or_after: checked ? 1 : 0,
+                })
+                mutateSettings()
+                toast.success(checked ? "Due date locking enabled" : "Due date locking disabled")
+              } catch {
+                toast.error("Failed to update setting")
+              }
+            }}
+          />
         </div>
       </div>
     </div>

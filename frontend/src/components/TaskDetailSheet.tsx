@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc } from "frappe-react-sdk"
+import { startOfDay, isBefore } from "date-fns"
 import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -118,6 +119,17 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     task?.name ?? "",
     task?.name ? undefined : null,
   )
+
+  // Fetch Hive Settings (single doctype) for due date lock config
+  const { data: hiveSettings } = useFrappeGetDoc<{ lock_due_date_on_or_after: 0 | 1 }>(
+    "Hive Settings",
+    "Hive Settings",
+  )
+
+  const isDueDateLocked = useMemo(() => {
+    if (!hiveSettings?.lock_due_date_on_or_after || !dueDate) return false
+    return !isBefore(startOfDay(new Date()), startOfDay(dueDate))
+  }, [hiveSettings?.lock_due_date_on_or_after, dueDate])
 
   // Fetch all active members for the picker
   const { data: allMembers } = useFrappeGetDocList<HiveMember>(
@@ -555,8 +567,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
           </div>
           <div className="grid gap-2">
             <Label>Due Date</Label>
-            {isClient ? (
-              <p className="text-sm text-muted-foreground py-1">
+            {isClient || isDueDateLocked ? (
+              <p className="text-sm text-muted-foreground py-1" title={isDueDateLocked ? "Due date is locked on or after the due date" : undefined}>
                 {dueDate ? format(dueDate, "MMM d, yyyy") : "Not set"}
               </p>
             ) : (

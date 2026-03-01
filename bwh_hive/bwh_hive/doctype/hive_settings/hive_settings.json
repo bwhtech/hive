@@ -6,7 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "app_name",
-  "onboarding_completed"
+  "onboarding_completed",
+  "lock_due_date_on_or_after"
  ],
  "fields": [
   {
@@ -20,6 +21,13 @@
    "fieldname": "onboarding_completed",
    "fieldtype": "Check",
    "label": "Onboarding Completed"
+  },
+  {
+   "default": "1",
+   "description": "When enabled, the due date field becomes read-only on or after the due date",
+   "fieldname": "lock_due_date_on_or_after",
+   "fieldtype": "Check",
+   "label": "Lock Due Date On or After Due Date"
   }
  ],
  "grid_page_length": 50,

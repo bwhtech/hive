@@ -1,0 +1,60 @@
+<h2>Hi {{ member_name }},</h2>
+
+<p>You have <strong>{{ task_count }} overdue task{{ "s" if task_count != 1 else "" }}</strong> that need your attention.</p>
+
+<table style="width:100%; border-collapse:collapse; margin:16px 0;">
+	<thead>
+		<tr style="background:#f8f8f8; text-align:left;">
+			<th style="padding:8px 12px; border-bottom:2px solid #ddd;">Task</th>
+			<th style="padding:8px 12px; border-bottom:2px solid #ddd;">Project</th>
+			<th style="padding:8px 12px; border-bottom:2px solid #ddd;">Priority</th>
+			<th style="padding:8px 12px; border-bottom:2px solid #ddd;">Due Date</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for task in tasks %}
+		<tr>
+			<td style="padding:8px 12px; border-bottom:1px solid #eee;">
+				<a href="{{ site_url }}/hive/projects/{{ task.project }}?task={{ task.name }}">{{ task.title }}</a>
+			</td>
+			<td style="padding:8px 12px; border-bottom:1px solid #eee;">{{ task.project_title or task.project }}</td>
+			<td style="padding:8px 12px; border-bottom:1px solid #eee;">
+				{% if task.priority == "Urgent" %}
+					<span style="color:#dc2626; font-weight:600;">{{ task.priority }}</span>
+				{% elif task.priority == "High" %}
+					<span style="color:#ea580c; font-weight:600;">{{ task.priority }}</span>
+				{% else %}
+					{{ task.priority }}
+				{% endif %}
+			</td>
+			<td style="padding:8px 12px; border-bottom:1px solid #eee;">{{ frappe.utils.formatdate(task.due_date, "medium") }}</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+
+{% if team_summary %}
+<h3>Team Overview</h3>
+<p style="color:#666; font-size:14px;">Here's how the rest of the team is doing with overdue tasks:</p>
+
+<table style="width:100%; border-collapse:collapse; margin:16px 0; max-width:400px;">
+	<thead>
+		<tr style="background:#f8f8f8; text-align:left;">
+			<th style="padding:8px 12px; border-bottom:2px solid #ddd;">Team Member</th>
+			<th style="padding:8px 12px; border-bottom:2px solid #ddd; text-align:center;">Overdue Tasks</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for member in team_summary %}
+		<tr>
+			<td style="padding:8px 12px; border-bottom:1px solid #eee;">{{ member.member_name }}</td>
+			<td style="padding:8px 12px; border-bottom:1px solid #eee; text-align:center; font-weight:600;">{{ member.overdue_count }}</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endif %}
+
+<p style="margin-top:24px;">
+	<a href="{{ site_url }}/hive" style="display:inline-block; padding:10px 20px; background:#171717; color:#fff; text-decoration:none; border-radius:6px;">Open Hive</a>
+</p>

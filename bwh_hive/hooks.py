@@ -148,23 +148,11 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"bwh_hive.tasks.all"
-# 	],
-# 	"daily": [
-# 		"bwh_hive.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"bwh_hive.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"bwh_hive.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"bwh_hive.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"bwh_hive.tasks.daily",
+	],
+}
 
 # Testing
 # -------

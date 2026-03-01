@@ -170,6 +170,31 @@ def get_my_dashboard():
 
 
 @frappe.whitelist()
+def get_my_overdue_tasks():
+	"""Return tasks assigned to the current user that are past their due date and not done."""
+	user = frappe.session.user
+	today = nowdate()
+
+	tasks = frappe.get_all(
+		"Hive Task",
+		filters={
+			"_assign": ["like", f"%{user}%"],
+			"due_date": ["<", today],
+			"status": ["not in", ["Done"]],
+			"is_archived": 0,
+		},
+		fields=["name", "title", "project", "status", "priority", "due_date"],
+		order_by="due_date asc",
+		limit=50,
+	)
+
+	# Enrich with project titles
+	_enrich_tasks_with_project_titles(tasks)
+
+	return tasks
+
+
+@frappe.whitelist()
 def get_stale_members(threshold_days: int = 7):
 	"""Return team members who haven't posted a project update in threshold_days."""
 	cutoff = getdate(nowdate()) - timedelta(days=int(threshold_days))

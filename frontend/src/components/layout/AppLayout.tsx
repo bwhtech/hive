@@ -13,6 +13,7 @@ import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
 import { useCommandPalette } from "@/hooks/useCommandPalette"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 import { PinnedTasksDock } from "@/components/PinnedTasksDock"
+import { OverdueTasksDialog } from "@/components/OverdueTasksDialog"
 import { lazyWithRetry } from "@/utils/lazyWithRetry"
 
 const SettingsDialog = lazyWithRetry(() =>
@@ -180,6 +181,7 @@ export function AppLayout() {
         }}
       />
       <PinnedTasksDock />
+      <OverdueTasksDialog />
     </SidebarProvider>
   )
 }

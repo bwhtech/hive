@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { useFrappeGetCall } from "frappe-react-sdk"
 import { Link } from "react-router"
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts"
+import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   UserGroup03Icon,
@@ -47,15 +47,13 @@ interface MemberDetail {
   overdue_tasks: TaskItem[]
 }
 
-interface ChartDataPoint {
-  member_name: string
-  user: string
+interface TimeSeriesPoint {
+  date: string
   completed: number
-  overdue: number
 }
 
 interface TeamStatsResponse {
-  chart_data: ChartDataPoint[]
+  time_series: TimeSeriesPoint[]
   members: MemberDetail[]
 }
 
@@ -64,11 +62,12 @@ const chartConfig = {
     label: "Completed",
     color: "var(--chart-2)",
   },
-  overdue: {
-    label: "Overdue",
-    color: "var(--chart-5)",
-  },
 } satisfies ChartConfig
+
+function formatDateLabel(dateStr: string) {
+  const d = new Date(dateStr + "T00:00:00")
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
 
 export function TeamTab() {
   const [period, setPeriod] = useState<"week" | "month">("week")
@@ -79,7 +78,7 @@ export function TeamTab() {
   )
 
   const stats = data?.message
-  const chartData = stats?.chart_data ?? []
+  const timeSeries = stats?.time_series ?? []
 
   // Sort members: those with overdue tasks first, then by completed desc
   const sortedMembers = useMemo(() => {
@@ -103,7 +102,7 @@ export function TeamTab() {
     )
   }
 
-  if (!chartData.length) {
+  if (!sortedMembers.length) {
     return (
       <Empty className="border rounded-2xl p-12">
         <EmptyHeader>
@@ -127,7 +126,7 @@ export function TeamTab() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Task completions</CardTitle>
+            <CardTitle>Completed tasks</CardTitle>
             <div className="flex gap-1 rounded-md bg-muted p-0.5">
               <button
                 type="button"
@@ -156,36 +155,58 @@ export function TeamTab() {
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart
-              data={chartData}
+            <AreaChart
+              data={timeSeries}
               margin={{ top: 8, right: 8, bottom: 0, left: -12 }}
             >
+              <defs>
+                <linearGradient
+                  id="completedGradient"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="5%"
+                    stopColor="var(--color-completed)"
+                    stopOpacity={0.3}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--color-completed)"
+                    stopOpacity={0.05}
+                  />
+                </linearGradient>
+              </defs>
               <CartesianGrid vertical={false} />
               <XAxis
-                dataKey="member_name"
+                dataKey="date"
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v: string) =>
-                  v.length > 10 ? v.slice(0, 10) + "..." : v
-                }
+                tickFormatter={formatDateLabel}
+                interval={period === "month" ? 4 : 0}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 allowDecimals={false}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(value) => formatDateLabel(value as string)}
+                  />
+                }
+              />
+              <Area
+                type="monotone"
                 dataKey="completed"
-                fill="var(--color-completed)"
-                radius={[4, 4, 0, 0]}
+                stroke="var(--color-completed)"
+                strokeWidth={2}
+                fill="url(#completedGradient)"
               />
-              <Bar
-                dataKey="overdue"
-                fill="var(--color-overdue)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
+            </AreaChart>
           </ChartContainer>
         </CardContent>
       </Card>

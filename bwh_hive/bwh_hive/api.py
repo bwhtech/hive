@@ -551,22 +551,23 @@ def get_team_stats(period: str = "week"):
 			task_copy = {k: v for k, v in t.items() if k != "_assign"}
 			user_overdue.setdefault(user, []).append(task_copy)
 
-	# Build chart data and member details
-	chart_data = []
+	# Build time series: completed tasks per day
+	today_date = getdate(nowdate())
+	date_counts: dict[str, int] = {}
+	for d in range(days):
+		date_counts[str(today_date - timedelta(days=d))] = 0
+	for t in completed_tasks:
+		dt = str(getdate(t.completed_on))
+		if dt in date_counts:
+			date_counts[dt] += 1
+	time_series = [{"date": d, "completed": c} for d, c in sorted(date_counts.items())]
+
+	# Build member details
 	member_details = []
 	for m in members:
 		image = user_images.get(m.user) or m.user_image
 		completed = user_completed.get(m.user, [])
 		overdue = user_overdue.get(m.user, [])
-
-		chart_data.append(
-			{
-				"member_name": m.member_name,
-				"user": m.user,
-				"completed": len(completed),
-				"overdue": len(overdue),
-			}
-		)
 
 		member_details.append(
 			{
@@ -580,7 +581,7 @@ def get_team_stats(period: str = "week"):
 		)
 
 	return {
-		"chart_data": chart_data,
+		"time_series": time_series,
 		"members": member_details,
 	}
 

@@ -480,6 +480,112 @@ def get_team_dashboard():
 
 
 @frappe.whitelist()
+def get_team_stats(period: str = "week"):
+	"""Return team completion chart data and per-member overdue/completed tasks.
+
+	Args:
+		period: "week" (last 7 days) or "month" (last 30 days)
+	"""
+	days = 7 if period == "week" else 30
+	cutoff = getdate(nowdate()) - timedelta(days=days)
+	today = nowdate()
+
+	members = frappe.get_all(
+		"Hive Member",
+		filters={"type": "Team", "is_active": 1},
+		fields=["name", "user", "member_name", "user_image", "designation"],
+		order_by="member_name asc",
+	)
+
+	# Fetch fresh user images
+	user_emails = [m.user for m in members]
+	user_images = {}
+	if user_emails:
+		user_images = {
+			u.name: u.user_image
+			for u in frappe.get_all(
+				"User",
+				filters={"name": ["in", user_emails]},
+				fields=["name", "user_image"],
+			)
+		}
+
+	# Completed tasks in the period
+	completed_tasks = frappe.get_all(
+		"Hive Task",
+		filters={
+			"status": "Done",
+			"completed_on": [">=", cutoff],
+			"is_archived": 0,
+		},
+		fields=["name", "title", "project", "priority", "completed_on", "_assign"],
+		order_by="completed_on desc",
+		limit=500,
+	)
+	_enrich_tasks_with_project_titles(completed_tasks)
+
+	# Overdue tasks (not done, past due date)
+	overdue_tasks = frappe.get_all(
+		"Hive Task",
+		filters={
+			"due_date": ["<", today],
+			"status": ["not in", ["Done"]],
+			"is_archived": 0,
+		},
+		fields=["name", "title", "project", "priority", "due_date", "status", "_assign"],
+		order_by="due_date asc",
+		limit=500,
+	)
+	_enrich_tasks_with_project_titles(overdue_tasks)
+
+	# Map tasks to users
+	user_completed: dict[str, list] = {}
+	for t in completed_tasks:
+		for user in json.loads(t._assign or "[]"):
+			task_copy = {k: v for k, v in t.items() if k != "_assign"}
+			user_completed.setdefault(user, []).append(task_copy)
+
+	user_overdue: dict[str, list] = {}
+	for t in overdue_tasks:
+		for user in json.loads(t._assign or "[]"):
+			task_copy = {k: v for k, v in t.items() if k != "_assign"}
+			user_overdue.setdefault(user, []).append(task_copy)
+
+	# Build chart data and member details
+	chart_data = []
+	member_details = []
+	for m in members:
+		image = user_images.get(m.user) or m.user_image
+		completed = user_completed.get(m.user, [])
+		overdue = user_overdue.get(m.user, [])
+
+		chart_data.append(
+			{
+				"member_name": m.member_name,
+				"user": m.user,
+				"completed": len(completed),
+				"overdue": len(overdue),
+			}
+		)
+
+		member_details.append(
+			{
+				"user": m.user,
+				"member_name": m.member_name,
+				"user_image": image,
+				"designation": m.designation,
+				"completed_tasks": completed,
+				"overdue_tasks": overdue,
+			}
+		)
+
+	return {
+		"chart_data": chart_data,
+		"members": member_details,
+	}
+
+
+@frappe.whitelist()
 def get_member_tasks(user: str):
 	"""Return tasks assigned to a specific member, grouped by category (wip, backlog, blocked)."""
 	all_tasks = frappe.get_all(

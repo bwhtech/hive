@@ -177,12 +177,13 @@ def get_my_overdue_tasks():
 
 	tasks = frappe.get_all(
 		"Hive Task",
-		filters={
-			"_assign": ["like", f"%{user}%"],
-			"due_date": ["<", today],
-			"status": ["not in", ["Done"]],
-			"is_archived": 0,
-		},
+		filters=[
+			["_assign", "like", f"%{user}%"],
+			["due_date", "is", "set"],
+			["due_date", "<", today],
+			["status", "not in", ["Done"]],
+			["is_archived", "=", 0],
+		],
 		fields=["name", "title", "project", "status", "priority", "due_date"],
 		order_by="due_date asc",
 		limit=50,

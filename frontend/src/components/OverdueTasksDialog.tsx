@@ -116,9 +116,11 @@ export function OverdueTasksDialog() {
                   <Badge variant={TASK_PRIORITY_VARIANT[task.priority] ?? "outline"} className="text-[10px] h-4 px-1.5">
                     {task.priority}
                   </Badge>
-                  <span className="text-xs text-red-500 whitespace-nowrap">
-                    {formatDistanceToNow(new Date(task.due_date), { addSuffix: true })}
-                  </span>
+                  {task.due_date && (
+                    <span className="text-xs text-red-500 whitespace-nowrap">
+                      {formatDistanceToNow(new Date(task.due_date + "T00:00:00"), { addSuffix: true })}
+                    </span>
+                  )}
                 </div>
               </div>
               <HugeiconsIcon

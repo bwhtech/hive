@@ -14,7 +14,7 @@ export function ProjectsTab() {
   const { data: projects, isLoading: projectsLoading } = useFrappeGetDocList<HiveProject>(
     "Hive Project",
     {
-      fields: ["name", "title", "status", "project_type", "client", "creation", "modified"],
+      fields: ["name", "title", "slug", "status", "project_type", "client", "creation", "modified"],
       filters: [["is_archived", "=", 0]],
       orderBy: { field: "modified", order: "desc" },
       limit: 100,
@@ -86,7 +86,7 @@ export function ProjectsTab() {
       {projects.map((project) => {
         const stats = tasksByProject[project.name] ?? { total: 0, open: 0, clientOpen: 0 }
         return (
-          <Link key={project.name} to={`/projects/${project.name}`} className="block">
+          <Link key={project.name} to={`/projects/${project.slug || project.name}`} className="block">
             <Card className="h-full transition-shadow hover:shadow-md">
               <CardHeader>
                 <CardTitle>{project.title}</CardTitle>

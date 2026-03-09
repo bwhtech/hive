@@ -122,7 +122,7 @@ def get_my_dashboard():
 		my_projects = frappe.get_all(
 			"Hive Project",
 			filters={"name": ["in", list(all_my_project_ids)], "is_archived": 0},
-			fields=["name", "title", "status", "project_type", "client", "modified"],
+			fields=["name", "title", "slug", "status", "project_type", "client", "modified"],
 			order_by="modified desc",
 		)
 
@@ -308,6 +308,15 @@ def _search_fts(query: str, project: str | None, limit: int) -> dict:
 	projects = []
 	tasks = []
 
+	# Pre-fetch slugs for project results
+	project_names_in_fts = [r["name"] for r in fts_results if r.get("doctype") == "Hive Project"]
+	slug_map = {}
+	if project_names_in_fts:
+		for p in frappe.get_all(
+			"Hive Project", filters={"name": ["in", project_names_in_fts]}, fields=["name", "slug"]
+		):
+			slug_map[p.name] = p.slug
+
 	for r in fts_results:
 		if r.get("doctype") == "Hive Project" and len(projects) < limit:
 			projects.append(
@@ -315,6 +324,7 @@ def _search_fts(query: str, project: str | None, limit: int) -> dict:
 					"name": r["name"],
 					"title": _strip_marks(r.get("title", "")),
 					"status": r.get("status", ""),
+					"slug": slug_map.get(r["name"], ""),
 				}
 			)
 		elif r.get("doctype") == "Hive Task" and len(tasks) < limit:
@@ -341,7 +351,7 @@ def _search_like(query: str, project: str | None, limit: int) -> dict:
 	projects = frappe.get_all(
 		"Hive Project",
 		filters={"title": ["like", like], "is_archived": 0},
-		fields=["name", "title", "status"],
+		fields=["name", "title", "slug", "status"],
 		order_by="modified desc",
 		limit=limit,
 	)
@@ -907,3 +917,12 @@ def get_project_activity(project: str, limit: int = 100):
 		a["user_image"] = user_image_map.get(a["user"])
 
 	return activities[:limit]
+
+
+@frappe.whitelist()
+def resolve_project_slug(slug: str):
+	"""Resolve a project slug to its document name. Returns the name or raises 404."""
+	name = frappe.db.get_value("Hive Project", {"slug": slug}, "name")
+	if not name:
+		frappe.throw("Project not found", frappe.DoesNotExistError)
+	return name

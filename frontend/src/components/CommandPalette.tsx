@@ -166,7 +166,7 @@ export function CommandPalette({
                     forceMount
                     onSelect={() =>
                       runCommand(() =>
-                        navigate(`/projects/${project.name}`),
+                        navigate(`/projects/${project.slug || project.name}`),
                       )
                     }
                   >

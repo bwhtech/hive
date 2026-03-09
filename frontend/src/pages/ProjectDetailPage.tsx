@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useParams, useSearchParams, Link, useNavigate } from "react-router"
 import {
   useFrappeAuth,
+  useFrappeGetCall,
   useFrappeGetDoc,
   useFrappeGetDocList,
   useFrappeUpdateDoc,
@@ -100,12 +101,23 @@ const TASK_FIELDS = [
 const EMPTY_ASSIGNEES: Record<string, HiveTaskAssignee[]> = {}
 
 export function ProjectDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id: routeId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const { isClient } = useUser()
   const { celebrate } = useCelebration()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // If the route param doesn't look like a Frappe name (PROJ-#####), resolve slug
+  const isSlug = routeId ? !routeId.startsWith("PROJ-") : false
+  const { data: slugData } = useFrappeGetCall<{ message: string }>(
+    "bwh_hive.bwh_hive.api.resolve_project_slug",
+    { slug: routeId },
+    isSlug ? undefined : null,
+  )
+
+  // Use resolved name for API calls, but keep slug in URL
+  const id = isSlug ? (slugData?.message || undefined) : routeId
   const [createOpen, setCreateOpen] = useState(false)
   const [createFeatureRequestOpen, setCreateFeatureRequestOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<HiveTask | null>(null)

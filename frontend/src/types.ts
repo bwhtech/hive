@@ -1,6 +1,7 @@
 export interface HiveProject {
   name: string
   title: string
+  slug: string
   status: "Open" | "Completed" | "On Hold"
   project_type: string
   client: string

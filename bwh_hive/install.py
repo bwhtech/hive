@@ -14,6 +14,7 @@ def after_migrate():
 	_ensure_roles()
 	_bootstrap_system_managers()
 	_ensure_default_project_types()
+	_generate_missing_project_slugs()
 	frappe.db.commit()
 
 
@@ -52,6 +53,18 @@ def _bootstrap_system_managers():
 					"is_active": 1,
 				}
 			).insert(ignore_permissions=True)
+
+
+def _generate_missing_project_slugs():
+	"""Generate slugs for any projects that don't have one yet."""
+	projects = frappe.get_all(
+		"Hive Project",
+		filters=[["slug", "is", "not set"]],
+		fields=["name"],
+	)
+	for p in projects:
+		doc = frappe.get_doc("Hive Project", p.name)
+		doc.save(ignore_permissions=True)
 
 
 DEFAULT_PROJECT_TYPES = ["Development", "Implementation", "Retainer", "Internal"]

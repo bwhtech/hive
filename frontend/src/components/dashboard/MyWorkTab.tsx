@@ -267,7 +267,7 @@ export function MyWorkTab() {
               {dashboard.my_projects.map((project) => (
                 <Item
                   key={project.name}
-                  render={<Link to={`/projects/${project.name}`} />}
+                  render={<Link to={`/projects/${project.slug || project.name}`} />}
                   variant="outline"
                   className="p-3 hover:bg-muted/50"
                 >

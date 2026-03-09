@@ -66,7 +66,7 @@ export function ProjectsPage() {
   )
 
   const { data, isLoading } = useFrappeGetDocList<HiveProject>("Hive Project", {
-    fields: ["name", "title", "status", "project_type", "client", "description", "is_private", "creation", "modified"],
+    fields: ["name", "title", "slug", "status", "project_type", "client", "description", "is_private", "creation", "modified"],
     filters: [["is_archived", "=", 0]],
     orderBy: { field: "modified", order: "desc" },
     limit: 100,
@@ -191,7 +191,7 @@ export function ProjectsPage() {
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project) => (
-              <Link key={project.name} to={`/projects/${project.name}`} className="block">
+              <Link key={project.name} to={`/projects/${project.slug || project.name}`} className="block">
                 <Card className="h-full transition-shadow hover:shadow-md">
                   <CardHeader>
                     <CardTitle>{project.title}</CardTitle>

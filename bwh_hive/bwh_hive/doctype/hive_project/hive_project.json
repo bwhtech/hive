@@ -10,6 +10,7 @@
  "engine": "InnoDB",
  "field_order": [
   "title",
+  "slug",
   "status",
   "is_private",
   "project_type",
@@ -29,6 +30,15 @@
    "in_standard_filter": 1,
    "label": "Title",
    "reqd": 1
+  },
+  {
+   "fieldname": "slug",
+   "fieldtype": "Data",
+   "label": "Slug",
+   "unique": 1,
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
   },
   {
    "default": "0",

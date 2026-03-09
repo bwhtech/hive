@@ -20,7 +20,8 @@
   "members",
   "links_section",
   "links",
-  "is_archived"
+  "is_archived",
+  "github_repo"
  ],
  "fields": [
   {
@@ -106,6 +107,12 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Archived"
+  },
+  {
+   "fieldname": "github_repo",
+   "fieldtype": "Data",
+   "label": "GitHub Repository",
+   "description": "GitHub repository in owner/repo format (e.g. BuildWithHussain/hive)"
   }
  ],
  "grid_page_length": 50,

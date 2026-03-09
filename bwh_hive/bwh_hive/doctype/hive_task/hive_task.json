@@ -24,7 +24,8 @@
   "uat_section",
   "uat_status",
   "uat_approved_by",
-  "uat_date"
+  "uat_date",
+  "github_issue_url"
  ],
  "fields": [
   {
@@ -155,6 +156,13 @@
    "fieldname": "uat_date",
    "fieldtype": "Date",
    "label": "UAT Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "github_issue_url",
+   "fieldtype": "Data",
+   "label": "GitHub Issue URL",
+   "options": "URL",
    "read_only": 1
   }
  ],

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react"
-import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc } from "frappe-react-sdk"
+import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc, useFrappeGetCall } from "frappe-react-sdk"
 import { startOfDay, isBefore } from "date-fns"
 import { Spinner } from "@/components/ui/spinner"
 import { format } from "date-fns"
@@ -112,12 +112,27 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const { call: rejectUat, loading: rejectingUat } = useFrappePostCall("run_doc_method")
   const { call: callAssign } = useFrappePostCall("frappe.desk.form.assign_to.add")
   const { call: callUnassign } = useFrappePostCall("frappe.desk.form.assign_to.remove")
+  const { call: callCreateIssue } = useFrappePostCall("bwh_hive.bwh_hive.github.create_issue")
+  const [creatingIssue, setCreatingIssue] = useState(false)
+  const [githubIssueUrl, setGithubIssueUrl] = useState<string | null>(null)
 
   // Fetch full task doc when task changes
   const { data: taskDoc, mutate: mutateTaskDoc } = useFrappeGetDoc<HiveTask>(
     "Hive Task",
     task?.name ?? "",
     task?.name ? undefined : null,
+  )
+
+  // Fetch project to check github_repo
+  const { data: projectDoc } = useFrappeGetDoc<{ github_repo: string | null }>(
+    "Hive Project",
+    task?.project ?? "",
+    task?.project ? undefined : null,
+  )
+
+  // Fetch GitHub connection status
+  const { data: ghStatus } = useFrappeGetCall<{ message: { app_configured: boolean; connected: boolean } }>(
+    "bwh_hive.bwh_hive.github.status",
   )
 
   // Fetch Hive Settings (single doctype) for due date lock config
@@ -181,6 +196,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       setMilestone(task.milestone || "")
       setDependsOn(task.depends_on || "")
       setPrLink(task.pr_link || "")
+      setGithubIssueUrl(task.github_issue_url || null)
       setDueDate(task.due_date ? new Date(task.due_date) : undefined)
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
       setCompletedOn(task.completed_on ? new Date(task.completed_on) : undefined)
@@ -344,6 +360,31 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       })
     } catch {
       toast.error("Failed to delete task")
+    }
+  }
+
+  const handleConvertToIssue = async () => {
+    if (creatingIssue || !task) return
+    setCreatingIssue(true)
+    try {
+      const res = await callCreateIssue({ task_name: task.name })
+      const issueUrl = res?.message?.issue_url
+      if (issueUrl) {
+        setGithubIssueUrl(issueUrl)
+        toast.success("GitHub issue created", {
+          action: {
+            label: "Open",
+            onClick: () => window.open(issueUrl, "_blank"),
+          },
+        })
+        mutateTaskDoc()
+        onUpdated()
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to create GitHub issue"
+      toast.error(msg)
+    } finally {
+      setCreatingIssue(false)
     }
   }
 
@@ -617,6 +658,33 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
             </div>
           )}
         </div>
+
+        {/* GitHub Issue */}
+        {!isClient && projectDoc?.github_repo && ghStatus?.message?.connected && (
+          <div className="grid gap-2">
+            <Label>GitHub Issue</Label>
+            {githubIssueUrl ? (
+              <a
+                href={githubIssueUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline truncate"
+              >
+                {githubIssueUrl}
+              </a>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConvertToIssue}
+                disabled={creatingIssue}
+                className="w-fit"
+              >
+                {creatingIssue ? "Creating..." : "Convert to GitHub Issue"}
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Description */}
         <div className="grid gap-2">

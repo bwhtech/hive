@@ -72,3 +72,60 @@ def disconnect() -> dict:
 	frappe.delete_doc("GitHub Token", frappe.session.user, ignore_permissions=True)
 	frappe.db.commit()
 	return {"success": True}
+
+
+@frappe.whitelist()
+def create_issue(task_name: str) -> dict:
+	"""Convert a Hive Task into a GitHub issue using the current user's token."""
+	task = frappe.get_doc("Hive Task", task_name)
+
+	if task.github_issue_url:
+		frappe.throw("This task has already been converted to a GitHub issue.")
+
+	project = frappe.get_doc("Hive Project", task.project)
+	if not project.github_repo:
+		frappe.throw("No GitHub repository linked to this project. Set it in the project settings.")
+
+	if not frappe.db.exists("GitHub Token", frappe.session.user):
+		frappe.throw("Connect your GitHub account first in Settings → GitHub.")
+
+	token_doc = frappe.get_doc("GitHub Token", frappe.session.user)
+	access_token = token_doc.get_password("access_token", raise_exception=False)
+	if not access_token:
+		frappe.throw("GitHub access token not found. Reconnect your GitHub account.")
+
+	# Build issue body
+	body = ""
+	if task.description:
+		# Strip HTML tags for a cleaner GitHub issue body
+		from frappe.utils import strip_html_tags
+
+		body = strip_html_tags(task.description)
+
+	body += f"\n\n---\n*Created from Hive task `{task.name}`*"
+
+	resp = requests.post(
+		f"https://api.github.com/repos/{project.github_repo}/issues",
+		headers={
+			"Authorization": f"Bearer {access_token}",
+			"Accept": "application/vnd.github.v3+json",
+		},
+		json={
+			"title": task.title,
+			"body": body,
+		},
+		timeout=15,
+	)
+
+	if resp.status_code != 201:
+		frappe.throw(f"GitHub API error ({resp.status_code}): {resp.json().get('message', 'Unknown error')}")
+
+	issue_data = resp.json()
+	issue_url = issue_data["html_url"]
+
+	task.db_set("github_issue_url", issue_url)
+
+	return {
+		"issue_url": issue_url,
+		"issue_number": issue_data["number"],
+	}

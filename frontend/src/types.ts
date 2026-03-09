@@ -8,6 +8,7 @@ export interface HiveProject {
   description: string
   is_private: 0 | 1
   is_archived: 0 | 1
+  github_repo: string | null
   owner: string
   links?: HiveProjectLink[]
   creation: string
@@ -31,6 +32,7 @@ export interface HiveTask {
   start_date: string | null
   completed_on: string | null
   pr_link: string | null
+  github_issue_url: string | null
   uat_status: "Pending" | "Approved" | "Rejected"
   uat_approved_by: string | null
   uat_date: string | null

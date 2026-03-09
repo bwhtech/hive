@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react"
+import { useCallback, useMemo } from "react"
+import { useSearchParams } from "react-router"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   UserGroup03Icon,
@@ -25,9 +26,26 @@ const dashboardTabs = [
 
 const tabMap = new Map(dashboardTabs.map((t) => [t.value, t]))
 
+const validTabs = new Set(dashboardTabs.map((t) => t.value))
+
 export function DashboardPage() {
-  const [tab, setTab] = useState("my")
+  const [searchParams, setSearchParams] = useSearchParams()
   const isMobile = useIsMobile()
+
+  const tabParam = searchParams.get("tab")
+  const tab = tabParam && validTabs.has(tabParam) ? tabParam : "my"
+
+  const handleTabChange = useCallback((value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (value === "my") {
+        next.delete("tab")
+      } else {
+        next.set("tab", value)
+      }
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
   const activeTab = useMemo(() => tabMap.get(tab) ?? dashboardTabs[0], [tab])
 
   return (
@@ -39,9 +57,9 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={handleTabChange}>
         {isMobile ? (
-          <Select value={tab} onValueChange={setTab}>
+          <Select value={tab} onValueChange={handleTabChange}>
             <SelectTrigger className="w-full">
               <span className="flex items-center gap-2">
                 <HugeiconsIcon

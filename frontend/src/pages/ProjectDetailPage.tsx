@@ -139,7 +139,7 @@ export function ProjectDetailPage() {
     if (taskParam) return "tasks"
     if (tabParam && validTabs.includes(tabParam))
       return tabParam
-    return "overview"
+    return "tasks"
   })
 
   // Update both state and URL when switching tabs
@@ -147,7 +147,7 @@ export function ProjectDetailPage() {
     setActiveTab(tab)
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      if (tab === "overview") {
+      if (tab === "tasks") {
         next.delete("tab")
       } else {
         next.set("tab", tab)

@@ -377,15 +377,17 @@ def _enrich_tasks_with_project_titles(tasks: list) -> None:
 	task_project_ids = list({t["project"] for t in tasks if t.get("project")})
 	if task_project_ids:
 		proj_map = {
-			p.name: p.title
+			p.name: {"title": p.title, "slug": p.slug}
 			for p in frappe.get_all(
 				"Hive Project",
 				filters={"name": ["in", task_project_ids]},
-				fields=["name", "title"],
+				fields=["name", "title", "slug"],
 			)
 		}
 		for t in tasks:
-			t["project_title"] = proj_map.get(t.get("project"), t.get("project"))
+			proj = proj_map.get(t.get("project"))
+			t["project_title"] = proj["title"] if proj else t.get("project")
+			t["project_slug"] = proj["slug"] if proj else t.get("project")
 
 
 def _strip_marks(text: str) -> str:

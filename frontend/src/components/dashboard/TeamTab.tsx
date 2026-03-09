@@ -32,6 +32,7 @@ interface TaskItem {
   title: string
   project: string
   project_title: string
+  project_slug?: string
   priority: string
   due_date?: string | null
   completed_on?: string | null
@@ -275,7 +276,7 @@ function MemberStatsCard({ member }: { member: MemberDetail }) {
               {member.overdue_tasks.slice(0, 5).map((task) => (
                 <Link
                   key={task.name}
-                  to={`/projects/${task.project}`}
+                  to={`/projects/${task.project_slug || task.project}?tab=tasks&task=${task.name}`}
                   className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
                 >
                   <span
@@ -317,7 +318,7 @@ function MemberStatsCard({ member }: { member: MemberDetail }) {
               {member.completed_tasks.slice(0, 5).map((task) => (
                 <Link
                   key={task.name}
-                  to={`/projects/${task.project}`}
+                  to={`/projects/${task.project_slug || task.project}?tab=tasks&task=${task.name}`}
                   className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
                 >
                   <span className="text-sm truncate flex-1 text-muted-foreground line-through decoration-muted-foreground/30">

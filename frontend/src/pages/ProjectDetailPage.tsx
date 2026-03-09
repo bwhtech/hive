@@ -24,6 +24,7 @@ import {
   FilterIcon,
   Clock01Icon,
   Delete02Icon,
+  GitBranchIcon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -206,9 +208,11 @@ export function ProjectDetailPage() {
   const [newClientName, setNewClientName] = useState("")
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState("")
+  const [githubRepoOpen, setGithubRepoOpen] = useState(false)
+  const [githubRepoDraft, setGithubRepoDraft] = useState("")
 
   // Tab-switching shortcuts — disabled when any dialog/sheet is open
-  const anyDialogOpen = createOpen || sheetOpen || deleteDialogOpen || linksDialogOpen || newClientOpen || editingTitle || createFeatureRequestOpen
+  const anyDialogOpen = createOpen || sheetOpen || deleteDialogOpen || linksDialogOpen || newClientOpen || editingTitle || createFeatureRequestOpen || githubRepoOpen
   const switchTab = useCallback((tab: string) => () => handleTabChange(tab), [handleTabChange])
   useHotkey("o", switchTab("overview"), { enabled: !anyDialogOpen })
   useHotkey("m", switchTab("milestones"), { enabled: !anyDialogOpen })
@@ -452,6 +456,22 @@ export function ProjectDetailPage() {
     }
   }
 
+  const handleGithubRepoSave = async () => {
+    const trimmed = githubRepoDraft.trim()
+    if (trimmed === (project?.github_repo || "")) {
+      setGithubRepoOpen(false)
+      return
+    }
+    try {
+      await updateDoc("Hive Project", id!, { github_repo: trimmed || null })
+      mutateProject()
+      setGithubRepoOpen(false)
+      toast.success(trimmed ? "GitHub repo linked" : "GitHub repo unlinked")
+    } catch {
+      toast.error("Failed to update GitHub repo")
+    }
+  }
+
   const handleTitleSave = async () => {
     const trimmed = titleDraft.trim()
     if (!trimmed || trimmed === project?.title) {
@@ -688,6 +708,51 @@ export function ProjectDetailPage() {
                       <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3" />
                     </button>
                   </div>
+                  <Popover open={githubRepoOpen} onOpenChange={(open) => {
+                    setGithubRepoOpen(open)
+                    if (open) setGithubRepoDraft(project.github_repo || "")
+                  }}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={`inline-flex items-center gap-1 h-5 text-[11px] px-2.5 rounded-full font-medium border transition-colors ${
+                          project.github_repo
+                            ? "hover:border-foreground/30"
+                            : "border-dashed text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                        }`}
+                      >
+                        <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-3" />
+                        {project.github_repo || "Link repo"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-3" align="start">
+                      <div className="grid gap-2">
+                        <Label htmlFor="github-repo-input" className="text-xs font-medium">
+                          GitHub Repository
+                        </Label>
+                        <Input
+                          id="github-repo-input"
+                          placeholder="owner/repo"
+                          value={githubRepoDraft}
+                          onChange={(e) => setGithubRepoDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleGithubRepoSave()
+                            if (e.key === "Escape") setGithubRepoOpen(false)
+                          }}
+                          autoFocus
+                          className="h-8 text-sm"
+                        />
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] text-muted-foreground">
+                            e.g. BuildWithHussain/hive
+                          </p>
+                          <Button size="sm" className="h-7 text-xs" onClick={handleGithubRepoSave}>
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </>
               )}
             </div>

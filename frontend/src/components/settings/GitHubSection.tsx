@@ -3,6 +3,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface HiveSettings {
@@ -26,6 +27,7 @@ export function GitHubSection() {
     "bwh_hive.bwh_hive.github.status",
   )
   const [submitting, setSubmitting] = useState(false)
+  const [orgName, setOrgName] = useState("")
 
   const isConfigured = Boolean(settings?.github_app_id)
   const status = ghStatus?.message
@@ -56,7 +58,10 @@ export function GitHubSection() {
       // Submit a hidden form to GitHub to create the app
       const form = document.createElement("form")
       form.method = "POST"
-      form.action = "https://github.com/settings/apps/new"
+      const org = orgName.trim()
+      form.action = org
+        ? `https://github.com/organizations/${org}/settings/apps/new`
+        : "https://github.com/settings/apps/new"
 
       const input = document.createElement("input")
       input.type = "hidden"
@@ -98,6 +103,12 @@ export function GitHubSection() {
               Create a GitHub App to enable the integration. This will allow
               team members to convert Hive tasks into GitHub issues directly.
             </p>
+            <Input
+              placeholder="GitHub organization name (optional)"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              className="h-8 text-sm max-w-xs"
+            />
             <Button
               onClick={handleCreateApp}
               disabled={submitting}

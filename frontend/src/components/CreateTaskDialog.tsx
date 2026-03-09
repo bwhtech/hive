@@ -15,6 +15,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -100,6 +108,8 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
   const [assignees, setAssignees] = useState<AssigneeRow[]>(initialDraft.assignees ?? [])
   const [selectedMilestone, setSelectedMilestone] = useState(initialDraft.selectedMilestone ?? "")
   const [selectedProject, setSelectedProject] = useState(initialDraft.selectedProject ?? "")
+
+  const isMobile = useIsMobile()
 
   // Sync form state to localStorage so drafts survive page navigations
   useEffect(() => {
@@ -216,176 +226,252 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
 
   const milestoneFilters = useMemo(() => ({ project: resolvedProject }), [resolvedProject])
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>New Task</DialogTitle>
-          <DialogDescription>Add a task to this project.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          {needsProjectPicker && (
-            <div className="grid gap-2">
-              <Label>Project</Label>
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects?.map((p) => (
-                    <SelectItem key={p.name} value={p.name}>{p.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div className="grid gap-2">
-            <Label htmlFor="task-title">Title</Label>
-            <Input
-              id="task-title"
-              placeholder="What needs to be done?"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
-            />
-          </div>
+  // --- Shared form field renderers ---
 
-          <div className="grid gap-2">
-            <Label>Description</Label>
-            <LazyTiptapEditor
-              key={editorKey}
-              content={editorInitialContent}
-              onChange={setDescription}
-              placeholder="Add a description..."
-              className="max-h-[200px] overflow-y-auto [&_.tiptap-content]:min-h-[60px]"
-              mentionSuggestions={mentionSuggestions}
-            />
-          </div>
+  const projectPickerField = needsProjectPicker && (
+    <div className="grid gap-2">
+      <Label>Project</Label>
+      <Select value={selectedProject} onValueChange={setSelectedProject}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select a project" />
+        </SelectTrigger>
+        <SelectContent>
+          {projects?.map((p) => (
+            <SelectItem key={p.name} value={p.name}>{p.title}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>Priority</Label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+  const priorityStatusFields = (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-2">
+        <Label>Priority</Label>
+        <Select value={priority} onValueChange={setPriority}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TASK_PRIORITIES.map((p) => (
+              <SelectItem key={p} value={p}>{p}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-2">
+        <Label>Status</Label>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TASK_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
 
-          {/* Milestone */}
-          {resolvedProject && (
+  const milestoneField = resolvedProject && (
+    <div className="grid gap-2">
+      <Label>Milestone</Label>
+      <LinkField
+        doctype="Hive Milestone"
+        value={selectedMilestone}
+        onChange={setSelectedMilestone}
+        placeholder="None"
+        filters={milestoneFilters}
+        className="w-full"
+      />
+    </div>
+  )
+
+  const assigneesField = (
+    <div className="grid gap-2">
+      <Label>Assignees</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        {assignees.map((a) => (
+          <div
+            key={a.member}
+            className="flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 text-sm"
+          >
+            <MemberAvatar size="sm" name={a.member_name || a.member} image={a.user_image} />
+            <span className="truncate max-w-[120px]">{a.member_name || a.member}</span>
+            <button
+              type="button"
+              onClick={() => removeAssignee(a.member)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <HugeiconsIcon icon={Cancel02Icon} strokeWidth={2} className="size-3.5" />
+            </button>
+          </div>
+        ))}
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" />
+            }
+          >
+            <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
+            Add
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search members..." />
+              <CommandList>
+                <CommandEmpty>No members found</CommandEmpty>
+                <CommandGroup>
+                  {sortedMembers.map((m) => (
+                    <CommandItem
+                      key={m.name}
+                      value={m.member_name || m.name}
+                      data-checked={assignedMemberNames.has(m.name)}
+                      onSelect={() => toggleAssignee(m)}
+                    >
+                      <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
+                      <span className="flex-1 truncate">
+                        {m.member_name || m.name}
+                        {m.user === user?.email && <span className="text-muted-foreground ml-1">(you)</span>}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  )
+
+  const dateFields = (
+    <div className="grid grid-cols-2 gap-4">
+      <DatePickerField date={startDate} onSelect={setStartDate} label="Start Date" />
+      <DatePickerField date={dueDate} onSelect={setDueDate} label="Due Date" />
+    </div>
+  )
+
+  const internalCheckbox = (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={isInternal}
+        onChange={(e) => setIsInternal(e.target.checked)}
+        className="size-4 rounded border accent-primary"
+      />
+      <span className="text-sm">Internal task</span>
+    </label>
+  )
+
+  // Mobile: keep existing Dialog layout
+  if (isMobile) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>New Task</DialogTitle>
+            <DialogDescription>Add a task to this project.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            {projectPickerField}
             <div className="grid gap-2">
-              <Label>Milestone</Label>
-              <LinkField
-                doctype="Hive Milestone"
-                value={selectedMilestone}
-                onChange={setSelectedMilestone}
-                placeholder="None"
-                filters={milestoneFilters}
-                className="w-full"
+              <Label htmlFor="task-title">Title</Label>
+              <Input
+                id="task-title"
+                placeholder="What needs to be done?"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                autoFocus
               />
             </div>
-          )}
-
-          {/* Assignees */}
-          <div className="grid gap-2">
-            <Label>Assignees</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              {assignees.map((a) => (
-                <div
-                  key={a.member}
-                  className="flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 text-sm"
-                >
-                  <MemberAvatar size="sm" name={a.member_name || a.member} image={a.user_image} />
-                  <span className="truncate max-w-[120px]">{a.member_name || a.member}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeAssignee(a.member)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <HugeiconsIcon icon={Cancel02Icon} strokeWidth={2} className="size-3.5" />
-                  </button>
-                </div>
-              ))}
-              <Popover>
-                <PopoverTrigger
-                  render={
-                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" />
-                  }
-                >
-                  <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className="size-3.5" />
-                  Add
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search members..." />
-                    <CommandList>
-                      <CommandEmpty>No members found</CommandEmpty>
-                      <CommandGroup>
-                        {sortedMembers.map((m) => (
-                          <CommandItem
-                            key={m.name}
-                            value={m.member_name || m.name}
-                            data-checked={assignedMemberNames.has(m.name)}
-                            onSelect={() => toggleAssignee(m)}
-                          >
-                            <MemberAvatar size="sm" name={m.member_name || m.name} image={m.user_image} />
-                            <span className="flex-1 truncate">
-                              {m.member_name || m.name}
-                              {m.user === user?.email && <span className="text-muted-foreground ml-1">(you)</span>}
-                            </span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+            <div className="grid gap-2">
+              <Label>Description</Label>
+              <LazyTiptapEditor
+                key={editorKey}
+                content={editorInitialContent}
+                onChange={setDescription}
+                placeholder="Add a description..."
+                className="max-h-[200px] overflow-y-auto [&_.tiptap-content]:min-h-[60px]"
+                mentionSuggestions={mentionSuggestions}
+              />
             </div>
-          </div>
+            {priorityStatusFields}
+            {milestoneField}
+            {assigneesField}
+            {dateFields}
+            {internalCheckbox}
+            <DialogFooter>
+              <Button type="submit" disabled={!canSubmit}>
+                Create Task
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
-          <div className="grid grid-cols-2 gap-4">
-            <DatePickerField date={startDate} onSelect={setStartDate} label="Start Date" />
-            <DatePickerField date={dueDate} onSelect={setDueDate} label="Due Date" />
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isInternal}
-              onChange={(e) => setIsInternal(e.target.checked)}
-              className="size-4 rounded border accent-primary"
-            />
-            <span className="text-sm">Internal task</span>
-          </label>
-
-          <DialogFooter>
+  // Desktop: Sheet from bottom with two-column layout
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="mx-auto max-h-[85vh] w-full max-w-5xl overflow-y-auto rounded-t-xl"
+      >
+        <form onSubmit={handleSubmit} className="flex h-full flex-col">
+          <SheetHeader className="flex-row items-center justify-between space-y-0 border-b pb-4">
+            <div>
+              <SheetTitle>New Task</SheetTitle>
+              <SheetDescription>Add a task to this project.</SheetDescription>
+            </div>
             <Button type="submit" disabled={!canSubmit}>
               Create Task
             </Button>
-          </DialogFooter>
+          </SheetHeader>
+
+          <div className="flex flex-1 gap-6 overflow-y-auto p-6">
+            {/* Left column – options (35%) */}
+            <div className="flex w-[35%] shrink-0 flex-col gap-4">
+              {projectPickerField}
+              {priorityStatusFields}
+              {milestoneField}
+              {assigneesField}
+              {dateFields}
+              {internalCheckbox}
+            </div>
+
+            {/* Right column – data fields (65%) */}
+            <div className="flex min-w-0 flex-1 flex-col gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="task-title-desktop">Title</Label>
+                <Input
+                  id="task-title-desktop"
+                  placeholder="What needs to be done?"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="grid flex-1 gap-2">
+                <Label>Description</Label>
+                <LazyTiptapEditor
+                  key={editorKey}
+                  content={editorInitialContent}
+                  onChange={setDescription}
+                  placeholder="Add a description..."
+                  className="min-h-[200px] flex-1 overflow-y-auto [&_.tiptap-content]:min-h-[160px]"
+                  mentionSuggestions={mentionSuggestions}
+                />
+              </div>
+            </div>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }
 

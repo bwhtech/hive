@@ -54,6 +54,7 @@ Make a git commit. The commit message must:
 3. Key decisions made
 4. Files changed
 5. Blockers or notes for next iteration
+6. IMPORTANT: Add the author of the GitHub issue as the co-author
 
 Keep it concise.
 

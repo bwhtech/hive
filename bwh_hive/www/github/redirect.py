@@ -19,6 +19,7 @@ def get_context(context):
 			settings.github_app_client_id = response.client_id
 			settings.github_app_client_secret = response.client_secret
 			settings.github_app_public_link = response.html_url
+			settings.github_app_private_key = response.pem
 			settings.save()
 			frappe.db.commit()
 		except Exception:

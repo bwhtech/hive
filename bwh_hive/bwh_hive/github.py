@@ -1,9 +1,61 @@
-import json
-from base64 import b64encode
+import time
 
+import jwt
 import requests
 
 import frappe
+
+
+def _get_app_jwt(settings) -> str:
+	"""Generate a short-lived JWT signed with the GitHub App's private key."""
+	private_key = settings.get_password("github_app_private_key", raise_exception=False)
+	if not private_key:
+		frappe.throw("GitHub App private key not found. Please re-create the GitHub App.")
+
+	now = int(time.time())
+	payload = {
+		"iat": now - 60,
+		"exp": now + (10 * 60),
+		"iss": settings.github_app_id,
+	}
+	return jwt.encode(payload, private_key, algorithm="RS256")
+
+
+def _get_installation_token(settings) -> str:
+	"""Get an installation access token for the GitHub App."""
+	app_jwt = _get_app_jwt(settings)
+
+	# Get the first installation (the org/account where the app is installed)
+	resp = requests.get(
+		"https://api.github.com/app/installations",
+		headers={
+			"Authorization": f"Bearer {app_jwt}",
+			"Accept": "application/vnd.github.v3+json",
+		},
+		timeout=15,
+	)
+	if resp.status_code != 200:
+		frappe.throw(f"GitHub API error ({resp.status_code}): {resp.json().get('message', 'Unknown error')}")
+
+	installations = resp.json()
+	if not installations:
+		frappe.throw("GitHub App is not installed on any account. Install it from the GitHub App settings page.")
+
+	installation_id = installations[0]["id"]
+
+	# Generate an installation access token
+	resp = requests.post(
+		f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+		headers={
+			"Authorization": f"Bearer {app_jwt}",
+			"Accept": "application/vnd.github.v3+json",
+		},
+		timeout=15,
+	)
+	if resp.status_code != 201:
+		frappe.throw(f"GitHub API error ({resp.status_code}): {resp.json().get('message', 'Unknown error')}")
+
+	return resp.json()["token"]
 
 
 @frappe.whitelist()
@@ -12,71 +64,75 @@ def status() -> dict:
 	app_configured = bool(settings.github_app_id)
 
 	connected = False
-	github_username = None
-	authorized_at = None
+	installed_account = None
 
-	if app_configured and frappe.db.exists("GitHub Token", frappe.session.user):
-		token_doc = frappe.get_doc("GitHub Token", frappe.session.user)
-		connected = bool(token_doc.get_password("access_token", raise_exception=False))
-		github_username = token_doc.github_username
-		authorized_at = str(token_doc.authorized_at) if token_doc.authorized_at else None
+	if app_configured:
+		private_key = settings.get_password("github_app_private_key", raise_exception=False)
+		if private_key:
+			try:
+				app_jwt = _get_app_jwt(settings)
+				resp = requests.get(
+					"https://api.github.com/app/installations",
+					headers={
+						"Authorization": f"Bearer {app_jwt}",
+						"Accept": "application/vnd.github.v3+json",
+					},
+					timeout=10,
+				)
+				if resp.status_code == 200 and resp.json():
+					connected = True
+					installed_account = resp.json()[0]["account"]["login"]
+			except Exception:
+				pass
 
 	return {
 		"app_configured": app_configured,
 		"connected": connected,
-		"github_username": github_username,
-		"authorized_at": authorized_at,
+		"installed_account": installed_account,
 	}
 
 
 @frappe.whitelist()
-def get_connect_url() -> str:
+def get_repos() -> list[dict]:
+	"""Fetch repositories where the GitHub App is installed."""
 	settings = frappe.get_single("Hive Settings")
-	if not settings.github_app_client_id:
-		frappe.throw("GitHub App not configured. Ask your administrator to set it up.")
+	if not settings.github_app_id:
+		frappe.throw("GitHub App not configured.")
 
-	state = b64encode(json.dumps({"user": frappe.session.user}).encode()).decode()
+	token = _get_installation_token(settings)
 
-	return (
-		f"https://github.com/login/oauth/authorize"
-		f"?client_id={settings.github_app_client_id}"
-		f"&state={state}"
-	)
+	repos = []
+	page = 1
+	while True:
+		resp = requests.get(
+			"https://api.github.com/installation/repositories",
+			headers={
+				"Authorization": f"Bearer {token}",
+				"Accept": "application/vnd.github.v3+json",
+			},
+			params={"per_page": 100, "page": page},
+			timeout=15,
+		)
+		if resp.status_code != 200:
+			frappe.throw(f"GitHub API error ({resp.status_code}): {resp.json().get('message', 'Unknown error')}")
 
+		data = resp.json()
+		for repo in data.get("repositories", []):
+			repos.append({
+				"full_name": repo["full_name"],
+				"private": repo["private"],
+			})
 
-@frappe.whitelist()
-def disconnect() -> dict:
-	if not frappe.db.exists("GitHub Token", frappe.session.user):
-		frappe.throw("No GitHub connection found.")
+		if len(repos) >= data.get("total_count", 0):
+			break
+		page += 1
 
-	token_doc = frappe.get_doc("GitHub Token", frappe.session.user)
-	access_token = token_doc.get_password("access_token", raise_exception=False)
-
-	# Revoke on GitHub
-	if access_token:
-		settings = frappe.get_single("Hive Settings")
-		client_id = settings.github_app_client_id
-		client_secret = settings.get_password("github_app_client_secret", raise_exception=False)
-		if client_id and client_secret:
-			try:
-				requests.delete(
-					f"https://api.github.com/applications/{client_id}/token",
-					auth=(client_id, client_secret),
-					json={"access_token": access_token},
-					headers={"Accept": "application/vnd.github.v3+json"},
-					timeout=10,
-				)
-			except requests.RequestException:
-				frappe.log_error("GitHub Token Revocation Error")
-
-	frappe.delete_doc("GitHub Token", frappe.session.user, ignore_permissions=True)
-	frappe.db.commit()
-	return {"success": True}
+	return repos
 
 
 @frappe.whitelist()
 def create_issue(task_name: str) -> dict:
-	"""Convert a Hive Task into a GitHub issue using the current user's token."""
+	"""Convert a Hive Task into a GitHub issue using an installation token."""
 	task = frappe.get_doc("Hive Task", task_name)
 
 	if task.github_issue_url:
@@ -86,28 +142,23 @@ def create_issue(task_name: str) -> dict:
 	if not project.github_repo:
 		frappe.throw("No GitHub repository linked to this project. Set it in the project settings.")
 
-	if not frappe.db.exists("GitHub Token", frappe.session.user):
-		frappe.throw("Connect your GitHub account first in Settings → GitHub.")
-
-	token_doc = frappe.get_doc("GitHub Token", frappe.session.user)
-	access_token = token_doc.get_password("access_token", raise_exception=False)
-	if not access_token:
-		frappe.throw("GitHub access token not found. Reconnect your GitHub account.")
+	settings = frappe.get_single("Hive Settings")
+	token = _get_installation_token(settings)
 
 	# Build issue body
 	body = ""
 	if task.description:
-		# Strip HTML tags for a cleaner GitHub issue body
 		from frappe.utils import strip_html_tags
 
 		body = strip_html_tags(task.description)
 
-	body += f"\n\n---\n*Created from Hive task `{task.name}`*"
+	task_url = f"{frappe.utils.get_url()}/hive/projects/{task.project}?task={task.name}"
+	body += f"\n\n---\n*Created from Hive task [{task.name}]({task_url})*"
 
 	resp = requests.post(
 		f"https://api.github.com/repos/{project.github_repo}/issues",
 		headers={
-			"Authorization": f"Bearer {access_token}",
+			"Authorization": f"Bearer {token}",
 			"Accept": "application/vnd.github.v3+json",
 		},
 		json={

@@ -49,6 +49,14 @@ import {
 } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command"
 import { toast } from "sonner"
 import type { HiveProject, HiveTask, HiveMilestone, HiveTaskAssignee, HiveProjectUpdate, HiveProjectLink, HiveClient } from "@/types"
 import { TASK_STATUSES, PROJECT_STATUSES } from "@/types"
@@ -209,7 +217,6 @@ export function ProjectDetailPage() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState("")
   const [githubRepoOpen, setGithubRepoOpen] = useState(false)
-  const [githubRepoDraft, setGithubRepoDraft] = useState("")
 
   // Tab-switching shortcuts — disabled when any dialog/sheet is open
   const anyDialogOpen = createOpen || sheetOpen || deleteDialogOpen || linksDialogOpen || newClientOpen || editingTitle || createFeatureRequestOpen || githubRepoOpen
@@ -266,6 +273,17 @@ export function ProjectDetailPage() {
       limit: 100,
       orderBy: { field: "company_name", order: "asc" },
     },
+  )
+
+  // GitHub integration
+  const { data: ghStatus } = useFrappeGetCall<{ message: { app_configured: boolean; connected: boolean } }>(
+    "bwh_hive.bwh_hive.github.status",
+  )
+  const ghConnected = ghStatus?.message?.connected ?? false
+  const { data: ghRepos, isLoading: ghReposLoading } = useFrappeGetCall<{ message: { full_name: string; private: boolean }[] }>(
+    "bwh_hive.bwh_hive.github.get_repos",
+    undefined,
+    ghConnected ? undefined : null,
   )
 
   const { updateDoc } = useFrappeUpdateDoc()
@@ -456,17 +474,13 @@ export function ProjectDetailPage() {
     }
   }
 
-  const handleGithubRepoSave = async () => {
-    const trimmed = githubRepoDraft.trim()
-    if (trimmed === (project?.github_repo || "")) {
-      setGithubRepoOpen(false)
-      return
-    }
+  const handleGithubRepoSelect = async (repoFullName: string) => {
+    const value = repoFullName === project?.github_repo ? null : repoFullName
     try {
-      await updateDoc("Hive Project", id!, { github_repo: trimmed || null })
+      await updateDoc("Hive Project", id!, { github_repo: value })
       mutateProject()
       setGithubRepoOpen(false)
-      toast.success(trimmed ? "GitHub repo linked" : "GitHub repo unlinked")
+      toast.success(value ? "GitHub repo linked" : "GitHub repo unlinked")
     } catch {
       toast.error("Failed to update GitHub repo")
     }
@@ -708,51 +722,45 @@ export function ProjectDetailPage() {
                       <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-3" />
                     </button>
                   </div>
-                  <Popover open={githubRepoOpen} onOpenChange={(open) => {
-                    setGithubRepoOpen(open)
-                    if (open) setGithubRepoDraft(project.github_repo || "")
-                  }}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className={`inline-flex items-center gap-1 h-5 text-[11px] px-2.5 rounded-full font-medium border transition-colors ${
-                          project.github_repo
-                            ? "hover:border-foreground/30"
-                            : "border-dashed text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                        }`}
-                      >
-                        <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-3" />
-                        {project.github_repo || "Link repo"}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-72 p-3" align="start">
-                      <div className="grid gap-2">
-                        <Label htmlFor="github-repo-input" className="text-xs font-medium">
-                          GitHub Repository
-                        </Label>
-                        <Input
-                          id="github-repo-input"
-                          placeholder="owner/repo"
-                          value={githubRepoDraft}
-                          onChange={(e) => setGithubRepoDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleGithubRepoSave()
-                            if (e.key === "Escape") setGithubRepoOpen(false)
-                          }}
-                          autoFocus
-                          className="h-8 text-sm"
-                        />
-                        <div className="flex items-center justify-between">
-                          <p className="text-[10px] text-muted-foreground">
-                            e.g. BuildWithHussain/hive
-                          </p>
-                          <Button size="sm" className="h-7 text-xs" onClick={handleGithubRepoSave}>
-                            Save
-                          </Button>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  {ghConnected && (
+                    <Popover open={githubRepoOpen} onOpenChange={setGithubRepoOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={`inline-flex items-center gap-1 h-5 text-[11px] px-2.5 rounded-full font-medium border transition-colors ${
+                            project.github_repo
+                              ? "hover:border-foreground/30"
+                              : "border-dashed text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                          }`}
+                        >
+                          <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-3" />
+                          {project.github_repo || "Link repo"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search repositories..." />
+                          <CommandList>
+                            <CommandEmpty>
+                              {ghReposLoading ? "Loading repositories..." : "No repositories found."}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {ghRepos?.message?.map((repo) => (
+                                <CommandItem
+                                  key={repo.full_name}
+                                  value={repo.full_name}
+                                  data-checked={project.github_repo === repo.full_name}
+                                  onSelect={() => handleGithubRepoSelect(repo.full_name)}
+                                >
+                                  {repo.full_name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </>
               )}
             </div>

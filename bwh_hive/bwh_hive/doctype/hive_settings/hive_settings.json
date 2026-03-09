@@ -11,7 +11,11 @@
   "github_app_id",
   "github_app_client_id",
   "github_app_client_secret",
-  "github_app_public_link"
+  "github_app_public_link",
+  "github_app_private_key",
+  "github_access_token",
+  "github_username",
+  "github_authorized_at"
  ],
  "fields": [
   {
@@ -59,6 +63,34 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "GitHub App Public Link",
+   "read_only": 1
+  },
+  {
+   "fieldname": "github_app_private_key",
+   "fieldtype": "Password",
+   "hidden": 1,
+   "label": "GitHub App Private Key",
+   "read_only": 1
+  },
+  {
+   "fieldname": "github_access_token",
+   "fieldtype": "Password",
+   "hidden": 1,
+   "label": "GitHub Access Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "github_username",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "GitHub Username",
+   "read_only": 1
+  },
+  {
+   "fieldname": "github_authorized_at",
+   "fieldtype": "Datetime",
+   "hidden": 1,
+   "label": "GitHub Authorized At",
    "read_only": 1
   }
  ],

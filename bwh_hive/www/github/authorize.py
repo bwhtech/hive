@@ -55,17 +55,10 @@ def get_context(context):
 	github_user = user_response.json()
 	github_username = github_user.get("login", "")
 
-	# Upsert GitHub Token
-	if frappe.db.exists("GitHub Token", frappe.session.user):
-		token_doc = frappe.get_doc("GitHub Token", frappe.session.user)
-	else:
-		token_doc = frappe.new_doc("GitHub Token")
-		token_doc.user = frappe.session.user
-
-	token_doc.access_token = access_token
-	token_doc.github_username = github_username
-	token_doc.authorized_at = now_datetime()
-	token_doc.save(ignore_permissions=True)
+	# Store on Hive Settings (site-level)
+	settings.db_set("github_access_token", access_token)
+	settings.db_set("github_username", github_username)
+	settings.db_set("github_authorized_at", now_datetime())
 	frappe.db.commit()
 
 	frappe.flags.redirect_location = "/hive"

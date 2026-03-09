@@ -114,7 +114,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const { call: callUnassign } = useFrappePostCall("frappe.desk.form.assign_to.remove")
   const { call: callCreateIssue } = useFrappePostCall("bwh_hive.bwh_hive.github.create_issue")
   const [creatingIssue, setCreatingIssue] = useState(false)
-  const [githubIssueUrl, setGithubIssueUrl] = useState<string | null>(null)
 
   // Fetch full task doc when task changes
   const { data: taskDoc, mutate: mutateTaskDoc } = useFrappeGetDoc<HiveTask>(
@@ -196,7 +195,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       setMilestone(task.milestone || "")
       setDependsOn(task.depends_on || "")
       setPrLink(task.pr_link || "")
-      setGithubIssueUrl(task.github_issue_url || null)
       setDueDate(task.due_date ? new Date(task.due_date) : undefined)
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
       setCompletedOn(task.completed_on ? new Date(task.completed_on) : undefined)
@@ -370,7 +368,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       const res = await callCreateIssue({ task_name: task.name })
       const issueUrl = res?.message?.issue_url
       if (issueUrl) {
-        setGithubIssueUrl(issueUrl)
         toast.success("GitHub issue created", {
           action: {
             label: "Open",
@@ -660,17 +657,17 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         </div>
 
         {/* GitHub Issue */}
-        {!isClient && projectDoc?.github_repo && ghStatus?.message?.connected && (
+        {!isClient && projectDoc?.github_repo && ghStatus?.message?.app_configured && ghStatus?.message?.connected && (
           <div className="grid gap-2">
             <Label>GitHub Issue</Label>
-            {githubIssueUrl ? (
+            {taskDoc?.github_issue_url ? (
               <a
-                href={githubIssueUrl}
+                href={taskDoc?.github_issue_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline truncate"
               >
-                {githubIssueUrl}
+                {taskDoc?.github_issue_url}
               </a>
             ) : (
               <Button

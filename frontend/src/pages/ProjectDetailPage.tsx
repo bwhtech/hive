@@ -120,7 +120,7 @@ export function ProjectDetailPage() {
 
   // If the route param doesn't look like a Frappe name (PROJ-#####), resolve slug
   const isSlug = routeId ? !routeId.startsWith("PROJ-") : false
-  const { data: slugData } = useFrappeGetCall<{ message: string }>(
+  const { data: slugData, isLoading: slugLoading } = useFrappeGetCall<{ message: string }>(
     "bwh_hive.bwh_hive.api.resolve_project_slug",
     { slug: routeId },
     isSlug ? undefined : null,
@@ -227,7 +227,7 @@ export function ProjectDetailPage() {
   useHotkey("r", switchTab("requests"), { enabled: !anyDialogOpen })
   useHotkey("a", switchTab("activity"), { enabled: !anyDialogOpen })
 
-  const { data: project, isLoading: projectLoading, mutate: mutateProject } = useFrappeGetDoc<HiveProject>(
+  const { data: project, isLoading: projectLoading, error: projectError, mutate: mutateProject } = useFrappeGetDoc<HiveProject>(
     "Hive Project",
     id ?? "",
     id ? undefined : null,
@@ -582,7 +582,10 @@ export function ProjectDetailPage() {
   // Assignees data
   const assigneesByTask = (assigneesResult?.message ?? EMPTY_ASSIGNEES) as Record<string, HiveTaskAssignee[]>
 
-  if (projectLoading) {
+  // Show skeleton while slug is resolving, project is fetching, or fetch hasn't
+  // started yet (covers the gap between slug resolution and project fetch start
+  // that caused a flash of "Not found" on first load — #156)
+  if (projectLoading || (isSlug && slugLoading) || (id && !project && !projectError)) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />

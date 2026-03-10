@@ -136,9 +136,9 @@ test.describe("Private Projects", () => {
 		await page.locator(`text=${privateProject.title}`).first().click();
 		await page.waitForLoadState("networkidle");
 
-		// Should navigate to project detail
+		// Should navigate to project detail (URL uses slug)
 		await expect(page).toHaveURL(
-			new RegExp(`/hive/projects/${privateProject.name}`),
+			new RegExp(`/hive/projects/${privateProject.slug || privateProject.name}`),
 		);
 	});
 

@@ -37,6 +37,7 @@ export interface HiveFeatureRequest {
 export interface HiveProject {
 	name: string;
 	title: string;
+	slug?: string;
 	status: string;
 	project_type?: string;
 	client?: string;
@@ -139,7 +140,7 @@ export async function listProjects(
 	} = {},
 ): Promise<HiveProject[]> {
 	return getList<HiveProject>(request, "Hive Project", {
-		fields: ["name", "title", "status", "project_type", "client", "is_private", "owner", "creation"],
+		fields: ["name", "title", "slug", "status", "project_type", "client", "is_private", "owner", "creation"],
 		filters: options.filters,
 		limit: options.limit,
 	});

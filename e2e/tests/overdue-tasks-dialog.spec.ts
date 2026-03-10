@@ -235,12 +235,12 @@ test.describe("Overdue Tasks Dialog", () => {
 		// Click on the first overdue task
 		await page.getByText(overdueTask2.title).click();
 
-		// Should navigate to the project page with task query param
-		await page.waitForURL(`**/hive/projects/${testProject.name}**`, {
+		// Should navigate to the project page with task query param (URL uses slug)
+		await page.waitForURL(`**/hive/projects/${testProject.slug || testProject.name}**`, {
 			timeout: 10000,
 		});
 		await expect(page).toHaveURL(
-			new RegExp(`/hive/projects/${testProject.name}`),
+			new RegExp(`/hive/projects/${testProject.slug || testProject.name}`),
 		);
 	});
 });

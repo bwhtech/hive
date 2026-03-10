@@ -148,10 +148,10 @@ test.describe("Command K", () => {
 			.filter({ hasText: testProject.title })
 			.click();
 
-		// Should navigate to the project detail page
+		// Should navigate to the project detail page (URL uses slug)
 		await page.waitForLoadState("networkidle");
 		await expect(page).toHaveURL(
-			new RegExp(`/hive/projects/${testProject.name}`),
+			new RegExp(`/hive/projects/${testProject.slug || testProject.name}`),
 		);
 	});
 

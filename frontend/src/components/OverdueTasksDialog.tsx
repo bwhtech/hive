@@ -103,7 +103,7 @@ export function OverdueTasksDialog() {
               key={task.name}
               type="button"
               onClick={() => handleGoToTask(task)}
-              className="w-full flex items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-muted/50 group"
+              className="w-full flex items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus:outline-none group"
             >
               <div className={`mt-1.5 size-2 shrink-0 rounded-full ${TASK_STATUS_COLOR[task.status] ?? "bg-muted-foreground/40"}`} />
               <div className="flex-1 min-w-0">

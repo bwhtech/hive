@@ -209,7 +209,7 @@ const columns: ColumnDef<TaskRow>[] = [
     cell: ({ row }) => {
       const { task } = row.original
       if (!task.due_date) return <span className="text-muted-foreground">-</span>
-      const isOverdue = new Date(task.due_date) < new Date() && task.status !== "Done"
+      const isOverdue = new Date(task.due_date) < new Date() && task.status !== "Done" && task.status !== "Someday"
       return (
         <span className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
           {format(new Date(task.due_date), "MMM d, yyyy")}
@@ -728,8 +728,8 @@ export function TasksPage() {
       {/* Data View */}
       {tasksLoading ? (
         viewMode === "kanban" ? (
-          <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-5 md:overflow-visible md:pb-0">
+            {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="min-w-[220px] space-y-3 md:min-w-0">
                 <Skeleton className="h-6 w-20" />
                 <Skeleton className="h-24 w-full" />

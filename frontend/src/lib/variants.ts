@@ -50,6 +50,7 @@ export const TASK_SIZE_VARIANT: Record<
 
 // Task status → dot color class
 export const TASK_STATUS_COLOR: Record<string, string> = {
+  Someday: "bg-purple-400/60",
   Backlog: "bg-muted-foreground/40",
   "To Do": "bg-yellow-500",
   "In Progress": "bg-blue-500",

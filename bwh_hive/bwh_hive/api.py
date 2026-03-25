@@ -71,7 +71,11 @@ def get_my_dashboard():
 	# My tasks: assigned via Frappe's _assign field
 	my_tasks = frappe.get_all(
 		"Hive Task",
-		filters={"_assign": ["like", f"%{user}%"], "status": ["not in", ["Done"]], "is_archived": 0},
+		filters={
+			"_assign": ["like", f"%{user}%"],
+			"status": ["not in", ["Done", "Someday"]],
+			"is_archived": 0,
+		},
 		fields=["name", "title", "project", "status", "priority", "due_date", "is_internal"],
 		order_by="priority desc, modified desc",
 		limit=50,
@@ -181,7 +185,7 @@ def get_my_overdue_tasks():
 			["_assign", "like", f"%{user}%"],
 			["due_date", "is", "set"],
 			["due_date", "<", today],
-			["status", "not in", ["Done"]],
+			["status", "not in", ["Done", "Someday"]],
 			["is_archived", "=", 0],
 		],
 		fields=["name", "title", "project", "status", "priority", "due_date"],
@@ -421,7 +425,7 @@ def get_team_dashboard():
 	# Get all non-Done tasks with _assign field
 	tasks = frappe.get_all(
 		"Hive Task",
-		filters={"status": ["not in", ["Done"]], "is_archived": 0},
+		filters={"status": ["not in", ["Done", "Someday"]], "is_archived": 0},
 		fields=["name", "status", "_assign"],
 		limit=500,
 	)
@@ -557,7 +561,7 @@ def get_team_stats(period: str = "week"):
 		"Hive Task",
 		filters={
 			"due_date": ["<", today],
-			"status": ["not in", ["Done"]],
+			"status": ["not in", ["Done", "Someday"]],
 			"is_archived": 0,
 		},
 		fields=["name", "title", "project", "priority", "due_date", "status", "_assign"],
@@ -621,7 +625,7 @@ def get_member_tasks(user: str):
 		"Hive Task",
 		filters={
 			"_assign": ["like", f"%{user}%"],
-			"status": ["not in", ["Done"]],
+			"status": ["not in", ["Done", "Someday"]],
 			"is_archived": 0,
 		},
 		fields=["name", "title", "project", "status", "priority", "due_date"],

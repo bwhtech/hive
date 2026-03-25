@@ -6,11 +6,12 @@ from frappe.model.document import Document
 from frappe.utils import today
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
-	"Backlog": {"To Do", "In Progress", "Done", "Blocked"},
-	"To Do": {"Backlog", "In Progress", "Done", "Blocked"},
-	"In Progress": {"Backlog", "To Do", "Done", "Blocked"},
+	"Someday": {"Backlog", "To Do", "In Progress", "Done", "Blocked"},
+	"Backlog": {"Someday", "To Do", "In Progress", "Done", "Blocked"},
+	"To Do": {"Someday", "Backlog", "In Progress", "Done", "Blocked"},
+	"In Progress": {"Someday", "Backlog", "To Do", "Done", "Blocked"},
 	"Done": {"To Do", "In Progress"},
-	"Blocked": {"Backlog", "To Do", "In Progress", "Done"},
+	"Blocked": {"Someday", "Backlog", "To Do", "In Progress", "Done"},
 }
 
 
@@ -36,7 +37,7 @@ class HiveTask(Document):
 		project: DF.Link
 		size: DF.Literal["", "Small", "Medium", "Large"]
 		start_date: DF.Date | None
-		status: DF.Literal["Backlog", "To Do", "In Progress", "Done", "Blocked"]
+		status: DF.Literal["Someday", "Backlog", "To Do", "In Progress", "Done", "Blocked"]
 		title: DF.Data
 		uat_approved_by: DF.Link | None
 		uat_date: DF.Date | None

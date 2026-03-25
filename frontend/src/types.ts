@@ -19,7 +19,7 @@ export interface HiveTask {
   name: string
   title: string
   project: string
-  status: "Backlog" | "To Do" | "In Progress" | "Done" | "Blocked"
+  status: "Someday" | "Backlog" | "To Do" | "In Progress" | "Done" | "Blocked"
   priority: "Low" | "Medium" | "High" | "Urgent"
   size: "Small" | "Medium" | "Large" | "" | null
   milestone: string | null
@@ -127,7 +127,7 @@ export interface HiveTaskComment {
   modified: string
 }
 
-export const TASK_STATUSES = ["Backlog", "To Do", "In Progress", "Done"] as const
+export const TASK_STATUSES = ["Someday", "Backlog", "To Do", "In Progress", "Done"] as const
 export const TASK_PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const
 export const TASK_SIZES = ["Small", "Medium", "Large"] as const
 

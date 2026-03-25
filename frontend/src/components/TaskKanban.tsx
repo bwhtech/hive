@@ -136,7 +136,7 @@ export function TaskKanban({ tasksByStatus, onStatusChange, onTaskClick, assigne
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
       >
-        <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
+        <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-5 md:overflow-visible md:pb-0">
           {TASK_STATUSES.map((status) => (
             <KanbanColumn
               key={status}
@@ -239,7 +239,7 @@ function DraggableTaskCard({
 
 const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { task: HiveTask; isDragOverlay?: boolean; assignees?: HiveTaskAssignee[] }) {
   const { hasClient, taskMap, pinnedTaskNames, onTogglePin } = use(KanbanContext)
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done"
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done" && task.status !== "Someday"
   const isPinned = pinnedTaskNames?.includes(task.name) ?? false
 
   // Use new assignees if available, fall back to legacy assigned_to

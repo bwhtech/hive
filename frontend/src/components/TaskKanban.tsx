@@ -284,10 +284,17 @@ const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { ta
             </Badge>
           )}
           {task.pr_link && (
-            <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5">
-              <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-2.5" />
-              PR
-            </Badge>
+            <a
+              href={task.pr_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5 cursor-pointer hover:bg-accent">
+                <HugeiconsIcon icon={GitBranchIcon} strokeWidth={2} className="size-2.5" />
+                PR
+              </Badge>
+            </a>
           )}
           {hasClient && task.uat_status && task.uat_status !== "Pending" && (
             <Badge

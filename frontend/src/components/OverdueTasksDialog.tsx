@@ -21,6 +21,7 @@ interface OverdueTask {
   title: string
   project: string
   project_title?: string
+  project_slug?: string
   status: string
   priority: string
   due_date: string
@@ -76,7 +77,7 @@ export function OverdueTasksDialog() {
 
   const handleGoToTask = (task: OverdueTask) => {
     dismiss()
-    navigate(`/projects/${task.project}?task=${task.name}`)
+    navigate(`/projects/${task.project_slug || task.project}?task=${task.name}`)
   }
 
   if (!open) return null

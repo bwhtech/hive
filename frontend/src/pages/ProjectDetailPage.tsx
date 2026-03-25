@@ -72,7 +72,7 @@ import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
 import { usePinnedTasks } from "@/context/PinnedTasksContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
-import { useHotkey } from "@/hooks/use-hotkey"
+import { useShortcut } from "@/hooks/useShortcut"
 import { Kbd } from "@/components/ui/kbd"
 import { PROJECT_STATUS_VARIANT } from "@/lib/variants"
 import {
@@ -139,7 +139,6 @@ export function ProjectDetailPage() {
   const openCreateDialog = useCallback(() => {
     if (!isClient) setCreateOpen(true)
   }, [isClient])
-  useHotkey("t", openCreateDialog)
 
   // Sync active tab from URL (e.g. ?tab=updates from dashboard click)
   const taskParam = searchParams.get("task")
@@ -220,12 +219,15 @@ export function ProjectDetailPage() {
 
   // Tab-switching shortcuts — disabled when any dialog/sheet is open
   const anyDialogOpen = createOpen || sheetOpen || deleteDialogOpen || linksDialogOpen || newClientOpen || editingTitle || createFeatureRequestOpen || githubRepoOpen
-  const switchTab = useCallback((tab: string) => () => handleTabChange(tab), [handleTabChange])
-  useHotkey("o", switchTab("overview"), { enabled: !anyDialogOpen })
-  useHotkey("m", switchTab("milestones"), { enabled: !anyDialogOpen })
-  useHotkey("u", switchTab("updates"), { enabled: !anyDialogOpen })
-  useHotkey("r", switchTab("requests"), { enabled: !anyDialogOpen })
-  useHotkey("a", switchTab("activity"), { enabled: !anyDialogOpen })
+
+  useShortcut([
+    { key: "t", description: "Create new task", group: "Project", handler: openCreateDialog, condition: () => !anyDialogOpen },
+    { key: "o", description: "Overview tab", group: "Project", handler: () => handleTabChange("overview"), condition: () => !anyDialogOpen },
+    { key: "m", description: "Milestones tab", group: "Project", handler: () => handleTabChange("milestones"), condition: () => !anyDialogOpen },
+    { key: "u", description: "Updates tab", group: "Project", handler: () => handleTabChange("updates"), condition: () => !anyDialogOpen },
+    { key: "r", description: "Requests tab", group: "Project", handler: () => handleTabChange("requests"), condition: () => !anyDialogOpen },
+    { key: "a", description: "Activity tab", group: "Project", handler: () => handleTabChange("activity"), condition: () => !anyDialogOpen },
+  ])
 
   const { data: project, isLoading: projectLoading, error: projectError, mutate: mutateProject } = useFrappeGetDoc<HiveProject>(
     "Hive Project",

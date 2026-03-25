@@ -6,26 +6,52 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Kbd } from "@/components/ui/kbd"
-import { getShortcutsByGroup } from "@/lib/shortcut-registry"
+import {
+  useActiveShortcuts,
+  formatShortcutKeys,
+  type RegisteredShortcut,
+} from "@/hooks/useShortcut"
+import { useMemo } from "react"
 
 interface ShortcutHelpDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const shortcutGroups = getShortcutsByGroup()
+function groupShortcuts(
+  shortcuts: RegisteredShortcut[],
+): { group: string; items: RegisteredShortcut[] }[] {
+  const groupMap = new Map<string, RegisteredShortcut[]>()
+  for (const s of shortcuts) {
+    if (!s.condition || s.condition()) {
+      let items = groupMap.get(s.group)
+      if (!items) {
+        items = []
+        groupMap.set(s.group, items)
+      }
+      items.push(s)
+    }
+  }
+  return Array.from(groupMap, ([group, items]) => ({ group, items }))
+}
 
 export function ShortcutHelpDialog({
   open,
   onOpenChange,
 }: ShortcutHelpDialogProps) {
+  const activeShortcuts = useActiveShortcuts()
+  const shortcutGroups = useMemo(
+    () => groupShortcuts(activeShortcuts),
+    [activeShortcuts],
+  )
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
           <DialogDescription>
-            Quick actions available throughout the app.
+            Quick actions available on this page.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -41,12 +67,17 @@ export function ShortcutHelpDialog({
                     className="flex items-center justify-between"
                   >
                     <span className="text-sm">{shortcut.description}</span>
-                    <Kbd keys={shortcut.keys} />
+                    <Kbd keys={formatShortcutKeys(shortcut)} />
                   </div>
                 ))}
               </div>
             </div>
           ))}
+          {shortcutGroups.length === 0 && (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              No keyboard shortcuts available on this page.
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>

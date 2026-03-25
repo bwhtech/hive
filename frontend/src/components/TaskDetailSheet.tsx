@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react"
+import { useShortcut } from "@/hooks/useShortcut"
 import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc, useFrappeGetCall } from "frappe-react-sdk"
 import { startOfDay, isBefore } from "date-fns"
 import { Spinner } from "@/components/ui/spinner"
@@ -209,34 +210,32 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   // Ref to hold latest save function for keyboard shortcut
   const saveRef = useRef<() => void>(() => {})
 
-  // Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux) to save
-  // 'A' key to open assignee popover (when not typing in an input)
-  // 'P' key to pin/unpin task
-  useEffect(() => {
-    if (!open || isClient) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        saveRef.current()
-      }
-      const tag = (e.target as HTMLElement)?.tagName
-      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable
-      if (e.key === "a" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (isEditable) return
-        e.preventDefault()
-        setAssigneePopoverOpen(true)
-      }
-      if (e.key === "p" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (isEditable) return
-        if (onTogglePin && task) {
-          e.preventDefault()
-          onTogglePin(task.name)
-        }
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [open, isClient, onTogglePin, task])
+  // Task-level keyboard shortcuts (only when sheet is open and not client)
+  useShortcut([
+    {
+      key: "Enter",
+      ctrl: true,
+      description: "Save task",
+      group: "Task Detail",
+      handler: () => saveRef.current(),
+      allowInInput: true,
+      condition: () => open && !isClient,
+    },
+    {
+      key: "a",
+      description: "Add assignee",
+      group: "Task Detail",
+      handler: () => setAssigneePopoverOpen(true),
+      condition: () => open && !isClient,
+    },
+    {
+      key: "p",
+      description: "Pin / unpin task",
+      group: "Task Detail",
+      handler: () => { if (onTogglePin && task) onTogglePin(task.name) },
+      condition: () => open && !isClient,
+    },
+  ])
 
   // Autosave: debounce 1.5s after user edits
   useEffect(() => {

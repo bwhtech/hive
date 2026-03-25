@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router"
 import { useFrappeCreateDoc, useFrappeGetDoc } from "frappe-react-sdk"
 import { toast } from "sonner"
@@ -9,8 +9,7 @@ import { ShortcutHelpDialog } from "@/components/ShortcutHelpDialog"
 import { CreateProjectDialog } from "@/components/CreateProjectDialog"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { OnboardingDialog } from "@/components/OnboardingDialog"
-import { useHotkey, useChordHotkey } from "@/hooks/use-hotkey"
-import { useCommandPalette } from "@/hooks/useCommandPalette"
+import { useShortcut } from "@/hooks/useShortcut"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 import { PinnedTasksDock } from "@/components/PinnedTasksDock"
 import { OverdueTasksDialog } from "@/components/OverdueTasksDialog"
@@ -33,7 +32,7 @@ export function AppLayout() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [globalCreateTaskOpen, setGlobalCreateTaskOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const commandPalette = useCommandPalette()
+  const [cmdkOpen, setCmdkOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { createDoc } = useFrappeCreateDoc()
@@ -46,21 +45,55 @@ export function AppLayout() {
   const showOnboarding = hiveSettings != null && !hiveSettings.onboarding_completed && !onboardingDismissed
 
   const { celebrate } = useCelebration()
-  const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), [])
-  useHotkey("?", toggleShortcuts, { capture: true })
-  useHotkey("t", celebrate, { shift: true })
 
-  // G then D/P/T/M navigation chord shortcuts
-  const navChords = useMemo(
-    () => ({
-      d: () => navigate("/"),
-      p: () => navigate("/projects"),
-      t: () => navigate("/tasks"),
-      m: () => navigate("/team"),
-    }),
-    [navigate],
-  )
-  useChordHotkey("g", navChords)
+  // All global shortcuts registered via useShortcut
+  useShortcut([
+    {
+      key: "k",
+      ctrl: true,
+      description: "Open command palette",
+      group: "Global",
+      handler: () => setCmdkOpen((v) => !v),
+      allowInInput: true,
+    },
+    {
+      key: "?",
+      description: "Show keyboard shortcuts",
+      group: "Global",
+      handler: () => setShortcutsOpen((v) => !v),
+    },
+    {
+      key: "t",
+      shift: true,
+      description: "Celebrate",
+      group: "Global",
+      handler: () => celebrate(),
+    },
+    {
+      key: "g d",
+      description: "Go to Dashboard",
+      group: "Navigation",
+      handler: () => navigate("/"),
+    },
+    {
+      key: "g p",
+      description: "Go to Projects",
+      group: "Navigation",
+      handler: () => navigate("/projects"),
+    },
+    {
+      key: "g t",
+      description: "Go to Tasks",
+      group: "Navigation",
+      handler: () => navigate("/tasks"),
+    },
+    {
+      key: "g m",
+      description: "Go to Team",
+      group: "Navigation",
+      handler: () => navigate("/team"),
+    },
+  ])
 
   // Close modals on route change (browser back/forward)
   useEffect(() => {
@@ -128,7 +161,7 @@ export function AppLayout() {
     <SidebarProvider>
       <AppSidebar openSettings={openSettings} />
       <SidebarInset>
-        <Header onOpenSearch={() => commandPalette.setOpen(true)} onOpenNotifications={() => setNotificationsOpen(true)} />
+        <Header onOpenSearch={() => setCmdkOpen(true)} onOpenNotifications={() => setNotificationsOpen(true)} />
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet context={{ openCreateProject: () => setCreateProjectOpen(true) }} />
         </div>
@@ -143,8 +176,8 @@ export function AppLayout() {
       </Suspense>
       <Suspense fallback={null}>
         <CommandPalette
-          open={commandPalette.open}
-          onOpenChange={commandPalette.setOpen}
+          open={cmdkOpen}
+          onOpenChange={setCmdkOpen}
           onOpenSettings={openSettings}
           onCreateProject={() => setCreateProjectOpen(true)}
           onCreateTask={handleCmdkCreateTask}

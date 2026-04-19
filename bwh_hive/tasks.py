@@ -33,7 +33,7 @@ def send_daily_overdue_notifications() -> None:
 			filters={
 				"_assign": ["like", f"%{member.user}%"],
 				"due_date": ["<", today],
-				"status": ["not in", ["Done"]],
+				"status": ["not in", ["Done", "Someday"]],
 				"is_archived": 0,
 			},
 			fields=["name", "title", "project", "status", "priority", "due_date"],

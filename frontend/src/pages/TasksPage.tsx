@@ -346,19 +346,25 @@ export function TasksPage() {
     is_internal?: 0 | 1; _assign_users?: string[];
     project?: string; milestone?: string | null;
   }) => {
+    const { _assign_users, ...taskValues } = values
+    let doc
     try {
-      const { _assign_users, ...taskValues } = values
-      const doc = await createDoc("Hive Task", taskValues)
-      if (_assign_users?.length) {
-        await callAssign({ doctype: "Hive Task", name: doc.name, assign_to: _assign_users })
-      }
-      setCreateOpen(false)
-      toast.success("Task created")
-      tasksMutate()
-      callAssignees({})
+      doc = await createDoc("Hive Task", taskValues)
     } catch {
       toast.error("Failed to create task")
+      return
     }
+    setCreateOpen(false)
+    toast.success("Task created")
+    if (_assign_users?.length) {
+      try {
+        await callAssign({ doctype: "Hive Task", name: doc.name, assign_to: _assign_users })
+      } catch {
+        toast.error("Task created, but failed to assign users")
+      }
+    }
+    tasksMutate()
+    callAssignees({})
   }, [createDoc, callAssign, callAssignees, tasksMutate])
 
   const buildCurrentFilters = useCallback(() => {

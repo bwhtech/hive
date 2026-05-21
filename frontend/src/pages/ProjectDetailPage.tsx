@@ -352,22 +352,28 @@ export function ProjectDetailPage() {
     _assign_users?: string[]
     project?: string
   }) => {
+    const { _assign_users, ...taskValues } = values
+    let doc
     try {
-      const { _assign_users, ...taskValues } = values
-      const doc = await createDoc("Hive Task", {
+      doc = await createDoc("Hive Task", {
         ...taskValues,
         project: taskValues.project || id,
       })
-      if (_assign_users?.length) {
-        await callAssign({ doctype: "Hive Task", name: doc.name, assign_to: _assign_users })
-      }
-      mutateTasks()
-      callAssignees({ project: id }).catch(() => {})
-      setCreateOpen(false)
-      toast.success("Task created")
     } catch {
       toast.error("Failed to create task")
+      return
     }
+    setCreateOpen(false)
+    toast.success("Task created")
+    if (_assign_users?.length) {
+      try {
+        await callAssign({ doctype: "Hive Task", name: doc.name, assign_to: _assign_users })
+      } catch {
+        toast.error("Task created, but failed to assign users")
+      }
+    }
+    mutateTasks()
+    callAssignees({ project: id }).catch(() => {})
   }
 
   const handleTaskClick = useCallback((task: HiveTask) => {

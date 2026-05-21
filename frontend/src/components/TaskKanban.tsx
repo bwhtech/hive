@@ -13,7 +13,7 @@ import { useDroppable } from "@dnd-kit/core"
 import { useDraggable } from "@dnd-kit/core"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Calendar03Icon, GitBranchIcon, LinkBackwardIcon, PinIcon, PinOffIcon } from "@hugeicons/core-free-icons"
+import { Calendar03Icon, GitBranchIcon, LinkBackwardIcon, PinIcon, PinOffIcon, RepeatIcon } from "@hugeicons/core-free-icons"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar"
@@ -302,6 +302,12 @@ const TaskCard = memo(function TaskCard({ task, isDragOverlay, assignees }: { ta
               className="text-[10px] h-4 px-1.5"
             >
               UAT {task.uat_status}
+            </Badge>
+          )}
+          {task.recurrence_frequency && (
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5" title={`Recurs ${task.recurrence_frequency}`}>
+              <HugeiconsIcon icon={RepeatIcon} strokeWidth={2} className="size-2.5" />
+              {task.recurrence_frequency}
             </Badge>
           )}
         </div>

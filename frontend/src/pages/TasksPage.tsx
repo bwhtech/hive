@@ -16,6 +16,7 @@ import {
   DashboardSquare01Icon,
   FloppyDiskIcon,
   MoreHorizontalIcon,
+  RepeatIcon,
 } from "@hugeicons/core-free-icons"
 import { format } from "date-fns"
 import {
@@ -132,6 +133,14 @@ const columns: ColumnDef<TaskRow>[] = [
         <div className="flex items-center gap-2 min-w-0">
           <span className={`size-2 shrink-0 rounded-full ${TASK_STATUS_COLOR[task.status] ?? "bg-muted-foreground/40"}`} />
           <span className="truncate font-medium">{task.title}</span>
+          {task.recurrence_frequency && (
+            <HugeiconsIcon
+              icon={RepeatIcon}
+              strokeWidth={2}
+              className="size-3 shrink-0 text-muted-foreground"
+              title={`Recurs ${task.recurrence_frequency}`}
+            />
+          )}
         </div>
       )
     },
@@ -304,7 +313,7 @@ export function TasksPage() {
       fields: [
         "name", "title", "project", "status", "priority", "size", "milestone",
         "depends_on", "assigned_to", "is_internal", "description", "start_date", "due_date", "pr_link",
-        "completed_on", "uat_status", "creation", "modified",
+        "completed_on", "uat_status", "recurrence_frequency", "creation", "modified",
       ],
       filters: [["is_archived", "=", 0]],
       orderBy: { field: "due_date", order: "asc" },

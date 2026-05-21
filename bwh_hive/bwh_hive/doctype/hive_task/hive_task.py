@@ -1,9 +1,11 @@
 # Copyright (c) 2026, BWH Studios and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
 from frappe.model.document import Document
-from frappe.utils import today
+from frappe.utils import add_days, add_months, getdate, today
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
 	"Someday": {"Backlog", "To Do", "In Progress", "Done", "Blocked"},
@@ -13,6 +15,25 @@ VALID_TRANSITIONS: dict[str, set[str]] = {
 	"Done": {"To Do", "In Progress"},
 	"Blocked": {"Someday", "Backlog", "To Do", "In Progress", "Done"},
 }
+
+# Days/months delta for each recurrence frequency
+RECURRENCE_DELTA: dict[str, tuple[str, int]] = {
+	"Daily": ("days", 1),
+	"Weekly": ("days", 7),
+	"Monthly": ("months", 1),
+	"Quarterly": ("months", 3),
+	"Yearly": ("months", 12),
+}
+
+
+def _add_period(base_date, frequency: str):
+	delta = RECURRENCE_DELTA.get(frequency)
+	if not delta:
+		return None
+	unit, amount = delta
+	if unit == "days":
+		return add_days(base_date, amount)
+	return add_months(base_date, amount)
 
 
 class HiveTask(Document):
@@ -35,6 +56,9 @@ class HiveTask(Document):
 		pr_link: DF.Data | None
 		priority: DF.Literal["Low", "Medium", "High", "Urgent"]
 		project: DF.Link
+		recurrence_end_date: DF.Date | None
+		recurrence_frequency: DF.Literal["", "Daily", "Weekly", "Monthly", "Quarterly", "Yearly"]
+		recurring_parent: DF.Link | None
 		size: DF.Literal["", "Small", "Medium", "Large"]
 		start_date: DF.Date | None
 		status: DF.Literal["Someday", "Backlog", "To Do", "In Progress", "Done", "Blocked"]
@@ -49,6 +73,9 @@ class HiveTask(Document):
 		self._validate_dates()
 		self._validate_dependency()
 		self._set_completed_on()
+
+	def on_update(self):
+		self._maybe_spawn_recurrence()
 
 	def _validate_status_transition(self):
 		if self.is_new():
@@ -87,6 +114,71 @@ class HiveTask(Document):
 			self.completed_on = today()
 		elif self.status != "Done":
 			self.completed_on = None
+
+	def _maybe_spawn_recurrence(self):
+		"""When a recurring task is marked Done, spawn the next instance.
+
+		Skips if the frequency is unset, the status didn't just change to Done,
+		or the computed next due date is past `recurrence_end_date`.
+		"""
+		if not self.recurrence_frequency or self.status != "Done":
+			return
+		if not self.has_value_changed("status"):
+			return
+		if self.flags.get("recurrence_spawned"):
+			return
+
+		next_due = _add_period(self.due_date or today(), self.recurrence_frequency)
+		if not next_due:
+			return
+		if self.recurrence_end_date and getdate(next_due) > getdate(self.recurrence_end_date):
+			return
+
+		new_start = None
+		if self.start_date and self.due_date:
+			interval_days = (getdate(self.due_date) - getdate(self.start_date)).days
+			new_start = add_days(next_due, -interval_days)
+
+		parent_name = self.recurring_parent or self.name
+		new_task = frappe.new_doc("Hive Task")
+		new_task.update(
+			{
+				"title": self.title,
+				"project": self.project,
+				"priority": self.priority,
+				"status": "To Do",
+				"size": self.size,
+				"milestone": self.milestone,
+				"is_internal": self.is_internal,
+				"description": self.description,
+				"due_date": next_due,
+				"start_date": new_start,
+				"recurrence_frequency": self.recurrence_frequency,
+				"recurrence_end_date": self.recurrence_end_date,
+				"recurring_parent": parent_name,
+			}
+		)
+		new_task.flags.recurrence_spawned = True
+		new_task.insert(ignore_permissions=True)
+
+		assignees = json.loads(self.get("_assign") or "[]")
+		if assignees:
+			from frappe.desk.form.assign_to import add as assign_add
+
+			try:
+				assign_add(
+					{
+						"doctype": "Hive Task",
+						"name": new_task.name,
+						"assign_to": assignees,
+						"notify": 0,
+					}
+				)
+			except Exception:
+				frappe.log_error(
+					title="recurring task: assign failed",
+					message=f"Failed to assign {assignees} to {new_task.name}",
+				)
 
 	@frappe.whitelist()
 	def approve_uat(self):

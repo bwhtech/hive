@@ -36,9 +36,15 @@ export interface HiveTask {
   uat_status: "Pending" | "Approved" | "Rejected"
   uat_approved_by: string | null
   uat_date: string | null
+  recurrence_frequency: "" | "Daily" | "Weekly" | "Monthly" | "Quarterly" | "Yearly" | null
+  recurrence_end_date: string | null
+  recurring_parent: string | null
   creation: string
   modified: string
 }
+
+export const TASK_RECURRENCE_FREQUENCIES = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"] as const
+export type TaskRecurrenceFrequency = (typeof TASK_RECURRENCE_FREQUENCIES)[number]
 
 export interface HiveMilestone {
   name: string

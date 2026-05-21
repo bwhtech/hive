@@ -19,6 +19,9 @@
   "start_date",
   "due_date",
   "completed_on",
+  "recurrence_frequency",
+  "recurrence_end_date",
+  "recurring_parent",
   "pr_link",
   "description",
   "uat_section",
@@ -120,6 +123,25 @@
    "fieldname": "completed_on",
    "fieldtype": "Date",
    "label": "Completed On"
+  },
+  {
+   "fieldname": "recurrence_frequency",
+   "fieldtype": "Select",
+   "label": "Recurrence",
+   "options": "\nDaily\nWeekly\nMonthly\nQuarterly\nYearly"
+  },
+  {
+   "fieldname": "recurrence_end_date",
+   "fieldtype": "Date",
+   "label": "Repeat Until",
+   "depends_on": "eval:doc.recurrence_frequency"
+  },
+  {
+   "fieldname": "recurring_parent",
+   "fieldtype": "Link",
+   "label": "Recurring Parent",
+   "options": "Hive Task",
+   "read_only": 1
   },
   {
    "fieldname": "pr_link",

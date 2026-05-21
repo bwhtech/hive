@@ -127,6 +127,8 @@ export function AppLayout() {
     due_date?: string | null; start_date?: string | null;
     is_internal?: 0 | 1; assignees?: { member: string }[];
     project?: string;
+    recurrence_frequency?: string | null;
+    recurrence_end_date?: string | null;
   }) => {
     try {
       await createDoc("Hive Task", values)

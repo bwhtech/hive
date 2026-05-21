@@ -345,6 +345,8 @@ export function TasksPage() {
     due_date?: string | null; start_date?: string | null;
     is_internal?: 0 | 1; _assign_users?: string[];
     project?: string; milestone?: string | null;
+    recurrence_frequency?: string | null;
+    recurrence_end_date?: string | null;
   }) => {
     const { _assign_users, ...taskValues } = values
     let doc

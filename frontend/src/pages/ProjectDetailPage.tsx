@@ -351,6 +351,8 @@ export function ProjectDetailPage() {
     is_internal?: 0 | 1
     _assign_users?: string[]
     project?: string
+    recurrence_frequency?: string | null
+    recurrence_end_date?: string | null
   }) => {
     const { _assign_users, ...taskValues } = values
     let doc

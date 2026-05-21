@@ -31,7 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { Calendar } from "@/components/ui/calendar"
 import { LinkField } from "@/components/LinkField"
-import { TASK_PRIORITIES, TASK_STATUSES, type HiveMember } from "@/types"
+import { TASK_PRIORITIES, TASK_RECURRENCE_FREQUENCIES, TASK_STATUSES, type HiveMember } from "@/types"
 import { useUser } from "@/context/UserContext"
 import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 
@@ -52,6 +52,8 @@ interface CreateTaskValues {
   milestone?: string | null
   _assign_users?: string[]
   project?: string
+  recurrence_frequency?: string | null
+  recurrence_end_date?: string | null
 }
 
 interface CreateTaskDialogProps {
@@ -75,6 +77,8 @@ interface TaskDraft {
   assignees: AssigneeRow[]
   selectedMilestone: string
   selectedProject: string
+  recurrenceFrequency: string
+  recurrenceEndDate: string | null
 }
 
 function loadDraft(): Partial<TaskDraft> {
@@ -101,6 +105,10 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
   const [assignees, setAssignees] = useState<AssigneeRow[]>(initialDraft.assignees ?? [])
   const [selectedMilestone, setSelectedMilestone] = useState(initialDraft.selectedMilestone ?? "")
   const [selectedProject, setSelectedProject] = useState(initialDraft.selectedProject ?? "")
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState(initialDraft.recurrenceFrequency ?? "")
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(
+    initialDraft.recurrenceEndDate ? new Date(initialDraft.recurrenceEndDate) : undefined,
+  )
 
   const isMobile = useIsMobile()
 
@@ -109,19 +117,21 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     const hasContent =
       title || description || priority !== "Medium" || status !== "To Do" ||
       dueDate || startDate || isInternal || assignees.length > 0 ||
-      selectedMilestone || selectedProject
+      selectedMilestone || selectedProject || recurrenceFrequency || recurrenceEndDate
     if (hasContent) {
       const draft: TaskDraft = {
         title, description, priority, status,
         dueDate: dueDate?.toISOString() ?? null,
         startDate: startDate?.toISOString() ?? null,
         isInternal, assignees, selectedMilestone, selectedProject,
+        recurrenceFrequency,
+        recurrenceEndDate: recurrenceEndDate?.toISOString() ?? null,
       }
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
     } else {
       localStorage.removeItem(DRAFT_KEY)
     }
-  }, [title, description, priority, status, dueDate, startDate, isInternal, assignees, selectedMilestone, selectedProject])
+  }, [title, description, priority, status, dueDate, startDate, isInternal, assignees, selectedMilestone, selectedProject, recurrenceFrequency, recurrenceEndDate])
 
   const { user } = useUser()
   const needsProjectPicker = !projectId
@@ -185,6 +195,8 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
       milestone: selectedMilestone || null,
       _assign_users: assignees.map((a) => a.member),
       project: resolvedProject,
+      recurrence_frequency: recurrenceFrequency || null,
+      recurrence_end_date: recurrenceFrequency && recurrenceEndDate ? format(recurrenceEndDate, "yyyy-MM-dd") : null,
     })
     localStorage.removeItem(DRAFT_KEY)
     setTitle("")
@@ -199,6 +211,8 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     setAssignees([])
     setSelectedMilestone("")
     setSelectedProject("")
+    setRecurrenceFrequency("")
+    setRecurrenceEndDate(undefined)
   }
 
   const toggleAssignee = (member: HiveMember) => {
@@ -347,6 +361,26 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     </div>
   )
 
+  const recurrenceFields = (
+    <div className="grid gap-2">
+      <Label>Recurrence</Label>
+      <Select value={recurrenceFrequency || "none"} onValueChange={(v) => setRecurrenceFrequency(v === "none" ? "" : v)}>
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">None</SelectItem>
+          {TASK_RECURRENCE_FREQUENCIES.map((f) => (
+            <SelectItem key={f} value={f}>{f}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {recurrenceFrequency && (
+        <DatePickerField date={recurrenceEndDate} onSelect={setRecurrenceEndDate} label="Repeat Until" />
+      )}
+    </div>
+  )
+
   const internalCheckbox = (
     <label className="flex items-center gap-2 cursor-pointer">
       <input
@@ -395,6 +429,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
             {milestoneField}
             {assigneesField}
             {dateFields}
+            {recurrenceFields}
             {internalCheckbox}
             <DialogFooter>
               <Button type="submit" disabled={!canSubmit}>
@@ -433,6 +468,7 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
               {milestoneField}
               {assigneesField}
               {dateFields}
+              {recurrenceFields}
               {internalCheckbox}
             </div>
 

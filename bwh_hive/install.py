@@ -43,8 +43,10 @@ def _bootstrap_system_managers():
 		if "Hive Team" not in frappe.get_roles(user_name):
 			frappe.get_doc("User", user_name).add_roles("Hive Team")
 
-		# Create Hive Member record
-		if not frappe.db.exists("Hive Member", user_name):
+		# Create Hive Member record — check by `user` (unique), not `name`,
+		# because Frappe rename propagates Link values but does not necessarily
+		# rename the Hive Member's primary key.
+		if not frappe.db.exists("Hive Member", {"user": user_name}):
 			frappe.get_doc(
 				{
 					"doctype": "Hive Member",

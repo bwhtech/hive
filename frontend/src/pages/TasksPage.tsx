@@ -303,7 +303,7 @@ export function TasksPage() {
     {
       fields: [
         "name", "title", "project", "status", "priority", "size", "milestone",
-        "depends_on", "assigned_to", "is_internal", "start_date", "due_date", "pr_link",
+        "depends_on", "assigned_to", "is_internal", "description", "start_date", "due_date", "pr_link",
         "completed_on", "uat_status", "creation", "modified",
       ],
       filters: [["is_archived", "=", 0]],

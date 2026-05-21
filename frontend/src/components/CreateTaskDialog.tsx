@@ -15,13 +15,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -414,26 +407,25 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
     )
   }
 
-  // Desktop: Sheet from bottom with two-column layout
+  // Desktop: centered Dialog with two-column layout
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
         showCloseButton={false}
-        className="mx-auto max-h-[85vh] w-full max-w-5xl overflow-y-auto rounded-t-xl"
+        className="grid w-full max-w-5xl gap-0 p-0 sm:max-w-5xl max-h-[85vh] overflow-hidden"
       >
-        <form onSubmit={handleSubmit} className="flex h-full flex-col">
-          <SheetHeader className="flex-row items-center justify-between space-y-0 border-b pb-4">
-            <div>
-              <SheetTitle>New Task</SheetTitle>
-              <SheetDescription>Add a task to this project.</SheetDescription>
+        <form onSubmit={handleSubmit} className="flex max-h-[85vh] flex-col">
+          <DialogHeader className="flex-row items-center justify-between space-y-0 border-b px-6 py-4">
+            <div className="flex flex-col gap-1">
+              <DialogTitle>New Task</DialogTitle>
+              <DialogDescription>Add a task to this project.</DialogDescription>
             </div>
             <Button type="submit" disabled={!canSubmit}>
               Create Task
             </Button>
-          </SheetHeader>
+          </DialogHeader>
 
-          <div className="flex flex-1 gap-6 overflow-y-auto p-6">
+          <div className="flex flex-1 gap-6 overflow-y-auto p-6 min-h-0">
             {/* Left column – options (35%) */}
             <div className="flex w-[35%] shrink-0 flex-col gap-4">
               {projectPickerField}
@@ -470,8 +462,8 @@ export function CreateTaskDialog({ open, onOpenChange, onSubmit, projectId }: Cr
             </div>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }
 

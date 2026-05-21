@@ -2042,6 +2042,11 @@
   resolved "https://registry.yarnpkg.com/@tiptap/extension-strike/-/extension-strike-3.20.0.tgz#a1ec09a1a56aad98d6e7dc493d77547cad4403ee"
   integrity sha512-0vcTZRRAiDfon3VM1mHBr9EFmTkkUXMhm0Xtdtn0bGe+sIqufyi+hUYTEw93EQOD9XNsPkrud6jzQNYpX2H3AQ==
 
+"@tiptap/extension-table@3.20.0":
+  version "3.20.0"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-table/-/extension-table-3.20.0.tgz#ae5a1f770aee616d3d8f8a14e1b1ed39afbaeed6"
+  integrity sha512-vaaMtQ2KnSSr8WVwgWf7NYNzPwrHx/6T0ekA5CxV8qNUEpXIaLXa5+tE7tJHWEdNR2KY3gUJ46D3lfOkxyFrBQ==
+
 "@tiptap/extension-text@^3.20.0":
   version "3.20.0"
   resolved "https://registry.yarnpkg.com/@tiptap/extension-text/-/extension-text-3.20.0.tgz#bdf0ac6e0c638c9dbb99a5a2b5a07db2b8cba1de"

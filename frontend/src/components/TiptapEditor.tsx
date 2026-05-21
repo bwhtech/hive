@@ -3,6 +3,7 @@ import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
 import Placeholder from "@tiptap/extension-placeholder"
+import { TableKit } from "@tiptap/extension-table"
 import { ResizableImage } from "./ResizableImage"
 import Mention from "@tiptap/extension-mention"
 import { useFrappeFileUpload } from "frappe-react-sdk"
@@ -94,6 +95,9 @@ export function TiptapEditor({
         HTMLAttributes: { class: "text-primary underline" },
       }),
       Placeholder.configure({ placeholder }),
+      TableKit.configure({
+        table: { resizable: true },
+      }),
       ResizableImage.configure({
         inline: false,
         allowBase64: false,
@@ -382,8 +386,48 @@ function Toolbar({
         title: "Insert Image",
         action: onImageClick,
       },
+      {
+        label: "\u25a6",
+        title: "Insert Table",
+        action: () =>
+          editor
+            .chain()
+            .focus()
+            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+            .run(),
+      },
     ],
   ]
+
+  if (editor.isActive("table")) {
+    groups.push([
+      {
+        label: "+R",
+        title: "Add row below",
+        action: () => editor.chain().focus().addRowAfter().run(),
+      },
+      {
+        label: "+C",
+        title: "Add column right",
+        action: () => editor.chain().focus().addColumnAfter().run(),
+      },
+      {
+        label: "-R",
+        title: "Delete row",
+        action: () => editor.chain().focus().deleteRow().run(),
+      },
+      {
+        label: "-C",
+        title: "Delete column",
+        action: () => editor.chain().focus().deleteColumn().run(),
+      },
+      {
+        label: "\u2716",
+        title: "Delete table",
+        action: () => editor.chain().focus().deleteTable().run(),
+      },
+    ])
+  }
 
   return (
     <div className="flex items-center gap-0.5 border-b border-input px-2 py-1 flex-wrap">

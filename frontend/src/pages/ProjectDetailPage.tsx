@@ -105,6 +105,7 @@ const TASK_FIELDS = [
   "uat_approved_by",
   "uat_date",
   "recurrence_frequency",
+  "recurrence_end_date",
   "creation",
   "modified",
 ] as const

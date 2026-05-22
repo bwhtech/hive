@@ -313,7 +313,7 @@ export function TasksPage() {
       fields: [
         "name", "title", "project", "status", "priority", "size", "milestone",
         "depends_on", "assigned_to", "is_internal", "description", "start_date", "due_date", "pr_link",
-        "completed_on", "uat_status", "recurrence_frequency", "creation", "modified",
+        "completed_on", "uat_status", "recurrence_frequency", "recurrence_end_date", "creation", "modified",
       ],
       filters: [["is_archived", "=", 0]],
       orderBy: { field: "due_date", order: "asc" },

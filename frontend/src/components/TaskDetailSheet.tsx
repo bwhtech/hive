@@ -56,7 +56,7 @@ import { TaskCommentsSection } from "@/components/TaskCommentsSection"
 import { TaskAttachments } from "@/components/TaskAttachments"
 import { LinkField } from "@/components/LinkField"
 import { useCelebration } from "@/hooks/useTaskCelebration"
-import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, type HiveTask, type HiveMember } from "@/types"
+import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, TASK_RECURRENCE_FREQUENCIES, type HiveTask, type HiveMember } from "@/types"
 
 interface TaskDetailSheetProps {
   task: HiveTask | null
@@ -96,6 +96,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const [dueDate, setDueDate] = useState<Date | undefined>()
   const [startDate, setStartDate] = useState<Date | undefined>()
   const [completedOn, setCompletedOn] = useState<Date | undefined>()
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState("")
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>()
   const [assignees, setAssignees] = useState<AssigneeDisplay[]>([])
   const [saving, setSaving] = useState(false)
   const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle")
@@ -199,6 +201,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       setDueDate(task.due_date ? new Date(task.due_date) : undefined)
       setStartDate(task.start_date ? new Date(task.start_date) : undefined)
       setCompletedOn(task.completed_on ? new Date(task.completed_on) : undefined)
+      setRecurrenceFrequency(task.recurrence_frequency || "")
+      setRecurrenceEndDate(task.recurrence_end_date ? new Date(task.recurrence_end_date) : undefined)
     }
   }, [task?.name])
 
@@ -252,7 +256,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         autosaveTimerRef.current = undefined
       }
     }
-  }, [title, description, status, priority, size, milestone, dependsOn, prLink, dueDate, startDate, completedOn, open, isClient])
+  }, [title, description, status, priority, size, milestone, dependsOn, prLink, dueDate, startDate, completedOn, recurrenceFrequency, recurrenceEndDate, open, isClient])
 
   const assignedMemberNames = useMemo(() => new Set(assignees.map((a) => a.member)), [assignees])
 
@@ -289,6 +293,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         completed_on: completedOn ? format(completedOn, "yyyy-MM-dd") : null,
+        recurrence_frequency: recurrenceFrequency || null,
+        recurrence_end_date: recurrenceFrequency && recurrenceEndDate ? format(recurrenceEndDate, "yyyy-MM-dd") : null,
       })
       userEditedRef.current = false
       if (silent) {
@@ -621,6 +627,43 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
                 </p>
               ) : (
                 <DatePicker date={completedOn} onSelect={(d) => { setCompletedOn(d); markEdited() }} />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Recurrence */}
+        <div className={`grid gap-4 ${recurrenceFrequency ? "grid-cols-2" : "grid-cols-1"}`}>
+          <div className="grid gap-2">
+            <Label>Recurrence</Label>
+            {isClient ? (
+              <p className="text-sm text-muted-foreground py-1">{recurrenceFrequency || "None"}</p>
+            ) : (
+              <Select
+                value={recurrenceFrequency || "none"}
+                onValueChange={(v) => { setRecurrenceFrequency(v === "none" ? "" : v); markEdited() }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {TASK_RECURRENCE_FREQUENCIES.map((f) => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          {recurrenceFrequency && (
+            <div className="grid gap-2">
+              <Label>Repeat Until</Label>
+              {isClient ? (
+                <p className="text-sm text-muted-foreground py-1">
+                  {recurrenceEndDate ? format(recurrenceEndDate, "MMM d, yyyy") : "Forever"}
+                </p>
+              ) : (
+                <DatePicker date={recurrenceEndDate} onSelect={(d) => { setRecurrenceEndDate(d); markEdited() }} />
               )}
             </div>
           )}

@@ -13,7 +13,21 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { useCelebrationSettings, notify, CELEBRATION_KEYS } from "@/hooks/useCelebrationSettings"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  useCelebrationSettings,
+  notify,
+  CELEBRATION_KEYS,
+  SOUND_VARIANTS,
+  getSoundVariantSrc,
+  type SoundVariant,
+} from "@/hooks/useCelebrationSettings"
 
 interface HiveProjectType {
   name: string
@@ -25,7 +39,7 @@ interface HiveSettings {
 }
 
 export function GeneralSection() {
-  const { animation, sound } = useCelebrationSettings()
+  const { animation, sound, soundVariant } = useCelebrationSettings()
 
   const { data: hiveSettings, mutate: mutateSettings } = useFrappeGetDoc<HiveSettings>(
     "Hive Settings",
@@ -40,6 +54,19 @@ export function GeneralSection() {
   const setSound = useCallback((v: boolean) => {
     localStorage.setItem(CELEBRATION_KEYS.SOUND_KEY, String(v))
     notify()
+  }, [])
+
+  const setSoundVariant = useCallback((v: SoundVariant) => {
+    localStorage.setItem(CELEBRATION_KEYS.SOUND_VARIANT_KEY, v)
+    notify()
+    // Preview the chosen sound
+    try {
+      const preview = new Audio(getSoundVariantSrc(v))
+      preview.volume = 0.5
+      preview.play().catch(() => {})
+    } catch {
+      // ignore
+    }
   }, [])
 
   const {
@@ -200,6 +227,31 @@ export function GeneralSection() {
               onCheckedChange={setSound}
             />
           </div>
+
+          {sound && (
+            <div className="flex items-center justify-between gap-4 pl-0">
+              <Label htmlFor="celebration-sound-variant" className="flex flex-col items-start gap-1">
+                <span className="text-sm font-medium">Sound</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Pick which sound plays when a task is completed
+                </span>
+              </Label>
+              <Select value={soundVariant} onValueChange={(v) => setSoundVariant(v as SoundVariant)}>
+                <SelectTrigger id="celebration-sound-variant" className="w-48">
+                  <SelectValue>
+                    {(v) => SOUND_VARIANTS.find((s) => s.value === v)?.label ?? ""}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SOUND_VARIANTS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
 

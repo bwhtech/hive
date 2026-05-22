@@ -4,7 +4,7 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react"
 import type { DotLottie } from "@lottiefiles/dotlottie-web"
 import { motion } from "motion/react"
 import confetti from "canvas-confetti"
-import { useCelebrationSettings } from "@/hooks/useCelebrationSettings"
+import { useCelebrationSettings, getSoundVariantSrc } from "@/hooks/useCelebrationSettings"
 
 const LOTTIE_SRC = "/assets/bwh_hive/frontend/sounds/celebration.lottie"
 
@@ -74,13 +74,12 @@ export function CelebrationProvider({ children }: { children: ReactNode }) {
   const dismissRef = useRef<ReturnType<typeof setTimeout>>()
   const fadeRef = useRef<ReturnType<typeof setTimeout>>()
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const { animation: animationEnabled, sound: soundEnabled } = useCelebrationSettings()
+  const { animation: animationEnabled, sound: soundEnabled, soundVariant } = useCelebrationSettings()
 
-  // Preload the audio file
   useEffect(() => {
-    audioRef.current = new Audio("/assets/bwh_hive/frontend/sounds/victory.wav")
+    audioRef.current = new Audio(getSoundVariantSrc(soundVariant))
     audioRef.current.preload = "auto"
-  }, [])
+  }, [soundVariant])
 
   const celebrate = useCallback(() => {
     if (!animationEnabled && !soundEnabled) return

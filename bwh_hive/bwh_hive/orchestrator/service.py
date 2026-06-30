@@ -207,8 +207,9 @@ def set_agent_status(task, new_status: str, actor: str, message: str | None = No
 def _react(task: Document, new_status: str, actor: str) -> None:
 	"""Post-transition side effects.
 
-	Phase 1 wires teardown on terminal states. The Spec Approved → Implementing and
-	Changes Requested -> Implementing control dispatches land in Phases 3-4.
+	Terminal states tear the box down (Phase 1). Entering Spec Approved kicks off the
+	implementation run (Phase 3). The Changes Requested → /changes/apply dispatch is
+	Phase 4.
 	"""
 	if new_status in TERMINAL_STATES:
 		if task.agent_dev_box:
@@ -218,7 +219,16 @@ def _react(task: Document, new_status: str, actor: str) -> None:
 				enqueue_after_commit=True,
 				task_name=task.name,
 			)
-	# TODO(Phase 3): on "Spec Approved" → set_agent_status(Implementing) + dispatch /implement/start
+		return
+	if new_status == "Spec Approved":
+		# Run the implement kickoff in the background: it flips the task to Implementing
+		# and dispatches to the box over HTTP, which must not block the approving request.
+		frappe.enqueue(
+			"bwh_hive.bwh_hive.orchestrator.service.start_implementation_for_task",
+			queue="long",
+			enqueue_after_commit=True,
+			task_name=task.name,
+		)
 	# TODO(Phase 4): on "Changes Requested" → dispatch /changes/apply
 
 
@@ -229,6 +239,31 @@ def _notify(task: Document, new_status: str) -> None:
 	state machine is testable without a Telegram dependency.
 	"""
 	return
+
+
+def start_implementation_for_task(task_name: str) -> None:
+	"""Flip an approved task to Implementing and dispatch the box (specs/v2 04-phase-3 §A.2).
+
+	Enqueued when a task enters Spec Approved. On a dispatch failure (box unreachable) it
+	reverts to Spec Approved and records the error so the Phase 5 watchdog can retry.
+	Idempotent: a task no longer in Spec Approved is left alone.
+	"""
+	task = frappe.get_doc("Hive Task", task_name)
+	if task.agent_status != "Spec Approved":
+		return
+
+	set_agent_status(
+		task, "Implementing", actor="orchestrator", message="Spec approved — dispatching implementation."
+	)
+	try:
+		dispatch(task, "/implement/start", {})
+	except Exception as e:
+		frappe.log_error(title=f"Implement dispatch failed: {task_name}", message=str(e))
+		# Revert directly: Implementing → Spec Approved is not a valid forward transition,
+		# so go around set_agent_status. The watchdog (Phase 5) retries from here.
+		task.db_set("agent_last_error", f"Implement dispatch failed: {e}")
+		task.db_set("agent_status", "Spec Approved")
+		_comment(task, "Implementation dispatch failed; reverted to Spec Approved (will retry).")
 
 
 def deprovision_for_task(task_name: str) -> None:

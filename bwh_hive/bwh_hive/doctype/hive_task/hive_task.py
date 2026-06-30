@@ -204,6 +204,31 @@ class HiveTask(Document):
 				)
 
 	@frappe.whitelist()
+	def approve_spec(self, note: str | None = None) -> dict:
+		"""Human approval of the agent's spec (specs/v2 04-phase-3 §A.1).
+
+		Routes through the orchestrator so the transition is validated and the
+		implementation run is dispatched. Mirrors approve_uat's desk-action shape.
+		"""
+		from bwh_hive.bwh_hive.orchestrator import service
+
+		self._assert_agent_reviewer()
+		service.set_agent_status(self, "Spec Approved", actor="human", message=note)
+		return {"ok": True, "agent_status": "Spec Approved"}
+
+	def _assert_agent_reviewer(self) -> None:
+		"""A human reviewer with write access — never the Agent bot itself.
+
+		Identity check, not a role check: Administrator implicitly holds every role, so a
+		role test would wrongly block a legitimate admin reviewer.
+		"""
+		from bwh_hive.bwh_hive.orchestrator import service
+
+		if frappe.session.user == service.get_agent_user():
+			frappe.throw("The Agent bot cannot review its own work.", frappe.PermissionError)
+		self.check_permission("write")
+
+	@frappe.whitelist()
 	def approve_uat(self):
 		self.uat_status = "Approved"
 		self.uat_approved_by = frappe.session.user

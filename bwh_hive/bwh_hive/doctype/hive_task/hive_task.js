@@ -29,6 +29,32 @@ frappe.ui.form.on("Hive Task", {
 		}
 		frm.dashboard.add_indicator(banner, colors[frm.doc.agent_status] || "gray");
 
+		// Spec review → approval (specs/v2 04-phase-3). Approving dispatches implementation.
+		if (frm.doc.agent_status === "Spec Created") {
+			frm.add_custom_button(__("Approve Spec"), () => {
+				frappe.prompt(
+					[
+						{
+							fieldname: "note",
+							fieldtype: "Small Text",
+							label: __("Note (optional)"),
+						},
+					],
+					(values) => {
+						frm.call("approve_spec", { note: values.note }).then(() => {
+							frappe.show_alert({
+								message: __("Spec approved — implementation starting."),
+								indicator: "green",
+							});
+							frm.reload_doc();
+						});
+					},
+					__("Approve Spec"),
+					__("Approve")
+				);
+			}).addClass("btn-primary");
+		}
+
 		const open = (url) => url && window.open(url, "_blank");
 		if (frm.doc.agent_code_url) {
 			frm.add_custom_button(

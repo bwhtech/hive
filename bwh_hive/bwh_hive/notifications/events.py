@@ -82,10 +82,11 @@ def _link(label: str, url: str | None) -> str | None:
 	"""A MarkdownV2 inline link, or None when the URL is absent (graceful degrade)."""
 	if not url:
 		return None
-	# Inside the URL part, only `)` and `\` need escaping; our URLs carry neither,
-	# but escape defensively. The label is static, so it needs no escaping.
+	# The link *text* is still MarkdownV2 — reserved chars in the label (e.g. the parens
+	# in "Review spec (code)") must be escaped or Telegram rejects with 400 "can't parse
+	# entities". Inside the URL part only `)` and `\` need escaping.
 	safe_url = url.replace("\\", "\\\\").replace(")", "\\)")
-	return f"[{label}]({safe_url})"
+	return f"[{escape_md2(label)}]({safe_url})"
 
 
 def _links_line(*links: str | None) -> str:

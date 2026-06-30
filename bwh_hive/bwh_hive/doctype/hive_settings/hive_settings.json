@@ -26,6 +26,10 @@
   "default_agent_template_slug",
   "skills_repo",
   "anthropic_api_key",
+  "agent_prompts_section",
+  "agent_spec_prompt",
+  "agent_implement_prompt",
+  "agent_changes_prompt",
   "agent_lifecycle_section",
   "max_concurrent_agent_boxes",
   "provisioning_timeout_minutes",
@@ -170,6 +174,33 @@
    "fieldname": "anthropic_api_key",
    "fieldtype": "Password",
    "label": "Anthropic API Key"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "agent_prompts_section",
+   "fieldtype": "Section Break",
+   "label": "Agent Prompts (global defaults)"
+  },
+  {
+   "description": "Global spec-generation prompt. Tokens: {title} {description} {spec_path} {project} {task_id}. Leave blank to use the box's built-in default. A project can override this.",
+   "fieldname": "agent_spec_prompt",
+   "fieldtype": "Code",
+   "label": "Spec Prompt",
+   "options": "Text"
+  },
+  {
+   "description": "Global implementation prompt. Tokens: {title} {description} {spec_path} {branch} {project} {task_id} {spec}. Blank = built-in default.",
+   "fieldname": "agent_implement_prompt",
+   "fieldtype": "Code",
+   "label": "Implement Prompt",
+   "options": "Text"
+  },
+  {
+   "description": "Global review-feedback prompt. Tokens: {title} {spec_path} {branch} {project} {task_id} {comments}. Blank = built-in default.",
+   "fieldname": "agent_changes_prompt",
+   "fieldtype": "Code",
+   "label": "Changes Prompt",
+   "options": "Text"
   },
   {
    "fieldname": "agent_lifecycle_section",

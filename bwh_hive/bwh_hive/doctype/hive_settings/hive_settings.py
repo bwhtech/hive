@@ -17,7 +17,10 @@ class HiveSettings(Document):
 
 		agent_callback_api_key: DF.Data | None
 		agent_callback_api_secret: DF.Password | None
+		agent_changes_prompt: DF.Code | None
+		agent_implement_prompt: DF.Code | None
 		agent_orchestration_enabled: DF.Check
+		agent_spec_prompt: DF.Code | None
 		anthropic_api_key: DF.Password | None
 		app_name: DF.Data | None
 		benchspace_api_key: DF.Data | None

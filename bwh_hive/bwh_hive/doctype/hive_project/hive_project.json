@@ -29,7 +29,11 @@
   "target_app_name",
   "target_app_repo",
   "target_app_branch",
-  "skills_repo_override"
+  "skills_repo_override",
+  "agent_prompts_section",
+  "agent_spec_prompt",
+  "agent_implement_prompt",
+  "agent_changes_prompt"
  ],
  "fields": [
   {
@@ -177,6 +181,37 @@
    "fieldname": "skills_repo_override",
    "fieldtype": "Data",
    "label": "Skills Repo Override"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "agent_enabled",
+   "fieldname": "agent_prompts_section",
+   "fieldtype": "Section Break",
+   "label": "Agent Prompt Overrides"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "Overrides the global Spec Prompt for this project. Blank = inherit the global default.",
+   "fieldname": "agent_spec_prompt",
+   "fieldtype": "Code",
+   "label": "Spec Prompt Override",
+   "options": "Text"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "Overrides the global Implement Prompt for this project. Blank = inherit the global default.",
+   "fieldname": "agent_implement_prompt",
+   "fieldtype": "Code",
+   "label": "Implement Prompt Override",
+   "options": "Text"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "Overrides the global Changes Prompt for this project. Blank = inherit the global default.",
+   "fieldname": "agent_changes_prompt",
+   "fieldtype": "Code",
+   "label": "Changes Prompt Override",
+   "options": "Text"
   }
  ],
  "grid_page_length": 50,

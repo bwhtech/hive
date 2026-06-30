@@ -16,7 +16,10 @@ class HiveProject(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		agent_changes_prompt: DF.Code | None
 		agent_enabled: DF.Check
+		agent_implement_prompt: DF.Code | None
+		agent_spec_prompt: DF.Code | None
 		agent_template_slug: DF.Data | None
 		client: DF.Link | None
 		description: DF.TextEditor | None

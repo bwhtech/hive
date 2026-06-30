@@ -145,4 +145,36 @@ def get_task(task: str) -> dict:
 		"agent_spec_path": doc.agent_spec_path,
 		"github_issue_url": doc.github_issue_url,
 		"pr_link": doc.pr_link,
+		"prompts": resolve_prompts(doc.project),
 	}
+
+
+# Prompt fields configurable in Hive: a project override wins over the global default; a
+# blank/absent value falls through so the box uses its built-in (or SKILLS_REPO) template.
+_PROMPT_FIELDS = {
+	"spec": "agent_spec_prompt",
+	"implement": "agent_implement_prompt",
+	"changes": "agent_changes_prompt",
+}
+
+
+def resolve_prompts(project: str | None) -> dict:
+	"""Resolve {spec,implement,changes} prompt templates: project override → global default.
+
+	Only non-empty values are returned; a missing key means "no Hive-configured prompt — box
+	falls back to its SKILLS_REPO file / shipped default" (00-architecture.md §5.1).
+	"""
+	settings = frappe.get_cached_doc("Hive Settings")
+	project_doc = (
+		frappe.get_cached_doc("Hive Project", project)
+		if project and frappe.db.exists("Hive Project", project)
+		else None
+	)
+	resolved: dict = {}
+	for key, fieldname in _PROMPT_FIELDS.items():
+		value = (project_doc and (project_doc.get(fieldname) or "").strip()) or (
+			settings.get(fieldname) or ""
+		).strip()
+		if value:
+			resolved[key] = value
+	return resolved

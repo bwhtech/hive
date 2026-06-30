@@ -28,7 +28,8 @@
   "uat_status",
   "uat_approved_by",
   "uat_date",
-  "github_issue_url"
+  "github_issue_url",
+  "agent_status"
  ],
  "fields": [
   {
@@ -185,6 +186,15 @@
    "fieldtype": "Data",
    "label": "GitHub Issue URL",
    "options": "URL",
+   "read_only": 1
+  },
+  {
+   "default": "",
+   "description": "Agent lifecycle state (specs/v2). Empty = not agent-managed. Separate from the kanban status.",
+   "fieldname": "agent_status",
+   "fieldtype": "Select",
+   "label": "Agent Status",
+   "options": "\nQueued\nProvisioning\nSpec In Progress\nSpec Created\nSpec Approved\nImplementing\nPR Ready\nChanges Requested\nMerged\nCancelled\nFailed",
    "read_only": 1
   }
  ],

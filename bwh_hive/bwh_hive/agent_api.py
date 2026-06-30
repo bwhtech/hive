@@ -18,6 +18,8 @@ import json
 
 import frappe
 
+from bwh_hive.bwh_hive.notifications.dispatcher import notify
+from bwh_hive.bwh_hive.notifications.events import EventType, NotificationEvent
 from bwh_hive.bwh_hive.orchestrator import service
 
 AGENT_BOT_ROLE = "Agent Bot"
@@ -47,7 +49,10 @@ def _guard(task: str) -> None:
 def report_agent_status(task: str, status: str, message: str | None = None) -> dict:
 	"""Set a Hive Task's agent_status (box actor) and optionally append a comment."""
 	_guard(task)
+	prev = frappe.db.get_value("Hive Task", task, "agent_status")
 	service.set_agent_status(task, status, actor="box", message=message)
+	if status == "Provisioning" and prev != "Provisioning":
+		notify(NotificationEvent.from_task(EventType.PROVISIONING, task))
 	return {"ok": True, "agent_status": status}
 
 
@@ -73,7 +78,10 @@ def set_spec_ready(
 		updates["agent_branch"] = branch
 	if updates:
 		doc.db_set(updates)
+	prev = doc.agent_status
 	service.set_agent_status(doc, "Spec Created", actor="box", message="Spec ready for review.")
+	if prev != "Spec Created":
+		notify(NotificationEvent.from_task(EventType.SPEC_CREATED, task))
 	return {"ok": True, "agent_status": "Spec Created"}
 
 
@@ -86,7 +94,10 @@ def set_pr_ready(task: str, pr_url: str, branch: str | None = None) -> dict:
 	if branch:
 		updates["agent_branch"] = branch
 	doc.db_set(updates)
+	prev = doc.agent_status
 	service.set_agent_status(doc, "PR Ready", actor="box", message=f"PR ready: {pr_url}")
+	if prev != "PR Ready":
+		notify(NotificationEvent.from_task(EventType.PR_READY, task))
 	return {"ok": True, "agent_status": "PR Ready"}
 
 
@@ -97,7 +108,10 @@ def report_agent_error(task: str, error: str, phase: str | None = None) -> dict:
 	doc = frappe.get_doc("Hive Task", task)
 	doc.db_set("agent_last_error", error)
 	msg = f"Agent error ({phase}): {error}" if phase else f"Agent error: {error}"
+	prev = doc.agent_status
 	service.set_agent_status(doc, "Failed", actor="box", message=msg)
+	if prev != "Failed":
+		notify(NotificationEvent.from_task(EventType.FAILED, task, message=error, payload={"phase": phase}))
 	return {"ok": True, "agent_status": "Failed"}
 
 

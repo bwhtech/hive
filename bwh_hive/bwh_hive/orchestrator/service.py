@@ -272,10 +272,13 @@ def _react(task: Document, new_status: str, actor: str) -> None:
 
 
 def _notify(task: Document, new_status: str) -> None:
-	"""Notification hook (specs/v2 §07). Phase 1: no-op placeholder.
+	"""State-machine notification hook — intentionally a no-op.
 
-	The notifications module (07-notifications.md) plugs in here; left thin so the
-	state machine is testable without a Telegram dependency.
+	Per the locked decision in 07-notifications.md ("Event-driven, not transition-driven
+	generically"), agent alerts are emitted explicitly from the callback methods in
+	`agent_api.py` (which carry the error/phase detail and know which transition matters),
+	NOT from this generic hook. Wiring `notify()` here as well would double-send. Kept as a
+	seam so the state machine stays testable without a Telegram dependency.
 	"""
 	return
 

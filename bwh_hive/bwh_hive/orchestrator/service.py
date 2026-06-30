@@ -130,7 +130,7 @@ def provision_for_task(task_name: str) -> None:
 
 	project = frappe.get_doc("Hive Project", task.project)
 	if not project.agent_enabled:
-		set_agent_status(task, "Failed", actor="orchestrator", message="Project is not agent-enabled.")
+		_fail(task, "Project is not agent-enabled.")
 		return
 
 	live_boxes = frappe.db.count(
@@ -145,14 +145,14 @@ def provision_for_task(task_name: str) -> None:
 	control_token = boot_env["CONTROL_TOKEN"]
 	template = project.get("agent_template_slug") or settings.default_agent_template_slug
 	if not template:
-		set_agent_status(task, "Failed", actor="orchestrator", message="No agent template configured.")
+		_fail(task, "No agent template configured.")
 		return
 
 	try:
 		box = BenchSpaceClient().provision(template, boot_env)
 	except Exception as e:  # any failure routes to Failed + audit log
 		frappe.log_error(title=f"Agent provision failed: {task_name}", message=str(e))
-		set_agent_status(task, "Failed", actor="orchestrator", message=f"Provision failed: {e}")
+		_fail(task, f"Provision failed: {e}")
 		return
 
 	# Persist box coordinates + control token in a single save (encrypts the Password).
@@ -306,6 +306,16 @@ def on_agent_unassigned(task_name: str) -> None:
 # --------------------------------------------------------------------------- #
 # Internal
 # --------------------------------------------------------------------------- #
+def _fail(task: Document, reason: str) -> None:
+	"""Surface an orchestrator-side failure on agent_last_error, then move to Failed.
+
+	The spec (specs/v2 §B.5) requires provision/orchestration errors to land on
+	agent_last_error, not just a comment.
+	"""
+	task.db_set("agent_last_error", reason)
+	set_agent_status(task, "Failed", actor="orchestrator", message=reason)
+
+
 def _comment(task: Document, content: str) -> None:
 	"""Append a lightweight timeline comment on the task."""
 	frappe.get_doc(

@@ -46,6 +46,7 @@ class HiveTask(Document):
 		from frappe.types import DF
 
 		agent_box_slug: DF.Data | None
+		agent_box_torn_down: DF.Check
 		agent_branch: DF.Data | None
 		agent_code_url: DF.Data | None
 		agent_control_token: DF.Password | None

@@ -39,7 +39,8 @@
   "agent_code_url",
   "agent_spec_path",
   "agent_branch",
-  "agent_last_error"
+  "agent_last_error",
+  "agent_box_torn_down"
  ],
  "fields": [
   {
@@ -268,6 +269,14 @@
    "fieldname": "agent_last_error",
    "fieldtype": "Small Text",
    "label": "Agent Last Error",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Set by deprovision_for_task on a successful teardown; the watchdog's terminal-teardown sweep skips boxes already torn down (Phase 5).",
+   "fieldname": "agent_box_torn_down",
+   "fieldtype": "Check",
+   "label": "Agent Box Torn Down",
    "read_only": 1
   }
  ],

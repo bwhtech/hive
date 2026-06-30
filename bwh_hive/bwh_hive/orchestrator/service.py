@@ -349,20 +349,25 @@ def deprovision_for_task(task_name: str) -> None:
 	branch, spec_path, URLs, last_error) and clears only the now-dead control credential.
 	"""
 	task = frappe.get_doc("Hive Task", task_name)
-	if not task.agent_dev_box:
-		return
+	if not task.agent_dev_box or task.agent_box_torn_down:
+		return  # never provisioned, or already torn down — no-op
 	try:
 		BenchSpaceClient().deprovision(task.agent_dev_box)
 	except Exception as e:  # teardown failures are logged, not fatal
-		# Leave agent_control_token in place: the box may still be alive, and the
-		# watchdog's terminal-teardown sweep treats a lingering token as "not yet torn
-		# down" and re-attempts next tick (06-phase-5 cleanup table).
+		# Leave agent_box_torn_down = 0: the box may still be alive, and the watchdog's
+		# terminal-teardown sweep re-attempts a not-yet-torn-down box next tick
+		# (06-phase-5 cleanup table).
 		frappe.log_error(title=f"Agent deprovision failed: {task_name}", message=str(e))
 		return
 
-	# Success (incl. already-deleted box): the token is now a dead secret (§2.3) and its
-	# absence is the watchdog's "torn down" signal — clear it.
-	task.db_set("agent_control_token", None)
+	# Success (incl. already-deleted box): the control token is now a dead secret (§2.3).
+	# Frappe keeps Password values in `__Auth` (the doc column is just a `*****` placeholder),
+	# so removing it requires remove_encrypted_password — db_set on the field would not clear
+	# the secret. Mark the box torn down so the watchdog sweep skips it (the queryable signal).
+	from frappe.utils.password import remove_encrypted_password
+
+	remove_encrypted_password("Hive Task", task.name, "agent_control_token")
+	task.db_set({"agent_control_token": None, "agent_box_torn_down": 1})
 
 
 # --------------------------------------------------------------------------- #
@@ -474,6 +479,7 @@ def retry_agent_task(task_name: str) -> dict:
 			"agent_site_url": None,
 			"agent_code_url": None,
 			"agent_last_error": None,
+			"agent_box_torn_down": 0,  # fresh box will be tear-down-able again
 		}
 	)
 

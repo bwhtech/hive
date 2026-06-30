@@ -198,12 +198,12 @@ def _sweep_idle(live: list, settings) -> None:
 
 # --- pass D: Failed grace + terminal-teardown retry ------------------------ #
 def _sweep_terminal_teardown(settings) -> None:
-	"""Tear down terminal tasks whose box is still live (a lingering token = not torn down).
+	"""Tear down terminal tasks whose box has not been torn down yet.
 
 	Failed boxes are kept `failed_teardown_grace_hours` for debugging; Merged/Cancelled
-	boxes should already be gone, so a lingering token there means the synchronous teardown
-	failed/raced — retry it after a short settle window. `deprovision_for_task` clears the
-	token only on success, so a torn-down box drops out of this set.
+	boxes should already be gone, so an un-torn-down one means the synchronous teardown
+	failed/raced — retry it after a short settle window. `deprovision_for_task` sets
+	`agent_box_torn_down` only on success, so a torn-down box drops out of this set.
 	"""
 	grace_h = settings.failed_teardown_grace_hours or 0
 	rows = frappe.get_all(
@@ -211,7 +211,7 @@ def _sweep_terminal_teardown(settings) -> None:
 		filters={
 			"agent_status": ["in", list(service.TERMINAL_STATES)],
 			"agent_dev_box": ["is", "set"],
-			"agent_control_token": ["is", "set"],
+			"agent_box_torn_down": 0,
 		},
 		fields=["name", "agent_status", "modified"],
 	)

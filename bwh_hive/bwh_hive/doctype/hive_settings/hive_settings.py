@@ -24,14 +24,20 @@ class HiveSettings(Document):
 		benchspace_api_secret: DF.Password | None
 		benchspace_api_url: DF.Data | None
 		default_agent_template_slug: DF.Data | None
+		failed_teardown_grace_hours: DF.Int
 		github_app_client_id: DF.Data | None
 		github_app_client_secret: DF.Password | None
 		github_app_id: DF.Data | None
 		github_app_public_link: DF.Data | None
+		idle_teardown_hours: DF.Int
+		implement_timeout_minutes: DF.Int
 		lock_due_date_on_or_after: DF.Check
+		max_concurrent_agent_boxes: DF.Int
 		notifications_enabled: DF.Check
 		onboarding_completed: DF.Check
+		provisioning_timeout_minutes: DF.Int
 		skills_repo: DF.Data | None
+		spec_timeout_minutes: DF.Int
 		telegram_bot_token: DF.Password | None
 		telegram_default_chat_id: DF.Data | None
 	# end: auto-generated types

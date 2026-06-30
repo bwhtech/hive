@@ -159,6 +159,13 @@ scheduler_events = {
 	"daily": [
 		"bwh_hive.tasks.daily",
 	],
+	# v2 agent lifecycle watchdog (specs/v2 06-phase-5 §4): reconcile drift, enforce
+	# timeouts, sweep idle/orphaned boxes, and drain the queue every 10 minutes.
+	"cron": {
+		"*/10 * * * *": [
+			"bwh_hive.tasks.reconcile_agent_tasks",
+		],
+	},
 }
 
 # Testing

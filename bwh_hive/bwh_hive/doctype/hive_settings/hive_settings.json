@@ -26,6 +26,13 @@
   "default_agent_template_slug",
   "skills_repo",
   "anthropic_api_key",
+  "agent_lifecycle_section",
+  "max_concurrent_agent_boxes",
+  "provisioning_timeout_minutes",
+  "spec_timeout_minutes",
+  "implement_timeout_minutes",
+  "idle_teardown_hours",
+  "failed_teardown_grace_hours",
   "telegram_section",
   "notifications_enabled",
   "telegram_bot_token",
@@ -163,6 +170,53 @@
    "fieldname": "anthropic_api_key",
    "fieldtype": "Password",
    "label": "Anthropic API Key"
+  },
+  {
+   "fieldname": "agent_lifecycle_section",
+   "fieldtype": "Section Break",
+   "label": "Agent Lifecycle & Cost Control (Phase 5)"
+  },
+  {
+   "default": "5",
+   "description": "Hard cap on live agent boxes (non-terminal agent_status). Tasks beyond the cap stay Queued and are drained by the watchdog. specs/v2 06-phase-5.",
+   "fieldname": "max_concurrent_agent_boxes",
+   "fieldtype": "Int",
+   "label": "Max Concurrent Agent Boxes"
+  },
+  {
+   "default": "15",
+   "description": "Queued/Provisioning watchdog budget (minutes); breach -> Failed. 0 disables.",
+   "fieldname": "provisioning_timeout_minutes",
+   "fieldtype": "Int",
+   "label": "Provisioning Timeout (minutes)"
+  },
+  {
+   "default": "30",
+   "description": "Spec In Progress watchdog backstop (minutes); breach -> Failed. 0 disables.",
+   "fieldname": "spec_timeout_minutes",
+   "fieldtype": "Int",
+   "label": "Spec Timeout (minutes)"
+  },
+  {
+   "default": "45",
+   "description": "Implementing/Changes Requested watchdog backstop (minutes); breach -> Failed. 0 disables.",
+   "fieldname": "implement_timeout_minutes",
+   "fieldtype": "Int",
+   "label": "Implement Timeout (minutes)"
+  },
+  {
+   "default": "6",
+   "description": "Tear down a box parked in a human-wait state (Spec Created/Approved/PR Ready) this long (hours). 0 disables.",
+   "fieldname": "idle_teardown_hours",
+   "fieldtype": "Int",
+   "label": "Idle Teardown (hours)"
+  },
+  {
+   "default": "2",
+   "description": "How long to keep a Failed box for debugging before the watchdog sweeps it (hours). 0 disables.",
+   "fieldname": "failed_teardown_grace_hours",
+   "fieldtype": "Int",
+   "label": "Failed Teardown Grace (hours)"
   },
   {
    "fieldname": "telegram_section",

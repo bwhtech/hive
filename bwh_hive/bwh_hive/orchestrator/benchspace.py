@@ -63,5 +63,9 @@ class BenchSpaceClient:
 	def get_box(self, name: str) -> dict:
 		return self._call("benchspace.api.agent_box.get_box", http="GET", payload={"name": name})
 
+	def list_agent_boxes(self) -> list[dict]:
+		result = self._call("benchspace.api.agent_box.list_agent_boxes", http="GET", payload={})
+		return result if isinstance(result, list) else []
+
 	def deprovision(self, name: str) -> dict:
 		return self._call("benchspace.api.agent_box.deprovision", http="POST", payload={"name": name})

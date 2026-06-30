@@ -100,6 +100,57 @@ frappe.ui.form.on("Hive Task", {
 			});
 		}
 
+		// Failed → recovery affordances (specs/v2 06-phase-5 step 9).
+		if (frm.doc.agent_status === "Failed") {
+			frm.add_custom_button(__("Retry"), () => {
+				frappe.confirm(
+					__(
+						"Tear down the old box (if any) and re-provision a fresh box for this task?"
+					),
+					() => {
+						frm.call("retry_agent").then(() => {
+							frappe.show_alert({
+								message: __("Retry queued — provisioning a fresh box."),
+								indicator: "blue",
+							});
+							frm.reload_doc();
+						});
+					}
+				);
+			}).addClass("btn-primary");
+
+			frm.add_custom_button(__("Tear Down Now"), () => {
+				frappe.confirm(
+					__("Deprovision this box now instead of waiting for the grace sweep?"),
+					() => {
+						frm.call("teardown_agent_now").then(() => {
+							frappe.show_alert({
+								message: __("Teardown requested."),
+								indicator: "orange",
+							});
+							frm.reload_doc();
+						});
+					}
+				);
+			});
+		}
+
+		// Any non-terminal agent task can be cancelled (specs/v2 06-phase-5 step 2).
+		const TERMINAL = ["Merged", "Cancelled", "Failed"];
+		if (!TERMINAL.includes(frm.doc.agent_status)) {
+			frm.add_custom_button(__("Cancel Agent Task"), () => {
+				frappe.confirm(__("Cancel this agent task? The box will be torn down."), () => {
+					frm.call("cancel_agent").then(() => {
+						frappe.show_alert({
+							message: __("Task cancelled — box being torn down."),
+							indicator: "gray",
+						});
+						frm.reload_doc();
+					});
+				});
+			});
+		}
+
 		const open = (url) => url && window.open(url, "_blank");
 		if (frm.doc.agent_code_url) {
 			frm.add_custom_button(

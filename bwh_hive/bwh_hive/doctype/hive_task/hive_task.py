@@ -241,6 +241,32 @@ class HiveTask(Document):
 		service.mark_merged(self)
 		return {"ok": True, "agent_status": "Merged"}
 
+	@frappe.whitelist()
+	def cancel_agent(self) -> dict:
+		"""Human cancels an in-flight agent task (specs/v2 06-phase-5 step 2)."""
+		from bwh_hive.bwh_hive.orchestrator import service
+
+		self._assert_agent_reviewer()
+		service.cancel_agent_task(self.name)
+		return {"ok": True, "agent_status": "Cancelled"}
+
+	@frappe.whitelist()
+	def retry_agent(self) -> dict:
+		"""Re-provision a clean box for a Failed agent task (specs/v2 06-phase-5 step 8)."""
+		from bwh_hive.bwh_hive.orchestrator import service
+
+		self._assert_agent_reviewer()
+		return service.retry_agent_task(self.name)
+
+	@frappe.whitelist()
+	def teardown_agent_now(self) -> dict:
+		"""Force-deprovision a Failed box ahead of the grace sweep (specs/v2 06-phase-5 step 9)."""
+		from bwh_hive.bwh_hive.orchestrator import service
+
+		self._assert_agent_reviewer()
+		service.force_teardown(self.name)
+		return {"ok": True}
+
 	def _assert_agent_reviewer(self) -> None:
 		"""A human reviewer with write access — never the Agent bot itself.
 

@@ -15,7 +15,21 @@
   "github_app_private_key",
   "github_access_token",
   "github_username",
-  "github_authorized_at"
+  "github_authorized_at",
+  "agent_section",
+  "agent_orchestration_enabled",
+  "benchspace_api_url",
+  "benchspace_api_key",
+  "benchspace_api_secret",
+  "agent_callback_api_key",
+  "agent_callback_api_secret",
+  "default_agent_template_slug",
+  "skills_repo",
+  "anthropic_api_key",
+  "telegram_section",
+  "notifications_enabled",
+  "telegram_bot_token",
+  "telegram_default_chat_id"
  ],
  "fields": [
   {
@@ -92,6 +106,84 @@
    "hidden": 1,
    "label": "GitHub Authorized At",
    "read_only": 1
+  },
+  {
+   "fieldname": "agent_section",
+   "fieldtype": "Section Break",
+   "label": "Agent Orchestration (v2)"
+  },
+  {
+   "default": "0",
+   "description": "Master switch for v2 agent orchestration (specs/v2 §4.4).",
+   "fieldname": "agent_orchestration_enabled",
+   "fieldtype": "Check",
+   "label": "Agent Orchestration Enabled"
+  },
+  {
+   "description": "BenchSpace site base URL, e.g. https://boxes.buildwithhussain.com",
+   "fieldname": "benchspace_api_url",
+   "fieldtype": "Data",
+   "label": "BenchSpace API URL"
+  },
+  {
+   "fieldname": "benchspace_api_key",
+   "fieldtype": "Data",
+   "label": "BenchSpace API Key"
+  },
+  {
+   "fieldname": "benchspace_api_secret",
+   "fieldtype": "Password",
+   "label": "BenchSpace API Secret"
+  },
+  {
+   "description": "API key of the Hive Agent bot user; injected into every box (HIVE_API_KEY).",
+   "fieldname": "agent_callback_api_key",
+   "fieldtype": "Data",
+   "label": "Agent Callback API Key"
+  },
+  {
+   "fieldname": "agent_callback_api_secret",
+   "fieldtype": "Password",
+   "label": "Agent Callback API Secret"
+  },
+  {
+   "default": "agent-v16",
+   "fieldname": "default_agent_template_slug",
+   "fieldtype": "Data",
+   "label": "Default Agent Template Slug"
+  },
+  {
+   "description": "Global skills/CLAUDE.md/prompts repo (SKILLS_REPO).",
+   "fieldname": "skills_repo",
+   "fieldtype": "Data",
+   "label": "Skills Repo"
+  },
+  {
+   "description": "Injected into boxes as ANTHROPIC_API_KEY for Claude Code.",
+   "fieldname": "anthropic_api_key",
+   "fieldtype": "Password",
+   "label": "Anthropic API Key"
+  },
+  {
+   "fieldname": "telegram_section",
+   "fieldtype": "Section Break",
+   "label": "Notifications (Telegram)"
+  },
+  {
+   "default": "0",
+   "fieldname": "notifications_enabled",
+   "fieldtype": "Check",
+   "label": "Notifications Enabled"
+  },
+  {
+   "fieldname": "telegram_bot_token",
+   "fieldtype": "Password",
+   "label": "Telegram Bot Token"
+  },
+  {
+   "fieldname": "telegram_default_chat_id",
+   "fieldtype": "Data",
+   "label": "Telegram Default Chat ID"
   }
  ],
  "grid_page_length": 50,

@@ -21,7 +21,15 @@
   "links_section",
   "links",
   "is_archived",
-  "github_repo"
+  "github_repo",
+  "agent_section",
+  "agent_enabled",
+  "github_pat",
+  "agent_template_slug",
+  "target_app_name",
+  "target_app_repo",
+  "target_app_branch",
+  "skills_repo_override"
  ],
  "fields": [
   {
@@ -113,6 +121,62 @@
    "fieldtype": "Data",
    "label": "GitHub Repository",
    "description": "GitHub repository in owner/repo format (e.g. BuildWithHussain/hive)"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "agent_section",
+   "fieldtype": "Section Break",
+   "label": "Agent (v2)"
+  },
+  {
+   "default": "0",
+   "description": "Only agent-enabled projects can spawn agent boxes (specs/v2 §4.3).",
+   "fieldname": "agent_enabled",
+   "fieldtype": "Check",
+   "label": "Agent Enabled"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "Project PAT used inside the box for gh / git push (GIT_PAT).",
+   "fieldname": "github_pat",
+   "fieldtype": "Password",
+   "label": "GitHub PAT"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "BenchSpace template/golden to provision (defaults to Hive Settings).",
+   "fieldname": "agent_template_slug",
+   "fieldtype": "Data",
+   "label": "Agent Template Slug"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "Frappe app to install in the box (TARGET_APP_NAME).",
+   "fieldname": "target_app_name",
+   "fieldtype": "Data",
+   "label": "Target App Name"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "App source URL (TARGET_APP_REPO).",
+   "fieldname": "target_app_repo",
+   "fieldtype": "Data",
+   "label": "Target App Repo"
+  },
+  {
+   "default": "develop",
+   "depends_on": "agent_enabled",
+   "description": "App branch (TARGET_APP_BRANCH).",
+   "fieldname": "target_app_branch",
+   "fieldtype": "Data",
+   "label": "Target App Branch"
+  },
+  {
+   "depends_on": "agent_enabled",
+   "description": "Optional override for the global SKILLS_REPO.",
+   "fieldname": "skills_repo_override",
+   "fieldtype": "Data",
+   "label": "Skills Repo Override"
   }
  ],
  "grid_page_length": 50,

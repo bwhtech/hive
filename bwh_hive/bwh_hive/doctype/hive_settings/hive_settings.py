@@ -15,13 +15,25 @@ class HiveSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		agent_callback_api_key: DF.Data | None
+		agent_callback_api_secret: DF.Password | None
+		agent_orchestration_enabled: DF.Check
+		anthropic_api_key: DF.Password | None
 		app_name: DF.Data | None
+		benchspace_api_key: DF.Data | None
+		benchspace_api_secret: DF.Password | None
+		benchspace_api_url: DF.Data | None
+		default_agent_template_slug: DF.Data | None
 		github_app_client_id: DF.Data | None
 		github_app_client_secret: DF.Password | None
 		github_app_id: DF.Data | None
 		github_app_public_link: DF.Data | None
 		lock_due_date_on_or_after: DF.Check
+		notifications_enabled: DF.Check
 		onboarding_completed: DF.Check
+		skills_repo: DF.Data | None
+		telegram_bot_token: DF.Password | None
+		telegram_default_chat_id: DF.Data | None
 	# end: auto-generated types
 
 	@frappe.whitelist()

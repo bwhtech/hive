@@ -142,7 +142,14 @@ permission_query_conditions = {
 doc_events = {
 	"User Invitation": {
 		"on_update": "bwh_hive.bwh_hive.utils.on_user_invitation_update",
-	}
+	},
+	# v2 agent orchestration: assignment to the Agent user is observed via the ToDo
+	# that assign_to.add creates (Hive Task's own on_update does not fire on assign).
+	"ToDo": {
+		"after_insert": "bwh_hive.bwh_hive.orchestrator.hooks.on_todo_change",
+		"on_update": "bwh_hive.bwh_hive.orchestrator.hooks.on_todo_change",
+		"on_trash": "bwh_hive.bwh_hive.orchestrator.hooks.on_todo_change",
+	},
 }
 
 # Scheduled Tasks

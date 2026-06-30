@@ -16,13 +16,21 @@ class HiveProject(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		agent_enabled: DF.Check
+		agent_template_slug: DF.Data | None
 		client: DF.Link | None
 		description: DF.TextEditor | None
+		github_pat: DF.Password | None
+		github_repo: DF.Data | None
 		is_archived: DF.Check
 		is_private: DF.Check
 		project_type: DF.Link | None
+		skills_repo_override: DF.Data | None
 		slug: DF.Data | None
 		status: DF.Literal["Open", "Completed", "On Hold"]
+		target_app_branch: DF.Data | None
+		target_app_name: DF.Data | None
+		target_app_repo: DF.Data | None
 		title: DF.Data
 	# end: auto-generated types
 

@@ -45,6 +45,29 @@ class HiveTask(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		agent_box_slug: DF.Data | None
+		agent_branch: DF.Data | None
+		agent_code_url: DF.Data | None
+		agent_control_token: DF.Password | None
+		agent_control_url: DF.Data | None
+		agent_dev_box: DF.Data | None
+		agent_last_error: DF.SmallText | None
+		agent_site_url: DF.Data | None
+		agent_spec_path: DF.Data | None
+		agent_status: DF.Literal[
+			"",
+			"Queued",
+			"Provisioning",
+			"Spec In Progress",
+			"Spec Created",
+			"Spec Approved",
+			"Implementing",
+			"PR Ready",
+			"Changes Requested",
+			"Merged",
+			"Cancelled",
+			"Failed",
+		]
 		assigned_to: DF.Link | None
 		completed_on: DF.Date | None
 		depends_on: DF.Link | None

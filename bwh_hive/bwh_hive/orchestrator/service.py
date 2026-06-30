@@ -229,7 +229,9 @@ def _react(task: Document, new_status: str, actor: str) -> None:
 			enqueue_after_commit=True,
 			task_name=task.name,
 		)
-	# TODO(Phase 4): on "Changes Requested" → dispatch /changes/apply
+	# Changes Requested → Implementing + dispatch /changes/apply is handled inline in
+	# request_changes (it carries the comments payload and surfaces dispatch errors to the
+	# reviewer synchronously), so it is intentionally not enqueued from here.
 
 
 def _notify(task: Document, new_status: str) -> None:
@@ -264,6 +266,41 @@ def start_implementation_for_task(task_name: str) -> None:
 		task.db_set("agent_last_error", f"Implement dispatch failed: {e}")
 		task.db_set("agent_status", "Spec Approved")
 		_comment(task, "Implementation dispatch failed; reverted to Spec Approved (will retry).")
+
+
+def request_changes(task, comments: list[dict]) -> None:
+	"""Human asks the agent for another PR iteration (specs/v2 05-phase-4 §B.6).
+
+	PR Ready → Changes Requested (human) → Implementing (orchestrator), then dispatch the
+	comments to the box. Dispatch is synchronous so a box-unreachable error surfaces to the
+	reviewer; on failure the task rolls back to PR Ready rather than stranding in Implementing.
+	"""
+	task_doc = task if isinstance(task, Document) else frappe.get_doc("Hive Task", task)
+
+	set_agent_status(task_doc, "Changes Requested", actor="human", message="Changes requested.")
+	set_agent_status(
+		task_doc, "Implementing", actor="orchestrator", message="Dispatching review changes to the box."
+	)
+	try:
+		dispatch(task_doc, "/changes/apply", {"comments": comments})
+	except Exception as e:
+		frappe.log_error(title=f"Changes dispatch failed: {task_doc.name}", message=str(e))
+		# Revert directly: Implementing → PR Ready is not a valid forward transition, so go
+		# around set_agent_status. The reviewer retries.
+		task_doc.db_set("agent_last_error", f"Changes dispatch failed: {e}")
+		task_doc.db_set("agent_status", "PR Ready")
+		_comment(task_doc, "Changes dispatch failed; reverted to PR Ready.")
+		frappe.throw(f"Could not dispatch changes to the box: {e}")
+
+
+def mark_merged(task) -> None:
+	"""Record that the PR was merged (specs/v2 05-phase-4 §B.8).
+
+	Only state — Merged is terminal, so the existing `_react` enqueues deprovision (the
+	`Merged → deprovision` reaction locked in 00-architecture §4.2).
+	"""
+	task_doc = task if isinstance(task, Document) else frappe.get_doc("Hive Task", task)
+	set_agent_status(task_doc, "Merged", actor="human", message="PR merged.")
 
 
 def deprovision_for_task(task_name: str) -> None:

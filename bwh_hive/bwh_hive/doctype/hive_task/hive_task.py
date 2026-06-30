@@ -216,6 +216,31 @@ class HiveTask(Document):
 		service.set_agent_status(self, "Spec Approved", actor="human", message=note)
 		return {"ok": True, "agent_status": "Spec Approved"}
 
+	@frappe.whitelist()
+	def request_agent_changes(self, comments: str | list) -> dict:
+		"""Human requests another iteration on a PR Ready task (specs/v2 05-phase-4 §B.6).
+
+		`comments` is the §5.3 payload — a JSON array (or list) of {author, body, path?, line?}.
+		Routes through the orchestrator, which transitions the task and dispatches /changes/apply.
+		"""
+		from bwh_hive.bwh_hive.orchestrator import service
+
+		self._assert_agent_reviewer()
+		parsed = comments if isinstance(comments, list) else frappe.parse_json(comments)
+		if not parsed:
+			frappe.throw("Provide at least one review comment.")
+		service.request_changes(self, parsed)
+		return {"ok": True, "agent_status": "Implementing"}
+
+	@frappe.whitelist()
+	def mark_agent_merged(self) -> dict:
+		"""Human records that the PR was merged on GitHub (specs/v2 05-phase-4 §B.8)."""
+		from bwh_hive.bwh_hive.orchestrator import service
+
+		self._assert_agent_reviewer()
+		service.mark_merged(self)
+		return {"ok": True, "agent_status": "Merged"}
+
 	def _assert_agent_reviewer(self) -> None:
 		"""A human reviewer with write access — never the Agent bot itself.
 

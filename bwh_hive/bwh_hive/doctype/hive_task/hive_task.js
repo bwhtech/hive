@@ -55,6 +55,51 @@ frappe.ui.form.on("Hive Task", {
 			}).addClass("btn-primary");
 		}
 
+		// PR review → request changes / mark merged (specs/v2 05-phase-4 §B.9).
+		if (frm.doc.agent_status === "PR Ready") {
+			frm.add_custom_button(__("Request Changes"), () => {
+				frappe.prompt(
+					[
+						{
+							fieldname: "body",
+							fieldtype: "Small Text",
+							label: __("Review comments"),
+							reqd: 1,
+						},
+					],
+					(values) => {
+						const comments = [{ author: frappe.session.user, body: values.body }];
+						frm.call("request_agent_changes", {
+							comments: JSON.stringify(comments),
+						}).then(() => {
+							frappe.show_alert({
+								message: __("Changes requested — agent is iterating."),
+								indicator: "blue",
+							});
+							frm.reload_doc();
+						});
+					},
+					__("Request Changes"),
+					__("Send to Agent")
+				);
+			}).addClass("btn-primary");
+
+			frm.add_custom_button(__("Mark Merged"), () => {
+				frappe.confirm(
+					__("Confirm the PR is merged on GitHub. This marks the task Merged."),
+					() => {
+						frm.call("mark_agent_merged").then(() => {
+							frappe.show_alert({
+								message: __("Task marked Merged."),
+								indicator: "green",
+							});
+							frm.reload_doc();
+						});
+					}
+				);
+			});
+		}
+
 		const open = (url) => url && window.open(url, "_blank");
 		if (frm.doc.agent_code_url) {
 			frm.add_custom_button(

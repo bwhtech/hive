@@ -5,6 +5,7 @@ import {
   UserCircleIcon,
   Building06Icon,
   GitBranchIcon,
+  SourceCodeIcon,
 } from "@hugeicons/core-free-icons"
 import {
   Dialog,
@@ -28,6 +29,7 @@ import { GeneralSection } from "@/components/settings/GeneralSection"
 import { MembersSection } from "@/components/settings/MembersSection"
 import { ClientsSection } from "@/components/settings/ClientsSection"
 import { GitHubSection } from "@/components/settings/GitHubSection"
+import { AgentSection } from "@/components/settings/AgentSection"
 
 const allSections = [
   { id: "profile", label: "Profile", icon: UserCircleIcon, teamOnly: false },
@@ -35,6 +37,7 @@ const allSections = [
   { id: "members", label: "Members", icon: UserGroup03Icon, teamOnly: true },
   { id: "clients", label: "Clients", icon: Building06Icon, teamOnly: true },
   { id: "github", label: "GitHub", icon: GitBranchIcon, teamOnly: true },
+  { id: "agent", label: "Agent", icon: SourceCodeIcon, teamOnly: true },
 ] as const
 
 function SettingsContent({
@@ -130,6 +133,9 @@ function SettingsContent({
               <TabsContent value="github" className="flex flex-col m-0">
                 <GitHubSection />
               </TabsContent>
+              <TabsContent value="agent" className="flex flex-col m-0">
+                <AgentSection />
+              </TabsContent>
             </>
           )}
         </div>
@@ -151,6 +157,9 @@ function SettingsContent({
               </TabsContent>
               <TabsContent value="github" className="flex flex-1 flex-col overflow-hidden m-0">
                 <GitHubSection />
+              </TabsContent>
+              <TabsContent value="agent" className="flex flex-1 flex-col overflow-hidden m-0">
+                <AgentSection />
               </TabsContent>
             </>
           )}

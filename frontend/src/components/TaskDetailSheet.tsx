@@ -55,6 +55,7 @@ import { useUser } from "@/context/UserContext"
 import { TaskCommentsSection } from "@/components/TaskCommentsSection"
 import { TaskAttachments } from "@/components/TaskAttachments"
 import { LinkField } from "@/components/LinkField"
+import { AgentPanel } from "@/components/task/AgentPanel"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, TASK_RECURRENCE_FREQUENCIES, type HiveTask, type HiveMember } from "@/types"
 
@@ -125,8 +126,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     task?.name ? undefined : null,
   )
 
-  // Fetch project to check github_repo
-  const { data: projectDoc } = useFrappeGetDoc<{ github_repo: string | null }>(
+  // Fetch project to check github_repo + agent enablement
+  const { data: projectDoc } = useFrappeGetDoc<{ github_repo: string | null; agent_enabled?: 0 | 1 }>(
     "Hive Project",
     task?.project ?? "",
     task?.project ? undefined : null,
@@ -420,9 +421,22 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }
 
+  const handleAgentChanged = () => {
+    mutateTaskDoc()
+    onUpdated()
+  }
+
   const formContent = (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="grid gap-5 overflow-hidden px-6 py-4">
+        {/* Agent lifecycle (specs/v2 09 — surface 1) */}
+        <AgentPanel
+          task={taskDoc ?? task}
+          projectAgentEnabled={projectDoc?.agent_enabled === 1}
+          isClient={isClient}
+          onChanged={handleAgentChanged}
+        />
+
         {/* Title */}
         <div className="grid gap-2">
           <Label htmlFor="task-detail-title">Title</Label>

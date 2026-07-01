@@ -25,6 +25,7 @@ import {
   Clock01Icon,
   Delete02Icon,
   GitBranchIcon,
+  SourceCodeIcon,
 } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -68,8 +69,10 @@ import { FeatureRequestSection } from "@/components/FeatureRequestSection"
 import { UpdatesSection } from "@/components/UpdatesSection"
 import { OverviewTab } from "@/components/project/OverviewTab"
 import { ActivityTab } from "@/components/project/ActivityTab"
+import { AgentSettingsTab } from "@/components/project/AgentSettingsTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
+import { useAgentProjectEvents } from "@/hooks/useAgentEvents"
 import { usePinnedTasks } from "@/context/PinnedTasksContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 import { useShortcut } from "@/hooks/useShortcut"
@@ -144,7 +147,7 @@ export function ProjectDetailPage() {
 
   // Sync active tab from URL (e.g. ?tab=updates from dashboard click)
   const taskParam = searchParams.get("task")
-  const validTabs = ["overview", "tasks", "milestones", "updates", "requests", "activity"]
+  const validTabs = ["overview", "tasks", "milestones", "updates", "requests", "activity", "agent"]
   const tabParam = searchParams.get("tab")
   const [activeTab, setActiveTab] = useState(() => {
     if (taskParam) return "tasks"
@@ -251,6 +254,9 @@ export function ProjectDetailPage() {
     },
     id ? undefined : null,
   )
+
+  // Live-refresh the board when any agent task in this project transitions (specs/v2 09).
+  useAgentProjectEvents(id, mutateTasks)
 
   const { data: milestones } = useFrappeGetDocList<HiveMilestone>(
     "Hive Milestone",
@@ -854,12 +860,12 @@ export function ProjectDetailPage() {
               <span className="flex items-center gap-2">
                 <HugeiconsIcon
                   icon={
-                    { overview: DashboardSquare01Icon, tasks: Task01Icon, milestones: Target02Icon, updates: News01Icon, requests: Idea01Icon, activity: Clock01Icon }[activeTab] ?? DashboardSquare01Icon
+                    { overview: DashboardSquare01Icon, tasks: Task01Icon, milestones: Target02Icon, updates: News01Icon, requests: Idea01Icon, activity: Clock01Icon, agent: SourceCodeIcon }[activeTab] ?? DashboardSquare01Icon
                   }
                   strokeWidth={2}
                   className="size-4"
                 />
-                {{ overview: "Overview", tasks: "Tasks", milestones: "Milestones", updates: "Updates", requests: "Requests", activity: "Activity" }[activeTab]}
+                {{ overview: "Overview", tasks: "Tasks", milestones: "Milestones", updates: "Updates", requests: "Requests", activity: "Activity", agent: "Agent" }[activeTab]}
               </span>
             </SelectTrigger>
             <SelectContent>
@@ -887,6 +893,12 @@ export function ProjectDetailPage() {
                 <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} className="size-4" />
                 Activity
               </SelectItem>
+              {!isClient && (
+                <SelectItem value="agent">
+                  <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} className="size-4" />
+                  Agent
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         ) : (
@@ -923,6 +935,12 @@ export function ProjectDetailPage() {
               <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} className="size-4" />
               Activity
             </TabsTrigger>
+            {!isClient && (
+              <TabsTrigger value="agent">
+                <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} className="size-4" />
+                Agent
+              </TabsTrigger>
+            )}
           </TabsList>
         )}
 
@@ -1029,6 +1047,13 @@ export function ProjectDetailPage() {
             {id && <ActivityTab projectId={id} />}
           </div>
         </TabsContent>
+
+        {/* Agent Settings Tab (specs/v2 09 — surface 3) */}
+        {!isClient && (
+          <TabsContent value="agent">
+            {id && <AgentSettingsTab projectId={id} onSaved={mutateProject} />}
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Create Task Dialog */}

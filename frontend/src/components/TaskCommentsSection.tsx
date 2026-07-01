@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { LazyTiptapEditor } from "@/components/LazyTiptapEditor"
 import { MemberAvatar } from "@/components/MemberAvatar"
 import { useUser } from "@/context/UserContext"
+import { useAgentTaskEvents } from "@/hooks/useAgentEvents"
 import type { HiveTaskComment, HiveMember } from "@/types"
 
 interface TaskCommentsSectionProps {
@@ -45,6 +46,9 @@ export function TaskCommentsSection({ taskName, members }: TaskCommentsSectionPr
     },
     taskName ? undefined : null,
   )
+
+  // Live-refresh the feed when the agent appends a log line (specs/v2 09 realtime).
+  useAgentTaskEvents(taskName, { onLog: mutate })
 
   const memberByEmail = useMemo(() => {
     const map = new Map<string, HiveMember>()

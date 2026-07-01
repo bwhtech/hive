@@ -11,9 +11,36 @@ export interface HiveProject {
   github_repo: string | null
   owner: string
   links?: HiveProjectLink[]
+  // Agent settings (specs/v2 09 — surface 3)
+  agent_enabled?: 0 | 1
+  github_pat?: string | null
+  agent_template_slug?: string | null
+  target_app_name?: string | null
+  target_app_repo?: string | null
+  target_app_branch?: string | null
+  skills_repo_override?: string | null
+  agent_spec_prompt?: string | null
+  agent_implement_prompt?: string | null
+  agent_changes_prompt?: string | null
   creation: string
   modified: string
 }
+
+/** The 11-state agent lifecycle on Hive Task (specs/v2 §4.2). */
+export const AGENT_STATUSES = [
+  "Queued",
+  "Provisioning",
+  "Spec In Progress",
+  "Spec Created",
+  "Spec Approved",
+  "Implementing",
+  "PR Ready",
+  "Changes Requested",
+  "Merged",
+  "Cancelled",
+  "Failed",
+] as const
+export type AgentStatus = (typeof AGENT_STATUSES)[number]
 
 export interface HiveTask {
   name: string
@@ -39,6 +66,18 @@ export interface HiveTask {
   recurrence_frequency: "" | "Daily" | "Weekly" | "Monthly" | "Quarterly" | "Yearly" | null
   recurrence_end_date: string | null
   recurring_parent: string | null
+  // Agent lifecycle (specs/v2 09 — surface 1). Only populated once a task is
+  // handed to the Agent bot; absent/blank on ordinary tasks.
+  agent_status?: AgentStatus | "" | null
+  agent_dev_box?: string | null
+  agent_box_slug?: string | null
+  agent_control_url?: string | null
+  agent_site_url?: string | null
+  agent_code_url?: string | null
+  agent_spec_path?: string | null
+  agent_branch?: string | null
+  agent_last_error?: string | null
+  agent_box_torn_down?: 0 | 1
   creation: string
   modified: string
 }

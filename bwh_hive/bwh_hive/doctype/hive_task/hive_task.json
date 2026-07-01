@@ -28,7 +28,19 @@
   "uat_status",
   "uat_approved_by",
   "uat_date",
-  "github_issue_url"
+  "github_issue_url",
+  "agent_section",
+  "agent_status",
+  "agent_dev_box",
+  "agent_box_slug",
+  "agent_control_url",
+  "agent_control_token",
+  "agent_site_url",
+  "agent_code_url",
+  "agent_spec_path",
+  "agent_branch",
+  "agent_last_error",
+  "agent_box_torn_down"
  ],
  "fields": [
   {
@@ -185,6 +197,86 @@
    "fieldtype": "Data",
    "label": "GitHub Issue URL",
    "options": "URL",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.agent_status",
+   "fieldname": "agent_section",
+   "fieldtype": "Section Break",
+   "label": "Agent"
+  },
+  {
+   "default": "",
+   "description": "Agent lifecycle state (specs/v2). Empty = not agent-managed. Separate from the kanban status.",
+   "fieldname": "agent_status",
+   "fieldtype": "Select",
+   "label": "Agent Status",
+   "options": "\nQueued\nProvisioning\nSpec In Progress\nSpec Created\nSpec Approved\nImplementing\nPR Ready\nChanges Requested\nMerged\nCancelled\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_dev_box",
+   "fieldtype": "Data",
+   "label": "Agent Dev Box",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_box_slug",
+   "fieldtype": "Data",
+   "label": "Agent Box Slug",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_control_url",
+   "fieldtype": "Data",
+   "label": "Agent Control URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_control_token",
+   "fieldtype": "Password",
+   "label": "Agent Control Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_site_url",
+   "fieldtype": "Data",
+   "label": "Agent Site URL",
+   "options": "URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_code_url",
+   "fieldtype": "Data",
+   "label": "Agent Code URL",
+   "options": "URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_spec_path",
+   "fieldtype": "Data",
+   "label": "Agent Spec Path",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_branch",
+   "fieldtype": "Data",
+   "label": "Agent Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agent_last_error",
+   "fieldtype": "Small Text",
+   "label": "Agent Last Error",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Set by deprovision_for_task on a successful teardown; the watchdog's terminal-teardown sweep skips boxes already torn down (Phase 5).",
+   "fieldname": "agent_box_torn_down",
+   "fieldtype": "Check",
+   "label": "Agent Box Torn Down",
    "read_only": 1
   }
  ],

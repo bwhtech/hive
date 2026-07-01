@@ -142,7 +142,14 @@ permission_query_conditions = {
 doc_events = {
 	"User Invitation": {
 		"on_update": "bwh_hive.bwh_hive.utils.on_user_invitation_update",
-	}
+	},
+	# v2 agent orchestration: assignment to the Agent user is observed via the ToDo
+	# that assign_to.add creates (Hive Task's own on_update does not fire on assign).
+	"ToDo": {
+		"after_insert": "bwh_hive.bwh_hive.orchestrator.hooks.on_todo_change",
+		"on_update": "bwh_hive.bwh_hive.orchestrator.hooks.on_todo_change",
+		"on_trash": "bwh_hive.bwh_hive.orchestrator.hooks.on_todo_change",
+	},
 }
 
 # Scheduled Tasks
@@ -152,6 +159,13 @@ scheduler_events = {
 	"daily": [
 		"bwh_hive.tasks.daily",
 	],
+	# v2 agent lifecycle watchdog (specs/v2 06-phase-5 §4): reconcile drift, enforce
+	# timeouts, sweep idle/orphaned boxes, and drain the queue every 10 minutes.
+	"cron": {
+		"*/10 * * * *": [
+			"bwh_hive.tasks.reconcile_agent_tasks",
+		],
+	},
 }
 
 # Testing

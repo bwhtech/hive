@@ -12,7 +12,8 @@
     <div id="root"></div>
 		<script>
 			window.csrf_token = '{{ frappe.session.csrf_token }}';
-			// TODO: load boot data here (context file is created in `www` directory)
+			// site_name is required for the realtime socket (Frappe v15+) — specs/v2 09.
+			window.site_name = '{{ boot.site_name }}';
 		</script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

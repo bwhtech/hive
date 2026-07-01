@@ -72,6 +72,7 @@ import { ActivityTab } from "@/components/project/ActivityTab"
 import { AgentSettingsTab } from "@/components/project/AgentSettingsTab"
 import { ManageLinksDialog } from "@/components/project/ManageLinksDialog"
 import { useUser } from "@/context/UserContext"
+import { useAgentProjectEvents } from "@/hooks/useAgentEvents"
 import { usePinnedTasks } from "@/context/PinnedTasksContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 import { useShortcut } from "@/hooks/useShortcut"
@@ -253,6 +254,9 @@ export function ProjectDetailPage() {
     },
     id ? undefined : null,
   )
+
+  // Live-refresh the board when any agent task in this project transitions (specs/v2 09).
+  useAgentProjectEvents(id, mutateTasks)
 
   const { data: milestones } = useFrappeGetDocList<HiveMilestone>(
     "Hive Milestone",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useShortcut } from "@/hooks/useShortcut"
 import { useFrappeUpdateDoc, useFrappePostCall, useFrappeGetDocList, useFrappeGetDoc, useFrappeGetCall } from "frappe-react-sdk"
 import { startOfDay, isBefore } from "date-fns"
@@ -56,6 +56,7 @@ import { TaskCommentsSection } from "@/components/TaskCommentsSection"
 import { TaskAttachments } from "@/components/TaskAttachments"
 import { LinkField } from "@/components/LinkField"
 import { AgentPanel } from "@/components/task/AgentPanel"
+import { useAgentTaskEvents } from "@/hooks/useAgentEvents"
 import { useCelebration } from "@/hooks/useTaskCelebration"
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_SIZES, TASK_RECURRENCE_FREQUENCIES, type HiveTask, type HiveMember } from "@/types"
 
@@ -261,6 +262,14 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
 
   const assignedMemberNames = useMemo(() => new Set(assignees.map((a) => a.member)), [assignees])
 
+  // Live agent updates: refetch the task doc on a status transition, and the
+  // comment feed on a new log line (specs/v2 09 realtime).
+  const refetchAgent = useCallback(() => {
+    mutateTaskDoc()
+    onUpdated()
+  }, [mutateTaskDoc, onUpdated])
+  useAgentTaskEvents(task?.name, { onUpdate: refetchAgent })
+
   if (!task) return null
 
   const handleStatusChange = (newStatus: string) => {
@@ -421,11 +430,6 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }
 
-  const handleAgentChanged = () => {
-    mutateTaskDoc()
-    onUpdated()
-  }
-
   const formContent = (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="grid gap-5 overflow-hidden px-6 py-4">
@@ -434,7 +438,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
           task={taskDoc ?? task}
           projectAgentEnabled={projectDoc?.agent_enabled === 1}
           isClient={isClient}
-          onChanged={handleAgentChanged}
+          onChanged={refetchAgent}
         />
 
         {/* Title */}

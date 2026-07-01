@@ -127,6 +127,8 @@ def append_agent_log(task: str, log: str, stream: str = "stdout") -> dict:
 			"posted_by": frappe.session.user,
 		}
 	).insert(ignore_permissions=True)
+	# Nudge any open task sheet to refetch its comment feed live (specs/v2 09 realtime).
+	frappe.publish_realtime("hive_agent_log", {"task": task}, after_commit=True)
 	return {"ok": True}
 
 

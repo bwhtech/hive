@@ -235,7 +235,25 @@ def set_agent_status(task, new_status: str, actor: str, message: str | None = No
 	if message:
 		_comment(task_doc, message)
 	_notify(task_doc, new_status)
+	_publish_agent_update(task_doc, new_status)
 	_react(task_doc, new_status, actor)
+
+
+def _publish_agent_update(task: Document, new_status: str) -> None:
+	"""Push a realtime event so the Hive React frontend updates live (specs/v2 09).
+
+	Fired from the single transition choke point, so it covers every status change —
+	box callbacks (spec/pr/error), human reviewer actions, and the watchdog. The payload
+	is intentionally minimal: clients refetch the task/list to pick up all the fields
+	(urls, pr_link, last_error) that a transition sets in the same transaction.
+	`after_commit=True` guarantees that refetch reads the committed row. Broadcast to the
+	whole site (all Desk users), so a reviewer sees a box's progress without a refresh.
+	"""
+	frappe.publish_realtime(
+		"hive_agent_update",
+		{"task": task.name, "project": task.project, "agent_status": new_status},
+		after_commit=True,
+	)
 
 
 def _react(task: Document, new_status: str, actor: str) -> None:

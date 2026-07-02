@@ -120,6 +120,13 @@ def build_boot_env(task: Document) -> dict:
 	spec_run_timeout = max(spec_min - 5, 5) * 60
 	impl_run_timeout = max(impl_min - 5, 5) * 60
 
+	# Claude auth: an Anthropic API key (API billing) OR a subscription OAuth token from
+	# `claude setup-token`. The box's claude falls back to the OAuth token when
+	# ANTHROPIC_API_KEY is empty, so only forward the token when no API key is set —
+	# never both, to avoid an ambiguous auth mode.
+	anthropic_api_key = settings.get_password("anthropic_api_key", raise_exception=False) or ""
+	oauth_token = settings.get_password("claude_code_oauth_token", raise_exception=False) or ""
+
 	env = {
 		"AGENT_MODE": "1",
 		"HIVE_BASE_URL": frappe.utils.get_url(),
@@ -134,7 +141,8 @@ def build_boot_env(task: Document) -> dict:
 		"TARGET_APP_REPO": project.get("target_app_repo") or "",
 		"TARGET_APP_BRANCH": project.get("target_app_branch") or "develop",
 		"SKILLS_REPO": skills_repo or "",
-		"ANTHROPIC_API_KEY": settings.get_password("anthropic_api_key", raise_exception=False) or "",
+		"ANTHROPIC_API_KEY": anthropic_api_key,
+		"CLAUDE_CODE_OAUTH_TOKEN": oauth_token if not anthropic_api_key else "",
 		"SPEC_RUN_TIMEOUT": spec_run_timeout,
 		"IMPL_RUN_TIMEOUT": impl_run_timeout,
 	}

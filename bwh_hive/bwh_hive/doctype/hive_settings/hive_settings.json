@@ -26,6 +26,7 @@
   "default_agent_template_slug",
   "skills_repo",
   "anthropic_api_key",
+  "claude_code_oauth_token",
   "agent_prompts_section",
   "agent_spec_prompt",
   "agent_implement_prompt",
@@ -170,10 +171,16 @@
    "label": "Skills Repo"
   },
   {
-   "description": "Injected into boxes as ANTHROPIC_API_KEY for Claude Code.",
+   "description": "Injected into boxes as ANTHROPIC_API_KEY for Claude Code (API billing).",
    "fieldname": "anthropic_api_key",
    "fieldtype": "Password",
    "label": "Anthropic API Key"
+  },
+  {
+   "description": "Claude subscription token from `claude setup-token`. Injected as CLAUDE_CODE_OAUTH_TOKEN. Used only when no Anthropic API Key is set — lets boxes auth via a Claude subscription instead of API billing.",
+   "fieldname": "claude_code_oauth_token",
+   "fieldtype": "Password",
+   "label": "Claude Code OAuth Token"
   },
   {
    "collapsible": 1,

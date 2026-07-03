@@ -120,14 +120,20 @@ def build_boot_env(task: Document) -> dict:
 	spec_run_timeout = max(spec_min - 5, 5) * 60
 	impl_run_timeout = max(impl_min - 5, 5) * 60
 
-	# Claude auth: an Anthropic API key (API billing) OR a subscription OAuth token from
-	# `claude setup-token`. The box's claude falls back to the OAuth token when
-	# ANTHROPIC_API_KEY is empty, so only forward the token when no API key is set —
-	# never both, to avoid an ambiguous auth mode.
+	# Coding-agent engine (per-project): "codex" or "claude" (default). Drives which CLI the
+	# box runs (AGENT_ENGINE) and which auth key it needs.
+	engine = "codex" if (project.get("agent_engine") or "").strip().lower().startswith("codex") else "claude"
+
+	# Auth keys (global, Hive Settings). Only the chosen engine's key(s) are forwarded.
+	# Claude: an Anthropic API key (API billing) OR a subscription OAuth token from
+	# `claude setup-token` — the box falls back to the token when ANTHROPIC_API_KEY is empty,
+	# so forward the token only when no API key is set (never both). Codex: OPENAI_API_KEY.
 	anthropic_api_key = settings.get_password("anthropic_api_key", raise_exception=False) or ""
 	oauth_token = settings.get_password("claude_code_oauth_token", raise_exception=False) or ""
+	openai_api_key = settings.get_password("openai_api_key", raise_exception=False) or ""
 
 	env = {
+		"AGENT_ENGINE": engine,
 		"AGENT_MODE": "1",
 		"HIVE_BASE_URL": frappe.utils.get_url(),
 		"HIVE_API_KEY": settings.agent_callback_api_key or "",
@@ -141,8 +147,9 @@ def build_boot_env(task: Document) -> dict:
 		"TARGET_APP_REPO": project.get("target_app_repo") or "",
 		"TARGET_APP_BRANCH": project.get("target_app_branch") or "develop",
 		"SKILLS_REPO": skills_repo or "",
-		"ANTHROPIC_API_KEY": anthropic_api_key,
-		"CLAUDE_CODE_OAUTH_TOKEN": oauth_token if not anthropic_api_key else "",
+		"ANTHROPIC_API_KEY": anthropic_api_key if engine == "claude" else "",
+		"CLAUDE_CODE_OAUTH_TOKEN": oauth_token if (engine == "claude" and not anthropic_api_key) else "",
+		"OPENAI_API_KEY": openai_api_key if engine == "codex" else "",
 		"SPEC_RUN_TIMEOUT": spec_run_timeout,
 		"IMPL_RUN_TIMEOUT": impl_run_timeout,
 	}

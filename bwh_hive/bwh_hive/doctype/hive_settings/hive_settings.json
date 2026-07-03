@@ -27,6 +27,7 @@
   "skills_repo",
   "anthropic_api_key",
   "claude_code_oauth_token",
+  "openai_api_key",
   "agent_prompts_section",
   "agent_spec_prompt",
   "agent_implement_prompt",
@@ -181,6 +182,12 @@
    "fieldname": "claude_code_oauth_token",
    "fieldtype": "Password",
    "label": "Claude Code OAuth Token"
+  },
+  {
+   "description": "OpenAI API key, injected as OPENAI_API_KEY into boxes whose project uses the Codex engine.",
+   "fieldname": "openai_api_key",
+   "fieldtype": "Password",
+   "label": "OpenAI API Key"
   },
   {
    "collapsible": 1,

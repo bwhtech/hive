@@ -10,6 +10,7 @@ import {
   SwitchField,
   SecretField,
   PromptField,
+  SelectField,
 } from "@/components/settings/agent-fields"
 import { PROMPT_TOKENS } from "@/lib/agent"
 import type { HiveProject } from "@/types"
@@ -70,6 +71,7 @@ export function AgentSettingsTab({ projectId, onSaved }: AgentSettingsTabProps) 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       agent_enabled: data.agent_enabled ?? 0,
+      agent_engine: data.agent_engine ?? "Claude Code",
       agent_template_slug: data.agent_template_slug ?? "",
       target_app_name: data.target_app_name ?? "",
       target_app_repo: data.target_app_repo ?? "",
@@ -128,6 +130,17 @@ export function AgentSettingsTab({ projectId, onSaved }: AgentSettingsTabProps) 
       {enabled && (
         <>
           <div className="space-y-4">
+            <SelectField
+              id="proj-agent-engine"
+              label="Agent engine"
+              hint="Codex uses the OpenAI API key; Claude Code uses the Anthropic key or subscription token (both in global Agent settings)."
+              value={s("agent_engine") || "Claude Code"}
+              onChange={set("agent_engine")}
+              options={[
+                { value: "Claude Code", label: "Claude Code" },
+                { value: "Codex", label: "Codex" },
+              ]}
+            />
             <TextField id="proj-agent-template" label="Template slug" hint="Blank = the global default template." value={s("agent_template_slug")} onChange={set("agent_template_slug")} placeholder="Inherit global default" />
           </div>
 

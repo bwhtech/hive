@@ -27,7 +27,7 @@
    "fieldname": "view_type",
    "fieldtype": "Select",
    "label": "View Type",
-   "options": "list\nkanban",
+   "options": "list\nkanban\ncalendar",
    "default": "list"
   },
   {

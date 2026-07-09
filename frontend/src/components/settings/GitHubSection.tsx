@@ -1,4 +1,4 @@
-import { useFrappeGetCall, useFrappeGetDoc } from "frappe-react-sdk"
+import { useFrappeGetCall, useFrappeGetDoc, useFrappePostCall } from "frappe-react-sdk"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,8 @@ interface GitHubStatus {
   app_configured: boolean
   connected: boolean
   installed_account: string | null
+  account_connected: boolean
+  github_username: string | null
 }
 
 export function GitHubSection() {
@@ -23,14 +25,53 @@ export function GitHubSection() {
     "Hive Settings",
     "Hive Settings",
   )
-  const { data: ghStatus, isLoading: statusLoading } = useFrappeGetCall<{ message: GitHubStatus }>(
-    "bwh_hive.bwh_hive.github.status",
+  const {
+    data: ghStatus,
+    isLoading: statusLoading,
+    mutate: mutateStatus,
+  } = useFrappeGetCall<{ message: GitHubStatus }>("bwh_hive.bwh_hive.github.status")
+  const { call: getConnectUrl } = useFrappePostCall<{ message: string }>(
+    "bwh_hive.bwh_hive.github.connect_url",
+  )
+  const { call: getInstallUrl } = useFrappePostCall<{ message: string }>(
+    "bwh_hive.bwh_hive.github.install_url",
+  )
+  const { call: disconnectAccount } = useFrappePostCall<{ message: null }>(
+    "bwh_hive.bwh_hive.github.disconnect",
   )
   const [submitting, setSubmitting] = useState(false)
   const [orgName, setOrgName] = useState("")
 
   const isConfigured = Boolean(settings?.github_app_id)
   const status = ghStatus?.message
+
+  const handleConnect = async () => {
+    try {
+      const res = await getConnectUrl({})
+      window.location.href = res.message
+    } catch {
+      toast.error("Failed to start GitHub authorization")
+    }
+  }
+
+  const handleInstall = async () => {
+    try {
+      const res = await getInstallUrl({})
+      window.location.href = res.message
+    } catch {
+      toast.error("Failed to open GitHub App installation")
+    }
+  }
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectAccount({})
+      await mutateStatus()
+      toast.success("GitHub account disconnected")
+    } catch {
+      toast.error("Failed to disconnect GitHub account")
+    }
+  }
 
   const handleCreateApp = async () => {
     setSubmitting(true)
@@ -158,18 +199,39 @@ export function GitHubSection() {
                     Not installed yet.
                   </p>
                   {settings?.github_app_public_link && (
-                    <a
-                      href={`${settings.github_app_public_link}/installations/new`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex"
-                    >
-                      <Button variant="outline" size="sm">
-                        Install GitHub App
-                      </Button>
-                    </a>
+                    <Button variant="outline" size="sm" onClick={handleInstall}>
+                      Install GitHub App
+                    </Button>
                   )}
                 </div>
+              )}
+            </div>
+
+            {/* Per-user account connection */}
+            <div className="space-y-3 border-t pt-4">
+              <div>
+                <h4 className="text-sm font-medium">Your GitHub account</h4>
+                <p className="text-xs text-muted-foreground">
+                  Connect your account so issues you create are authored by you.
+                </p>
+              </div>
+
+              {status?.account_connected ? (
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Connected
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    as <span className="font-medium text-foreground">{status.github_username}</span>
+                  </span>
+                  <Button variant="outline" size="sm" onClick={handleDisconnect}>
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={handleConnect}>
+                  Connect GitHub account
+                </Button>
               )}
             </div>
           </div>

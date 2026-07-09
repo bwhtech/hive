@@ -1,28 +1,21 @@
-import json
-from base64 import b64decode
-
 import requests
 
 import frappe
 from frappe.utils import now_datetime
+
+from bwh_hive.bwh_hive.github import consume_oauth_state
 
 
 def get_context(context):
 	code = frappe.form_dict.get("code")
 	state = frappe.form_dict.get("state")
 
-	if not code or not state:
+	if not code:
 		frappe.flags.redirect_location = "/hive"
 		raise frappe.Redirect
 
-	# Validate state
-	try:
-		state_data = json.loads(b64decode(state).decode())
-	except Exception:
-		frappe.throw("Invalid state parameter.")
-
-	if state_data.get("user") != frappe.session.user:
-		frappe.throw("State mismatch. Please try connecting again.")
+	if not state or consume_oauth_state(state) != frappe.session.user:
+		frappe.throw("This GitHub authorization link is invalid or has expired. Try connecting again.")
 
 	# Exchange code for access token
 	settings = frappe.get_single("Hive Settings")
@@ -55,10 +48,15 @@ def get_context(context):
 	github_user = user_response.json()
 	github_username = github_user.get("login", "")
 
-	# Store on Hive Settings (site-level)
-	settings.db_set("github_access_token", access_token)
-	settings.db_set("github_username", github_username)
-	settings.db_set("github_authorized_at", now_datetime())
+	if frappe.db.exists("GitHub Token", frappe.session.user):
+		token = frappe.get_doc("GitHub Token", frappe.session.user)
+	else:
+		token = frappe.new_doc("GitHub Token", user=frappe.session.user)
+
+	token.access_token = access_token
+	token.github_username = github_username
+	token.authorized_at = now_datetime()
+	token.save(ignore_permissions=True)
 	frappe.db.commit()
 
 	frappe.flags.redirect_location = "/hive"

@@ -14,6 +14,7 @@ import {
   Add01Icon,
   LeftToRightListBulletIcon,
   DashboardSquare01Icon,
+  Calendar01Icon,
   FloppyDiskIcon,
   MoreHorizontalIcon,
   RepeatIcon,
@@ -88,6 +89,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskKanban } from "@/components/TaskKanban"
+import { TaskCalendar } from "@/components/TaskCalendar"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
 import { usePinnedTasks } from "@/context/PinnedTasksContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
@@ -265,7 +267,7 @@ export function TasksPage() {
   const priorityFilter = searchParams.get("priority") ?? "all"
   const projectFilter = searchParams.get("project") ?? "all"
   const assigneeFilter = searchParams.get("assignee") ?? "all"
-  const viewMode = (searchParams.get("view") ?? "list") as "list" | "kanban"
+  const viewMode = (searchParams.get("view") ?? "list") as "list" | "kanban" | "calendar"
 
   const { data: activeView } = useFrappeGetDoc<HiveView>(
     "Hive View",
@@ -412,7 +414,7 @@ export function TasksPage() {
       for (const [k, v] of Object.entries(filters)) {
         if (v) params.set(k, v)
       }
-      if (viewMode === "kanban") params.set("view", "kanban")
+      if (viewMode !== "list") params.set("view", viewMode)
       navigate(`/tasks?${params.toString()}`, { replace: true })
     } catch {
       toast.error("Failed to save view")
@@ -643,6 +645,15 @@ export function TasksPage() {
             >
               <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4" />
             </Button>
+            <Button
+              variant={viewMode === "calendar" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Calendar view"
+              onClick={() => setViewMode("calendar")}
+            >
+              <HugeiconsIcon icon={Calendar01Icon} strokeWidth={2} className="size-4" />
+            </Button>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -821,6 +832,14 @@ export function TasksPage() {
             {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && " matching filters"}
           </p>
         </div>
+      ) : viewMode === "calendar" ? (
+        <div className="space-y-2">
+          <TaskCalendar tasks={filteredTasks} onTaskClick={handleTaskClick} />
+          <p className="text-xs text-muted-foreground">
+            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
+            {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && " matching filters"}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="overflow-x-auto rounded-md border">
@@ -980,7 +999,7 @@ export function TasksPage() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              View type: {viewMode === "kanban" ? "Kanban" : "List"}
+              View type: {viewMode === "kanban" ? "Kanban" : viewMode === "calendar" ? "Calendar" : "List"}
             </p>
           </div>
           <DialogFooter>

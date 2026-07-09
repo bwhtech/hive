@@ -153,7 +153,7 @@ export function AppSidebar({
       for (const [k, v] of Object.entries(filters)) {
         if (v) params.set(k, v as string)
       }
-      if (view.view_type === "kanban") params.set("view", "kanban")
+      if (view.view_type && view.view_type !== "list") params.set("view", view.view_type)
       return { ...view, to: `/tasks?${params.toString()}` }
     })
   }, [views])

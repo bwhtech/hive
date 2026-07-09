@@ -15,7 +15,9 @@ def get_context(context):
 		raise frappe.Redirect
 
 	if not state or consume_oauth_state(state) != frappe.session.user:
-		frappe.throw("This GitHub authorization link is invalid or has expired. Try connecting again.")
+		frappe.throw(
+			frappe._("This GitHub authorization link is invalid or has expired. Try connecting again.")
+		)
 
 	# Exchange code for access token
 	settings = frappe.get_single("Hive Settings")

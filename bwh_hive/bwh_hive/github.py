@@ -91,7 +91,7 @@ def _get_user_token() -> str:
 		)
 
 	if not token:
-		frappe.throw("Connect your GitHub account from Settings first.")
+		frappe.throw(frappe._("Connect your GitHub account from Settings first."))
 
 	return token
 
@@ -101,7 +101,7 @@ def connect_url() -> str:
 	"""Build the GitHub OAuth URL that links the current user's GitHub account."""
 	settings = frappe.get_single("Hive Settings")
 	if not settings.github_app_client_id:
-		frappe.throw("GitHub App not configured.")
+		frappe.throw(frappe._("GitHub App not configured."))
 
 	params = urlencode(
 		{
@@ -122,7 +122,7 @@ def install_url() -> str:
 	"""
 	settings = frappe.get_single("Hive Settings")
 	if not settings.github_app_public_link:
-		frappe.throw("GitHub App not configured.")
+		frappe.throw(frappe._("GitHub App not configured."))
 
 	params = urlencode({"state": _new_oauth_state()})
 	return f"{settings.github_app_public_link}/installations/new?{params}"

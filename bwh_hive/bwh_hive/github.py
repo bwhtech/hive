@@ -1,9 +1,12 @@
 import time
+from urllib.parse import urlencode
 
 import jwt
 import requests
 
 import frappe
+
+OAUTH_STATE_TTL_SECONDS = 10 * 60
 
 
 def _get_app_jwt(settings) -> str:
@@ -58,6 +61,80 @@ def _get_installation_token(settings) -> str:
 	return resp.json()["token"]
 
 
+def _oauth_state_key(nonce: str) -> str:
+	return f"github_oauth_state:{nonce}"
+
+
+def _new_oauth_state() -> str:
+	"""Mint a single-use nonce tied to the current user for the OAuth `state` parameter."""
+	nonce = frappe.generate_hash(length=32)
+	frappe.cache.set_value(
+		_oauth_state_key(nonce), frappe.session.user, expires_in_sec=OAUTH_STATE_TTL_SECONDS
+	)
+	return nonce
+
+
+def consume_oauth_state(nonce: str) -> str | None:
+	"""Return the user who started this OAuth flow, invalidating the nonce."""
+	key = _oauth_state_key(nonce)
+	user = frappe.cache.get_value(key)
+	frappe.cache.delete_value(key)
+	return user
+
+
+def _get_user_token() -> str:
+	"""Get the current user's GitHub OAuth token."""
+	token = None
+	if frappe.db.exists("GitHub Token", frappe.session.user):
+		token = frappe.get_doc("GitHub Token", frappe.session.user).get_password(
+			"access_token", raise_exception=False
+		)
+
+	if not token:
+		frappe.throw(frappe._("Connect your GitHub account from Settings first."))
+
+	return token
+
+
+@frappe.whitelist(methods=["POST"])
+def connect_url() -> str:
+	"""Build the GitHub OAuth URL that links the current user's GitHub account."""
+	settings = frappe.get_single("Hive Settings")
+	if not settings.github_app_client_id:
+		frappe.throw(frappe._("GitHub App not configured."))
+
+	params = urlencode(
+		{
+			"client_id": settings.github_app_client_id,
+			"redirect_uri": frappe.utils.get_url("/github/authorize"),
+			"state": _new_oauth_state(),
+		}
+	)
+	return f"https://github.com/login/oauth/authorize?{params}"
+
+
+@frappe.whitelist(methods=["POST"])
+def install_url() -> str:
+	"""Build the GitHub App installation URL.
+
+	Carries an OAuth state so the post-install redirect also connects the user's account,
+	since the App manifest sets `request_oauth_on_install`.
+	"""
+	settings = frappe.get_single("Hive Settings")
+	if not settings.github_app_public_link:
+		frappe.throw(frappe._("GitHub App not configured."))
+
+	params = urlencode({"state": _new_oauth_state()})
+	return f"{settings.github_app_public_link}/installations/new?{params}"
+
+
+@frappe.whitelist(methods=["POST"])
+def disconnect() -> None:
+	"""Unlink the current user's GitHub account."""
+	if frappe.db.exists("GitHub Token", frappe.session.user):
+		frappe.delete_doc("GitHub Token", frappe.session.user, ignore_permissions=True)
+
+
 @frappe.whitelist()
 def status() -> dict:
 	settings = frappe.get_single("Hive Settings")
@@ -85,10 +162,16 @@ def status() -> dict:
 			except Exception:
 				pass
 
+	github_token = frappe.db.get_value(
+		"GitHub Token", frappe.session.user, "github_username", as_dict=True
+	)
+
 	return {
 		"app_configured": app_configured,
 		"connected": connected,
 		"installed_account": installed_account,
+		"account_connected": bool(github_token),
+		"github_username": github_token.github_username if github_token else None,
 	}
 
 
@@ -132,7 +215,7 @@ def get_repos() -> list[dict]:
 
 @frappe.whitelist()
 def create_issue(task_name: str) -> dict:
-	"""Convert a Hive Task into a GitHub issue using an installation token."""
+	"""Convert a Hive Task into a GitHub issue authored by the current user."""
 	task = frappe.get_doc("Hive Task", task_name)
 
 	if task.github_issue_url:
@@ -142,8 +225,7 @@ def create_issue(task_name: str) -> dict:
 	if not project.github_repo:
 		frappe.throw("No GitHub repository linked to this project. Set it in the project settings.")
 
-	settings = frappe.get_single("Hive Settings")
-	token = _get_installation_token(settings)
+	token = _get_user_token()
 
 	# Build issue body
 	body = ""

@@ -13,6 +13,7 @@ export interface HiveProject {
   links?: HiveProjectLink[]
   // Agent settings (specs/v2 09 — surface 3)
   agent_enabled?: 0 | 1
+  agent_engine?: "Claude Code" | "Codex" | null
   github_pat?: string | null
   agent_template_slug?: string | null
   target_app_name?: string | null

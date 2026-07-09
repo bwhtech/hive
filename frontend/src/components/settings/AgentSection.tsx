@@ -23,6 +23,8 @@ interface HiveSettings {
   default_agent_template_slug?: string | null
   skills_repo?: string | null
   anthropic_api_key?: string | null
+  claude_code_oauth_token?: string | null
+  openai_api_key?: string | null
   agent_spec_prompt?: string | null
   agent_implement_prompt?: string | null
   agent_changes_prompt?: string | null
@@ -43,6 +45,8 @@ const SECRET_FIELDS = [
   "benchspace_api_secret",
   "agent_callback_api_secret",
   "anthropic_api_key",
+  "claude_code_oauth_token",
+  "openai_api_key",
   "telegram_bot_token",
 ] as const
 
@@ -82,6 +86,8 @@ export function AgentSection() {
       default_agent_template_slug: data.default_agent_template_slug ?? "",
       skills_repo: data.skills_repo ?? "",
       anthropic_api_key: "",
+      claude_code_oauth_token: "",
+      openai_api_key: "",
       agent_spec_prompt: data.agent_spec_prompt ?? "",
       agent_implement_prompt: data.agent_implement_prompt ?? "",
       agent_changes_prompt: data.agent_changes_prompt ?? "",
@@ -163,7 +169,9 @@ export function AgentSection() {
           <SecretField id="agent-bs-secret" label="BenchSpace API Secret" isSet={secretsSet.benchspace_api_secret} value={s("benchspace_api_secret")} onChange={set("benchspace_api_secret")} />
           <TextField id="agent-cb-key" label="Agent Callback API Key" value={s("agent_callback_api_key")} onChange={set("agent_callback_api_key")} />
           <SecretField id="agent-cb-secret" label="Agent Callback API Secret" isSet={secretsSet.agent_callback_api_secret} value={s("agent_callback_api_secret")} onChange={set("agent_callback_api_secret")} />
-          <SecretField id="agent-anthropic-key" label="Anthropic API Key" isSet={secretsSet.anthropic_api_key} value={s("anthropic_api_key")} onChange={set("anthropic_api_key")} />
+          <SecretField id="agent-anthropic-key" label="Anthropic API Key" hint="Claude Code (API billing)." isSet={secretsSet.anthropic_api_key} value={s("anthropic_api_key")} onChange={set("anthropic_api_key")} />
+          <SecretField id="agent-claude-oauth" label="Claude Code OAuth Token" hint="claude setup-token — used when no Anthropic API key is set (subscription auth)." isSet={secretsSet.claude_code_oauth_token} value={s("claude_code_oauth_token")} onChange={set("claude_code_oauth_token")} />
+          <SecretField id="agent-openai-key" label="OpenAI API Key" hint="Used by projects on the Codex engine." isSet={secretsSet.openai_api_key} value={s("openai_api_key")} onChange={set("openai_api_key")} />
           <TextField id="agent-skills-repo" label="Skills Repo" value={s("skills_repo")} onChange={set("skills_repo")} placeholder="owner/repo" />
         </div>
 

@@ -24,6 +24,7 @@
   "github_repo",
   "agent_section",
   "agent_enabled",
+  "agent_engine",
   "github_pat",
   "agent_template_slug",
   "target_app_name",
@@ -138,6 +139,15 @@
    "fieldname": "agent_enabled",
    "fieldtype": "Check",
    "label": "Agent Enabled"
+  },
+  {
+   "default": "Claude Code",
+   "depends_on": "agent_enabled",
+   "description": "Coding agent that runs inside the box. Codex uses the OpenAI API key; Claude Code uses the Anthropic key or subscription token (both in Hive Settings).",
+   "fieldname": "agent_engine",
+   "fieldtype": "Select",
+   "label": "Agent Engine",
+   "options": "Claude Code\nCodex"
   },
   {
    "depends_on": "agent_enabled",

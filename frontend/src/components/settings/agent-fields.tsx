@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function FieldLabel({ label, hint }: { label: string; hint?: string }) {
   return (
@@ -32,6 +33,41 @@ export function TextField({
       <Label htmlFor={id}>{label}</Label>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-8 text-sm" />
+    </div>
+  )
+}
+
+export function SelectField({
+  id,
+  label,
+  hint,
+  value,
+  onChange,
+  options,
+}: {
+  id: string
+  label: string
+  hint?: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id={id} className="h-8 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }

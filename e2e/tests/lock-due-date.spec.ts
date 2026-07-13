@@ -167,7 +167,7 @@ test.describe("Lock Due Date Config", () => {
 		const sheet = await openTaskSheet(page, pastDueTask.title);
 
 		// Due date should be rendered as plain text (not a button/DatePicker)
-		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ hasText: "Due Date" });
+		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ has: page.getByText("Due Date", { exact: true }) });
 		const lockedText = dueDateLabel.locator("p.text-sm.text-muted-foreground");
 		await expect(lockedText).toBeVisible();
 		await expect(lockedText).toHaveAttribute(
@@ -187,7 +187,7 @@ test.describe("Lock Due Date Config", () => {
 		const sheet = await openTaskSheet(page, futureDueTask.title);
 
 		// Due date should be rendered as a DatePicker (button)
-		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ hasText: "Due Date" });
+		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ has: page.getByText("Due Date", { exact: true }) });
 
 		// Should NOT have the locked text with title attribute
 		const lockedText = dueDateLabel.locator('p[title="Due date is locked on or after the due date"]');
@@ -211,7 +211,7 @@ test.describe("Lock Due Date Config", () => {
 		const sheet = await openTaskSheet(page, pastDueTask.title);
 
 		// Even though due date is in the past, it should be editable because the setting is OFF
-		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ hasText: "Due Date" });
+		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ has: page.getByText("Due Date", { exact: true }) });
 
 		// Should NOT have the locked title
 		const lockedText = dueDateLabel.locator('p[title="Due date is locked on or after the due date"]');

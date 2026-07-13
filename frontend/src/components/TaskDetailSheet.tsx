@@ -92,6 +92,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
   const [status, setStatus] = useState("Backlog")
   const [priority, setPriority] = useState("Medium")
   const [size, setSize] = useState("")
+  const [project, setProject] = useState("")
   const [milestone, setMilestone] = useState("")
   const [dependsOn, setDependsOn] = useState("")
   const [prLink, setPrLink] = useState("")
@@ -181,8 +182,8 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     })
   }, [allMembers, user?.email])
 
-  const milestoneFilters = useMemo(() => ({ project: task?.project }), [task?.project])
-  const dependsOnFilters = useMemo(() => ({ project: task?.project, is_archived: 0 }), [task?.project])
+  const milestoneFilters = useMemo(() => ({ project }), [project])
+  const dependsOnFilters = useMemo(() => ({ project, is_archived: 0 }), [project])
 
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false)
 
@@ -197,6 +198,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
       setStatus(task.status)
       setPriority(task.priority)
       setSize(task.size || "")
+      setProject(task.project || "")
       setMilestone(task.milestone || "")
       setDependsOn(task.depends_on || "")
       setPrLink(task.pr_link || "")
@@ -258,7 +260,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         autosaveTimerRef.current = undefined
       }
     }
-  }, [title, description, status, priority, size, milestone, dependsOn, prLink, dueDate, startDate, completedOn, recurrenceFrequency, recurrenceEndDate, open, isClient])
+  }, [title, description, status, priority, size, project, milestone, dependsOn, prLink, dueDate, startDate, completedOn, recurrenceFrequency, recurrenceEndDate, open, isClient])
 
   const assignedMemberNames = useMemo(() => new Set(assignees.map((a) => a.member)), [assignees])
 
@@ -282,6 +284,16 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
     }
   }
 
+  const handleProjectChange = (newProject: string) => {
+    if (!newProject || newProject === project) return
+    setProject(newProject)
+    // Milestone and Depends On belong to the previous project — clear them so
+    // the task isn't left pointing at records from a different project.
+    setMilestone("")
+    setDependsOn("")
+    markEdited()
+  }
+
   const handleSave = async (silent = false) => {
     if (saving || !title.trim()) return
     if (autosaveTimerRef.current) {
@@ -297,6 +309,7 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
         status,
         priority,
         size: size || null,
+        project,
         milestone: milestone || null,
         depends_on: dependsOn || null,
         pr_link: prLink || null,
@@ -510,6 +523,22 @@ export function TaskDetailSheet({ task, open, onOpenChange, onUpdated, hasClient
               </Select>
             )}
           </div>
+        </div>
+
+        {/* Project */}
+        <div className="grid gap-2">
+          <Label>Project</Label>
+          {isClient ? (
+            <p className="text-sm text-muted-foreground py-1">{project || "None"}</p>
+          ) : (
+            <LinkField
+              doctype="Hive Project"
+              value={project}
+              onChange={handleProjectChange}
+              placeholder="Select project"
+              className="w-full"
+            />
+          )}
         </div>
 
         {/* Milestone */}

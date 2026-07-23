@@ -15,6 +15,7 @@ import {
   LeftToRightListBulletIcon,
   DashboardSquare01Icon,
   Calendar01Icon,
+  ChartBarLineIcon,
   FloppyDiskIcon,
   MoreHorizontalIcon,
   RepeatIcon,
@@ -90,6 +91,7 @@ import {
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { TaskKanban } from "@/components/TaskKanban"
 import { TaskCalendar } from "@/components/TaskCalendar"
+import { TaskTimeline } from "@/components/TaskTimeline"
 import { TaskDetailSheet } from "@/components/TaskDetailSheet"
 import { usePinnedTasks } from "@/context/PinnedTasksContext"
 import { useCelebration } from "@/hooks/useTaskCelebration"
@@ -267,7 +269,7 @@ export function TasksPage() {
   const priorityFilter = searchParams.get("priority") ?? "all"
   const projectFilter = searchParams.get("project") ?? "all"
   const assigneeFilter = searchParams.get("assignee") ?? "all"
-  const viewMode = (searchParams.get("view") ?? "list") as "list" | "kanban" | "calendar"
+  const viewMode = (searchParams.get("view") ?? "list") as "list" | "kanban" | "calendar" | "timeline"
 
   const { data: activeView } = useFrappeGetDoc<HiveView>(
     "Hive View",
@@ -654,6 +656,15 @@ export function TasksPage() {
             >
               <HugeiconsIcon icon={Calendar01Icon} strokeWidth={2} className="size-4" />
             </Button>
+            <Button
+              variant={viewMode === "timeline" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Timeline view"
+              onClick={() => setViewMode("timeline")}
+            >
+              <HugeiconsIcon icon={ChartBarLineIcon} strokeWidth={2} className="size-4" />
+            </Button>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -840,6 +851,14 @@ export function TasksPage() {
             {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && " matching filters"}
           </p>
         </div>
+      ) : viewMode === "timeline" ? (
+        <div className="space-y-2">
+          <TaskTimeline tasks={filteredTasks} projectTitles={projectMap} onTaskClick={handleTaskClick} />
+          <p className="text-xs text-muted-foreground">
+            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
+            {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && " matching filters"}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="overflow-x-auto rounded-md border">
@@ -999,7 +1018,7 @@ export function TasksPage() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              View type: {viewMode === "kanban" ? "Kanban" : viewMode === "calendar" ? "Calendar" : "List"}
+              View type: {viewMode === "kanban" ? "Kanban" : viewMode === "calendar" ? "Calendar" : viewMode === "timeline" ? "Timeline" : "List"}
             </p>
           </div>
           <DialogFooter>

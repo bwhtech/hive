@@ -186,7 +186,7 @@ export interface HiveView {
   name: string
   label: string
   emoji: string
-  view_type: "list" | "kanban" | "calendar"
+  view_type: "list" | "kanban" | "calendar" | "timeline"
   filters_json: string
   is_public: 0 | 1
   owner: string

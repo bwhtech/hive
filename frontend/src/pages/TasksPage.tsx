@@ -333,11 +333,6 @@ export function TasksPage() {
     },
   )
 
-  const projectTitles = useMemo(
-    () => Object.fromEntries((projects ?? []).map((p) => [p.name, p.title])),
-    [projects],
-  )
-
   const { data: milestones } = useFrappeGetDocList<HiveMilestone>(
     "Hive Milestone",
     {
@@ -858,7 +853,7 @@ export function TasksPage() {
         </div>
       ) : viewMode === "timeline" ? (
         <div className="space-y-2">
-          <TaskTimeline tasks={filteredTasks} projectTitles={projectTitles} onTaskClick={handleTaskClick} />
+          <TaskTimeline tasks={filteredTasks} projectTitles={projectMap} onTaskClick={handleTaskClick} />
           <p className="text-xs text-muted-foreground">
             {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
             {(search || statusFilter !== "all" || priorityFilter !== "all" || projectFilter !== "all" || assigneeFilter !== "all") && " matching filters"}

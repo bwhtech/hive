@@ -22,10 +22,19 @@ interface TaskTimelineProps {
 const COL_W = 34 // px per day column
 const LABEL_W = 220 // px sticky task-label column
 
+/**
+ * Parse a Frappe date-only value ("yyyy-MM-dd") as *local* midnight.
+ * `new Date("2024-01-15")` is parsed as UTC midnight, which lands on the
+ * previous day for anyone west of UTC — appending a time forces local parsing.
+ */
+function parseLocalDate(value: string): Date {
+  return startOfDay(new Date(`${value.slice(0, 10)}T00:00:00`))
+}
+
 /** Resolve a task's [start, end] range from start_date / due_date (either may be missing). */
 function taskRange(t: HiveTask): [Date, Date] | null {
-  const s = t.start_date ? startOfDay(new Date(t.start_date)) : null
-  const d = t.due_date ? startOfDay(new Date(t.due_date)) : null
+  const s = t.start_date ? parseLocalDate(t.start_date) : null
+  const d = t.due_date ? parseLocalDate(t.due_date) : null
   const start = s ?? d
   const end = d ?? s
   if (!start || !end) return null

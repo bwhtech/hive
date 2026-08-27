@@ -1,6 +1,6 @@
 # Hive frontend rewrite — React → Vue 3 + frappe-ui
 
-Status: IN PROGRESS. W0 landed (2026-08-27); phase 1 streams unblocked. Replaces `frontend/` (React 19 + shadcn, ~16.7k LOC) with a Vue 3 app built on `frappe-ui@1.0.0-beta.55`. Agent features are dropped. Backend stays as is except for the small items in §9.
+Status: IN PROGRESS. W0 and all of phase 1 landed (2026-08-27); phase 2 (W9–W12) is next. Replaces `frontend/` (React 19 + shadcn, ~16.7k LOC) with a Vue 3 app built on `frappe-ui@1.0.0-beta.55`. Agent features are dropped. Backend stays as is except for the small items in §9.
 
 Sources for this plan: full inventory of `frontend/src`, clone of `frappe/frappe-ui` at `c2fce39` (beta.55), the bundled frappe-ui skill (`SETUP.md`, `COMPONENTS.md`, `DESIGN.md`, `TOKENS.md`).
 
@@ -263,9 +263,9 @@ Each stream owns only the directories listed. Shared changes go through a tiny P
 
 Cross-stream dependencies: W3 mounts W5's `TaskBoard` and W6's `TaskPanel`; W5 mounts W6's `TaskPanel` and `CreateTaskDialog`. Until merge, each stream uses a stub component with the frozen props from §5. Merge order: W6 → W5 → W3.
 
-**W1, W2, W3, W4, W5 and W6 are done** (one commit each on `feat/frappe-ui-w0-scaffold`). They were built in parallel in one working tree with disjoint file ownership, so no stubs were needed: W5 mounts W6's real `TaskPanel` and `CreateTaskDialog`. `yarn typecheck`, `yarn lint` and `yarn build` are green, and the dashboard, projects, task table, board, calendar and task panel were checked in the browser on desktop and mobile.
+**Phase 1 is done.** W1–W8 landed as one commit each on `feat/frappe-ui-w0-scaffold`. They were built in one working tree with disjoint file ownership, so no stubs were needed: W5 mounts W6's real `TaskPanel` and `CreateTaskDialog`, and W3 mounts W4's and W5's. `yarn typecheck` and `yarn build` are green, `yarn lint` reports only the `vue/script-indent` warnings noted below, and every screen was checked in the browser as Administrator and as a client member, on desktop and mobile.
 
-Notes for W7 and W8:
+Notes from the phase:
 - `src/shims.d.ts` no longer declares `*.vue`. Volar types single-file components itself, and the wildcard shadowed them, which made `frappe-ui/experimental`'s own `@ts-expect-error` directives unused and failed typecheck for anything importing that entry point — the command palette in W8 included.
 - W4's tabs mount as `<UpdatesTab :project="project.name" @draft-count="…" />` and `<RequestsTab :project="project.name" v-model:create-open="…" @count="…" />`. `project` is the docname, not the slug, and neither renders a header or a tab bar.
 - W5's board takes `tasks`, `assigneesByTask`, `list` (the `useList` result, for optimistic drops), `readonly` and `showUat`, and emits `select(task)` and `changed`. Pass it a milestone-filtered `tasks`.
@@ -283,9 +283,22 @@ Notes for W7 and W8:
   navigated away must write through `useDoctype`, not the unmounted document.
 - Frappe names projects `PROJ-#####`; anything else in `/projects/:id` is a slug and
   costs one `resolve_project_slug` call. The URL keeps the slug.
+- `lucide-github` does not exist in the icon set (lucide dropped brand icons). Anything
+  GitHub uses `lucide-git-branch`.
+- W7 mounts `SettingsDialog` and `OnboardingDialog` in `AppShell`, W8 the command
+  palette, the notification sheet and the overdue dialog. All five read their flag from
+  `useOverlays`, so the shell holds five one-line mounts and no state.
+- The command palette runs with `:filterable="false"` because `search` ranks its rows
+  server-side; the static command rows are filtered in the component instead.
+- frappe-ui has no sheet, so `NotificationsSheet.vue` is a top-positioned `Dialog`.
+- Frappe returns a User Invitation 403 as an error on `get_pending_invitations`, which
+  is how the members panel decides whether to offer the invite form at all.
 
 Carried into Phase 2:
 - W10: mount `CreateProjectDialog` once in `AppShell.vue` on `useOverlays().createProjectOpen` and drop the `ProjectsPage` mount, so the command palette can open it from any route. Replace the `hive:views-changed` event with a `composables/useHiveViews.ts` singleton. Fold W1's `DashboardProjectCard.vue` into W2's `ProjectCard.vue`.
+- W10: the command palette's create actions navigate first and open second, because
+  `CreateProjectDialog` and `CreateTaskDialog` are still mounted by the pages that own
+  them. Hoisting them into `AppShell` removes that hop.
 - W10: `eslint --fix` reindents `switch` cases against Prettier, so `yarn lint` reports
   `vue/script-indent` warnings on any file with a `switch` (`TaskTable.vue`,
   `ProjectDetailPage.vue`). Pick one of the two and settle the rule.

@@ -23,10 +23,18 @@
 	<OverdueTasksDialog />
 	<HiveSettingsDialog />
 	<OnboardingDialog v-if="!isClient" />
+	<CreateProjectDialog v-if="!isClient" v-model:open="createProjectOpen" @created="openProject" />
+	<CreateTaskDialog
+		v-model:open="createTaskOpen"
+		:project-id="createTaskContext.projectId"
+		:defaults="createTaskContext.defaults"
+		@created="createTaskContext.onCreated?.($event)"
+	/>
 </template>
 
 <script setup lang="ts">
 import { watch } from 'vue'
+import { useRouter } from 'vue-router'
 import {
 	DesktopShell,
 	KeyboardShortcutsDialog,
@@ -41,6 +49,8 @@ import CommandPalette from '@/components/global/CommandPalette.vue'
 import NotificationsSheet from '@/components/global/NotificationsSheet.vue'
 import OnboardingDialog from '@/components/global/OnboardingDialog.vue'
 import OverdueTasksDialog from '@/components/global/OverdueTasksDialog.vue'
+import CreateProjectDialog from '@/components/projects/CreateProjectDialog.vue'
+import CreateTaskDialog from '@/components/tasks/CreateTaskDialog.vue'
 import HiveSettingsDialog from '@/components/settings/SettingsDialog.vue'
 import AppSidebar from '@/components/shell/AppSidebar.vue'
 import MobileShellNav from '@/components/shell/MobileShellNav.vue'
@@ -48,16 +58,30 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useCelebrate } from '@/composables/useCelebrate'
 import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
-import type { Bool } from '@/types'
+import type { Bool, HiveProject } from '@/types'
 
 // Applies the stored `data-theme` before anything paints.
 useColorScheme()
 usePageMeta(() => ({ title: 'Hive' }))
 
+const router = useRouter()
 const { isDesktop } = useBreakpoint()
 const { ready, isClient } = useSession()
 const { celebrate } = useCelebrate()
-const { commandPaletteOpen, onboardingOpen, shortcutsOpen, openSettings } = useOverlays()
+const {
+	commandPaletteOpen,
+	createProjectOpen,
+	createTaskContext,
+	createTaskOpen,
+	onboardingOpen,
+	shortcutsOpen,
+	openSettings,
+} = useOverlays()
+
+// Creating a project always lands on it, wherever the dialog was opened from.
+function openProject(project: HiveProject) {
+	router.push(`/projects/${project.slug || project.name}`)
+}
 
 // A workspace that has never finished onboarding opens the dialog once per
 // session; dismissing it does not come back until the app is reloaded.

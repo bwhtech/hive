@@ -138,7 +138,7 @@ const route = useRoute()
 const router = useRouter()
 const { isClient } = useSession()
 const { celebrate } = useCelebrate()
-const { commandPaletteOpen: open, createProjectOpen, createTaskOpen, openSettings } = useOverlays()
+const { commandPaletteOpen: open, createProjectOpen, openCreateTask, openSettings } = useOverlays()
 
 const query = ref('')
 
@@ -202,18 +202,19 @@ function go(path: string) {
 	router.push(path)
 }
 
-// The create dialogs are mounted by the pages that own them, so the palette
-// navigates first and opens second. W10 hoists them into the shell.
+// The shell mounts both create dialogs, so they open in place. A task created
+// inside a project still routes through the page, which alone knows the
+// docname behind the slug and has the list to refresh.
 function createTask() {
 	if (projectId.value) {
 		router.push({ path: `/projects/${projectId.value}`, query: { create_task: '1' } })
 		return
 	}
-	router.push('/tasks').then(() => (createTaskOpen.value = true))
+	openCreateTask()
 }
 
 function createProject() {
-	router.push('/projects').then(() => (createProjectOpen.value = true))
+	createProjectOpen.value = true
 }
 
 function createFeatureRequest() {

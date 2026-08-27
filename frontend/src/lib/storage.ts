@@ -12,7 +12,7 @@ export const STORAGE_KEYS = {
 	projectsMyOnly: 'hive_projects_my_only',
 } as const
 
-export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS]
+export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
 
 export function readStorage<T>(key: StorageKey, fallback: T): T {
 	try {

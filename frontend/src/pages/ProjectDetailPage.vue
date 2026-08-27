@@ -4,7 +4,7 @@
 			:project="project.doc"
 			@save="saveProject"
 			@archive="archiveProject"
-			@add-task="createTaskOpen = true"
+			@add-task="addTask"
 		/>
 
 		<div class="flex items-stretch">
@@ -58,15 +58,9 @@
 				@changed="reloadTasks"
 			/>
 		</div>
-
-		<CreateTaskDialog
-			v-model:open="createTaskOpen"
-			:project-id="projectName"
-			@created="reloadTasks"
-		/>
 	</template>
 
-	<PageSkeleton v-else-if="loading" class="p-4 md:p-6" :rows="6" />
+	<PageSkeleton v-else-if="loading" class="px-3 py-5 sm:px-5" :rows="6" />
 
 	<template v-else>
 		<AppHeader title="Project" />
@@ -110,13 +104,11 @@ import MilestonesTab from '@/components/projects/MilestonesTab.vue'
 import OverviewTab from '@/components/projects/OverviewTab.vue'
 import ProjectHeader from '@/components/projects/ProjectHeader.vue'
 import ProjectTasksTab from '@/components/projects/ProjectTasksTab.vue'
-// Owned by W4.
 import RequestsTab from '@/components/projects/RequestsTab.vue'
 import UpdatesTab from '@/components/projects/UpdatesTab.vue'
-// Owned by W6; both use the frozen §5 props/emits.
-import CreateTaskDialog from '@/components/tasks/CreateTaskDialog.vue'
 import TaskPanel from '@/components/tasks/TaskPanel.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
 import type { HiveMilestone, HiveProject, HiveTask, HiveTaskAssignee } from '@/types'
 
@@ -148,6 +140,7 @@ const PANELS: Record<string, Component> = {
 const route = useRoute()
 const router = useRouter()
 const { isDesktop } = useBreakpoint()
+const { createTaskOpen, openCreateTask } = useOverlays()
 const { isClient } = useSession()
 
 function param(key: string): string {
@@ -203,7 +196,7 @@ watch(
 	{ immediate: true },
 )
 
-const projectName = computed(() => (isSlug.value ? slug.data ?? '' : props.id))
+const projectName = computed(() => (isSlug.value ? (slug.data ?? '') : props.id))
 
 const project = useDoc<HiveProject>({
 	doctype: 'Hive Project',
@@ -332,7 +325,7 @@ const badges = computed<Record<string, { label: string; theme: BadgeProps['theme
 			? {
 					label: `${draftCount.value} ${draftCount.value === 1 ? 'draft' : 'drafts'}`,
 					theme: 'amber' as const,
-			  }
+				}
 			: undefined,
 		requests: requestCount.value
 			? { label: String(requestCount.value), theme: 'gray' as const }
@@ -340,8 +333,12 @@ const badges = computed<Record<string, { label: string; theme: BadgeProps['theme
 	}),
 )
 
-const createTaskOpen = ref(false)
 const createRequestOpen = ref(false)
+
+/** The shell owns the dialog; this page only supplies the project and reload. */
+function addTask() {
+	openCreateTask({ projectId: projectName.value, onCreated: reloadTasks })
+}
 
 const panel = computed(() => PANELS[tab.value])
 
@@ -407,11 +404,13 @@ function openTask(task: HiveTask) {
 
 // -- query-param entry points --------------------------------------------
 
+// `create_task` waits for the docname: on a slug URL it is one request away,
+// and the dialog is handed the project once, when it opens.
 watch(
-	() => [param('create_task'), param('create_feature_request')] as const,
-	([task, request]) => {
-		if (task === '1') {
-			createTaskOpen.value = true
+	() => [param('create_task'), param('create_feature_request'), projectName.value] as const,
+	([task, request, project]) => {
+		if (task === '1' && project) {
+			addTask()
 			setQuery({ create_task: '' })
 		}
 		if (request === '1') {
@@ -433,7 +432,7 @@ useKeyboardShortcut([
 		description: 'Add task',
 		group: 'Project',
 		enabled: () => shortcutsEnabled() && !isClient.value,
-		handler: () => (createTaskOpen.value = true),
+		handler: addTask,
 	},
 	...(
 		[

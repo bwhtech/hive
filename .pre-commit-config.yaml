@@ -35,6 +35,9 @@ repos:
     hooks:
       - id: prettier
         types_or: [javascript, vue, scss]
+        # The mirror's tag pins Prettier 2; the frontend pins 3.3.3 in its own
+        # package.json. Both must agree or every commit reformats the last one.
+        additional_dependencies: ["prettier@3.3.3"]
         # Ignore any files that might contain jinja / bundles
         exclude: |
             (?x)^(

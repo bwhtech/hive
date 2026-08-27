@@ -20,7 +20,7 @@ export function useTaskMutations(list?: TaskListHandle) {
 	async function setStatus(task: HiveTask, status: TaskStatus) {
 		if (task.status === status) return
 		const previous = { status: task.status, completed_on: task.completed_on }
-		const completed_on = status === 'Done' ? task.completed_on ?? today() : null
+		const completed_on = status === 'Done' ? (task.completed_on ?? today()) : null
 
 		list?.updateRow({ name: task.name, status, completed_on })
 		try {

@@ -1,6 +1,6 @@
 <template>
 	<article
-		class="flex flex-col gap-3 rounded-5 border bg-surface-base p-4"
+		class="flex flex-col gap-3 rounded-4 border bg-surface-base p-4"
 		:class="overdue.length ? 'border-outline-red-2' : 'border-outline-gray-1'"
 	>
 		<header class="flex items-center gap-3">

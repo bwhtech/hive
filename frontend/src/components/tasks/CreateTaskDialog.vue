@@ -132,7 +132,7 @@
 					:disabled="!canSubmit"
 					@click="submit"
 				>
-					<template #suffix>
+					<template v-if="isDesktop" #suffix>
 						<KeyboardShortcut combo="Mod+Enter" />
 					</template>
 				</Button>
@@ -158,6 +158,7 @@ import {
 } from 'frappe-ui'
 import LinkPicker from '@/components/common/LinkPicker.vue'
 import RichEditor from '@/components/common/RichEditor.vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSession } from '@/composables/useSession'
 import { useTaskMutations } from '@/composables/useTaskMutations'
 import { STORAGE_KEYS, readStorage, removeStorage, writeStorage } from '@/lib/storage'
@@ -218,6 +219,7 @@ function emptyDraft(): TaskDraft {
 	}
 }
 
+const { isDesktop } = useBreakpoint()
 const { isClient } = useSession()
 const { createTask } = useTaskMutations()
 

@@ -1,7 +1,7 @@
 <template>
 	<AppHeader title="Team" />
 
-	<div class="space-y-4 p-4 md:p-6">
+	<div class="space-y-4 px-3 py-5 pb-10 sm:px-5">
 		<TextInput
 			v-model="search"
 			class="w-full sm:max-w-xs"

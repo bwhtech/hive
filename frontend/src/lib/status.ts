@@ -137,5 +137,5 @@ export const TASK_SIZE_WEIGHT: Record<TaskSize, number> = {
 }
 
 export function sizeWeight(size: TaskSize | '' | null | undefined): number {
-	return size ? TASK_SIZE_WEIGHT[size] ?? 0 : 0
+	return size ? (TASK_SIZE_WEIGHT[size] ?? 0) : 0
 }

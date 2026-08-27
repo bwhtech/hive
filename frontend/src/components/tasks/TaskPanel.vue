@@ -188,12 +188,13 @@
 							:mentions="mentions"
 							@update:model-value="setDescription"
 						/>
-						<!-- eslint-disable-next-line vue/no-v-html -- stored editor output, rendered the same way everywhere in the app -->
+						<!-- eslint-disable vue/no-v-html -- stored editor output, rendered the same way everywhere in the app -->
 						<div
 							v-else-if="task.doc.description"
 							class="hive-prose"
 							v-html="task.doc.description"
 						/>
+						<!-- eslint-enable vue/no-v-html -->
 						<p v-else class="text-sm text-ink-gray-5">No description</p>
 					</div>
 
@@ -484,8 +485,8 @@ const scrollerProps = computed(() =>
 	isDesktop.value
 		? { class: 'min-h-0 flex-1', viewportClass: 'px-4 pb-16 pt-3' }
 		: // `BottomSheet` already owns the scroll region, so the sheet body is
-		  // a plain padded block.
-		  { class: 'px-4 pb-8 pt-3' },
+			// a plain padded block.
+			{ class: 'px-4 pb-8 pt-3' },
 )
 
 function onSheetOpenChange(open: boolean) {

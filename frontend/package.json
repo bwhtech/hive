@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "lint": "eslint . && prettier --check src",
+    "preview": "vite preview",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
@@ -29,6 +31,7 @@
     "globals": "^17.11.0",
     "lucide-static": "^0.469.0",
     "postcss": "^8.4.49",
+    "prettier": "3.3.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",

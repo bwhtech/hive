@@ -215,7 +215,7 @@ function projectTitle(task: HiveTask) {
 }
 
 function milestoneTitle(task: HiveTask) {
-	return task.milestone ? props.milestoneTitles[task.milestone] ?? '' : ''
+	return task.milestone ? (props.milestoneTitles[task.milestone] ?? '') : ''
 }
 
 function stackFor(task: HiveTask): StackMember[] {

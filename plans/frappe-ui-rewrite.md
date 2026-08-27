@@ -1,6 +1,6 @@
 # Hive frontend rewrite — React → Vue 3 + frappe-ui
 
-Status: IN PROGRESS. W0 and all of phase 1 landed (2026-08-27); phase 2 (W9–W12) is next. Replaces `frontend/` (React 19 + shadcn, ~16.7k LOC) with a Vue 3 app built on `frappe-ui@1.0.0-beta.55`. Agent features are dropped. Backend stays as is except for the small items in §9.
+Status: IN PROGRESS. W0, all of phase 1, and W10 landed (2026-08-27); W9, W11 and W12 remain. Replaces `frontend/` (React 19 + shadcn, ~16.7k LOC) with a Vue 3 app built on `frappe-ui@1.0.0-beta.55`. Agent features are dropped. Backend stays as is except for the small items in §9.
 
 Sources for this plan: full inventory of `frontend/src`, clone of `frappe/frappe-ui` at `c2fce39` (beta.55), the bundled frappe-ui skill (`SETUP.md`, `COMPONENTS.md`, `DESIGN.md`, `TOKENS.md`).
 
@@ -309,9 +309,41 @@ Carried into Phase 2:
 | Stream | Work |
 |---|---|
 | **W9 e2e** | Run full `e2e/` suite; update selectors/flows; add smoke for kanban DnD, calendar, command palette, settings. Gate on green. |
-| **W10 Polish pass** | One agent walks every screen against DESIGN.md: gray-first, ink ladder, one primary action per header, row heights, gutters, mobile translation. Fix token misuse. `pre-commit run --all-files`. |
+| **W10 Polish pass** | **Done.** See the notes below. |
 | **W11 Remove React** | Delete `frontend-react/`, prune root `package.json`, update `CLAUDE.md` (frappe-ui, `yarn dev` on 8080 proxying 8000, `frappe-ui` skill), README. |
 | **W12 Backend agent cleanup (separate PR, optional but recommended)** | Remove `agent_api.py`, `orchestrator/`, agent fields from Hive Task / Hive Project / Hive Settings JSON (+ patch to drop columns), `agent_*` whitelisted methods and `resolved_prompts` in `api.py`, `ToDo` doc_events and `reconcile_agent_tasks` cron in `hooks.py`, agent notification channels, `tasks.py` bits. Types in the new frontend never referenced these, so this can land any time. |
+
+**W10 notes.** Everything phase 1 carried forward is closed, plus what the
+DESIGN.md walk turned up:
+
+- `AppShell` now mounts `CreateProjectDialog` and `CreateTaskDialog` alongside
+  the other overlays. `useOverlays` gained `openCreateTask({ projectId,
+  defaults, onCreated })` — the opener passes its own refresh, so the shell
+  never has to know which list to reload. The command palette opens both in
+  place, and `ProjectDetailPage` no longer shadows `createTaskOpen` with a
+  local ref. `?create_task=1` waits for the slug to resolve before opening,
+  because the project is handed over once rather than bound reactively.
+- `composables/useHiveViews.ts` replaces the `hive:views-changed` window event.
+  The tasks page reads `activeView` out of the same singleton, which drops a
+  per-view `useList`, and views now load on mobile, where no sidebar mounts.
+- `DashboardProjectCard.vue` is gone; `ProjectCard.vue` covers both callers.
+  Its optional fields are the ones `get_my_dashboard` does not return, and its
+  default slot takes the dashboard's task counts. Cards are `rounded-4`
+  everywhere — `rounded-5` no longer appears in the app.
+- Prettier owns formatting end to end. `vue/html-indent` and
+  `vue/script-indent` are off (they fought Prettier over `switch` bodies),
+  `prettier@3.3.3` is pinned in `frontend/package.json` *and* in the
+  pre-commit hook's `additional_dependencies`, and `yarn lint` runs
+  `prettier --check src` after ESLint. `yarn format` rewrites `src`.
+- Page gutters are `px-3 py-5 pb-10 sm:px-5` on every page, matching the
+  header; `p-4 md:p-6` is gone.
+- Mobile: the tasks header folds its view-mode buttons into the `…` dropdown
+  (which is why that dropdown now renders for clients there), and the
+  `KeyboardShortcut` hints on Add Task, Create task and Create milestone only
+  render on desktop.
+- Board columns are `min-w-56 flex-1 basis-72` instead of a fixed `w-72`, so
+  all five fit at 1440px and still scroll below that. Drag-and-drop verified.
+- Left for W12: `get_team_stats` is still whitelisted with no role check.
 
 ---
 

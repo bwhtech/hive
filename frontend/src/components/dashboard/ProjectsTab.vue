@@ -1,6 +1,6 @@
 <template>
 	<div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-		<Skeleton v-for="n in 6" :key="n" class="h-32 w-full rounded-5" />
+		<Skeleton v-for="n in 6" :key="n" class="h-32 w-full rounded-4" />
 	</div>
 
 	<ErrorMessage v-else-if="projects.error" :message="projects.error" />
@@ -13,7 +13,7 @@
 	/>
 
 	<div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-		<DashboardProjectCard v-for="project in projectList" :key="project.name" :project="project">
+		<ProjectCard v-for="project in projectList" :key="project.name" :project="project">
 			<div
 				class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-gray-5"
 			>
@@ -26,16 +26,14 @@
 				</span>
 				<span>{{ counts(project.name).total }} total</span>
 			</div>
-		</DashboardProjectCard>
+		</ProjectCard>
 	</div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ErrorMessage, Skeleton, useList } from 'frappe-ui'
-import DashboardProjectCard, {
-	type DashboardProject,
-} from '@/components/dashboard/DashboardProjectCard.vue'
+import ProjectCard, { type ProjectCardProject } from '@/components/projects/ProjectCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { HiveProject, HiveTask } from '@/types'
 
@@ -54,7 +52,17 @@ const EMPTY_COUNTS: TaskCounts = { total: 0, open: 0, internal: 0 }
 
 const projects = useList<HiveProject>({
 	doctype: 'Hive Project',
-	fields: ['name', 'title', 'slug', 'status', 'project_type', 'client', 'modified'],
+	fields: [
+		'name',
+		'title',
+		'slug',
+		'status',
+		'project_type',
+		'client',
+		'description',
+		'is_private',
+		'modified',
+	],
 	filters: { is_archived: 0 },
 	orderBy: 'modified desc',
 	limit: PROJECT_LIMIT,
@@ -70,7 +78,7 @@ const tasks = useList<HiveTask>({
 })
 
 const loading = computed(() => projects.loading && !projects.data)
-const projectList = computed<DashboardProject[]>(() => projects.data ?? [])
+const projectList = computed<ProjectCardProject[]>(() => projects.data ?? [])
 
 const countsByProject = computed(() => {
 	const map: Record<string, TaskCounts> = {}

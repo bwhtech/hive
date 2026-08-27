@@ -50,7 +50,7 @@ frappe.ui.form.on("Hive Task", {
 						});
 					},
 					__("Approve Spec"),
-					__("Approve")
+					__("Approve"),
 				);
 			}).addClass("btn-primary");
 		}
@@ -80,7 +80,7 @@ frappe.ui.form.on("Hive Task", {
 						});
 					},
 					__("Request Changes"),
-					__("Send to Agent")
+					__("Send to Agent"),
 				);
 			}).addClass("btn-primary");
 
@@ -95,7 +95,7 @@ frappe.ui.form.on("Hive Task", {
 							});
 							frm.reload_doc();
 						});
-					}
+					},
 				);
 			});
 		}
@@ -105,7 +105,7 @@ frappe.ui.form.on("Hive Task", {
 			frm.add_custom_button(__("Retry"), () => {
 				frappe.confirm(
 					__(
-						"Tear down the old box (if any) and re-provision a fresh box for this task?"
+						"Tear down the old box (if any) and re-provision a fresh box for this task?",
 					),
 					() => {
 						frm.call("retry_agent").then(() => {
@@ -115,7 +115,7 @@ frappe.ui.form.on("Hive Task", {
 							});
 							frm.reload_doc();
 						});
-					}
+					},
 				);
 			}).addClass("btn-primary");
 
@@ -130,7 +130,7 @@ frappe.ui.form.on("Hive Task", {
 							});
 							frm.reload_doc();
 						});
-					}
+					},
 				);
 			});
 		}
@@ -156,14 +156,14 @@ frappe.ui.form.on("Hive Task", {
 			frm.add_custom_button(
 				__("Open Code (spec)"),
 				() => open(frm.doc.agent_code_url),
-				__("Agent")
+				__("Agent"),
 			);
 		}
 		if (frm.doc.agent_site_url) {
 			frm.add_custom_button(
 				__("Open Site"),
 				() => open(frm.doc.agent_site_url),
-				__("Agent")
+				__("Agent"),
 			);
 		}
 		if (frm.doc.pr_link) {

@@ -41,7 +41,7 @@
 						:loading="saving"
 						:disabled="!title.trim()"
 					>
-						<template #suffix>
+						<template v-if="isDesktop" #suffix>
 							<KeyboardShortcut combo="Mod+Enter" />
 						</template>
 					</Button>
@@ -65,6 +65,7 @@ import {
 	useDoctype,
 	useNewDoc,
 } from 'frappe-ui'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import type { HiveMilestone } from '@/types'
 
 const props = defineProps<{
@@ -80,6 +81,7 @@ const emit = defineEmits<{
 	saved: []
 }>()
 
+const { isDesktop } = useBreakpoint()
 const milestoneDoctype = useDoctype<HiveMilestone>('Hive Milestone')
 
 const title = ref('')

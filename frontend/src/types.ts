@@ -5,17 +5,17 @@
  */
 
 export const PROJECT_STATUSES = ['Open', 'Completed', 'On Hold'] as const
-export type ProjectStatus = typeof PROJECT_STATUSES[number]
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
 
 /** Selectable in filters and selects. `Blocked` is not a board column. */
 export const TASK_STATUSES = ['Someday', 'Backlog', 'To Do', 'In Progress', 'Done'] as const
-export type TaskStatus = typeof TASK_STATUSES[number] | 'Blocked'
+export type TaskStatus = (typeof TASK_STATUSES)[number] | 'Blocked'
 
 export const TASK_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'] as const
-export type TaskPriority = typeof TASK_PRIORITIES[number]
+export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 
 export const TASK_SIZES = ['Small', 'Medium', 'Large'] as const
-export type TaskSize = typeof TASK_SIZES[number]
+export type TaskSize = (typeof TASK_SIZES)[number]
 
 export const TASK_RECURRENCE_FREQUENCIES = [
 	'Daily',
@@ -24,10 +24,10 @@ export const TASK_RECURRENCE_FREQUENCIES = [
 	'Quarterly',
 	'Yearly',
 ] as const
-export type TaskRecurrenceFrequency = typeof TASK_RECURRENCE_FREQUENCIES[number]
+export type TaskRecurrenceFrequency = (typeof TASK_RECURRENCE_FREQUENCIES)[number]
 
 export const MILESTONE_STATUSES = ['Upcoming', 'In Progress', 'Completed'] as const
-export type MilestoneStatus = typeof MILESTONE_STATUSES[number]
+export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number]
 
 export const FEATURE_REQUEST_STATUSES = [
 	'Open',
@@ -36,13 +36,13 @@ export const FEATURE_REQUEST_STATUSES = [
 	'Rejected',
 	'Converted',
 ] as const
-export type FeatureRequestStatus = typeof FEATURE_REQUEST_STATUSES[number]
+export type FeatureRequestStatus = (typeof FEATURE_REQUEST_STATUSES)[number]
 
 export const FEATURE_REQUEST_PRIORITIES = ['Nice to Have', 'Important', 'Critical'] as const
-export type FeatureRequestPriority = typeof FEATURE_REQUEST_PRIORITIES[number]
+export type FeatureRequestPriority = (typeof FEATURE_REQUEST_PRIORITIES)[number]
 
 export const UAT_STATUSES = ['Pending', 'Approved', 'Rejected'] as const
-export type UATStatus = typeof UAT_STATUSES[number]
+export type UATStatus = (typeof UAT_STATUSES)[number]
 
 export type Bool = 0 | 1
 

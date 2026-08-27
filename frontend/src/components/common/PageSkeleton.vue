@@ -1,5 +1,5 @@
 <template>
-	<div class="space-y-3 p-4 md:p-6">
+	<div class="space-y-3 px-3 py-5 sm:px-5">
 		<Skeleton class="h-6 w-48" />
 		<Skeleton v-for="n in rows" :key="n" class="h-11 w-full" />
 	</div>

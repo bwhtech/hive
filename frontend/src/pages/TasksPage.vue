@@ -5,11 +5,12 @@
 		</template>
 		<template #actions>
 			<TabButtons
+				v-if="isDesktop"
 				:model-value="viewMode"
 				:options="VIEW_MODES"
 				@update:model-value="setViewMode(String($event))"
 			/>
-			<Dropdown v-if="!isClient" :options="viewMenu" align="end">
+			<Dropdown v-if="headerMenu.length" :options="headerMenu" align="end">
 				<Button variant="ghost" icon="lucide-ellipsis" aria-label="View actions" />
 			</Dropdown>
 			<Button
@@ -18,7 +19,7 @@
 				theme="gray"
 				icon-left="lucide-plus"
 				label="Add Task"
-				@click="createTaskOpen = true"
+				@click="openCreateTask(createTaskContext)"
 			/>
 		</template>
 	</AppHeader>
@@ -57,7 +58,7 @@
 						theme="gray"
 						icon-left="lucide-plus"
 						label="Add Task"
-						@click="createTaskOpen = true"
+						@click="openCreateTask(createTaskContext)"
 					/>
 				</template>
 			</EmptyState>
@@ -97,12 +98,6 @@
 		/>
 	</div>
 
-	<CreateTaskDialog
-		v-model:open="createTaskOpen"
-		:defaults="createDefaults"
-		@created="onTaskCreated"
-	/>
-
 	<SaveViewDialog
 		v-model:open="saveViewOpen"
 		:filters="currentFilters"
@@ -112,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import {
 	Breadcrumbs,
@@ -134,20 +129,13 @@ import SaveViewDialog from '@/components/tasks/SaveViewDialog.vue'
 import TaskBoard from '@/components/tasks/TaskBoard.vue'
 import TaskCalendar from '@/components/tasks/TaskCalendar.vue'
 import TaskFilters from '@/components/tasks/TaskFilters.vue'
-import TaskTable from '@/components/tasks/TaskTable.vue'
-// Owned by W6; both use the frozen §5 props/emits.
-import CreateTaskDialog from '@/components/tasks/CreateTaskDialog.vue'
 import TaskPanel from '@/components/tasks/TaskPanel.vue'
-import { useOverlays } from '@/composables/useOverlays'
+import TaskTable from '@/components/tasks/TaskTable.vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useHiveViews } from '@/composables/useHiveViews'
+import { useOverlays, type CreateTaskContext } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
-import type {
-	CreateTaskValues,
-	HiveMilestone,
-	HiveProject,
-	HiveTask,
-	HiveTaskAssignee,
-	HiveView,
-} from '@/types'
+import type { HiveMilestone, HiveProject, HiveTask, HiveTaskAssignee, HiveView } from '@/types'
 
 type ViewMode = HiveView['view_type']
 
@@ -160,13 +148,11 @@ const VIEW_MODES = [
 /** The filter keys a saved view round-trips. Order fixes the summary order. */
 const FILTER_KEYS = ['q', 'status', 'priority', 'project', 'assignee'] as const
 
-/** Announced to `SidebarViews`, which cannot see this page's insert. */
-const VIEWS_CHANGED_EVENT = 'hive:views-changed'
-
 const route = useRoute()
 const router = useRouter()
+const { isDesktop } = useBreakpoint()
 const { isClient } = useSession()
-const { createTaskOpen } = useOverlays()
+const { openCreateTask } = useOverlays()
 const viewDoctype = useDoctype<HiveView>('Hive View')
 
 function param(key: string): string {
@@ -317,34 +303,17 @@ function closeTask() {
 	setQuery({ task: '' })
 }
 
-const createDefaults = computed<Partial<CreateTaskValues>>(() => ({
-	...(projectFilter.value ? { project: projectFilter.value } : {}),
+/** The shell owns the dialog; this is everything it needs from this page. */
+const createTaskContext = computed<CreateTaskContext>(() => ({
+	defaults: projectFilter.value ? { project: projectFilter.value } : {},
+	onCreated: refreshTasks,
 }))
-
-function onTaskCreated() {
-	refreshTasks()
-}
 
 // -- saved views ---------------------------------------------------------
 
-const activeViewList = useList<HiveView>({
-	doctype: 'Hive View',
-	fields: ['name', 'label', 'emoji', 'view_type', 'filters_json', 'is_public', 'owner'],
-	filters: () => ({ name: viewId.value }),
-	limit: 1,
-	immediate: false,
-	refetch: false,
-})
+const { byId: viewById, refresh: refreshViews } = useHiveViews()
 
-watch(
-	viewId,
-	(id) => {
-		if (id) activeViewList.reload()
-	},
-	{ immediate: true },
-)
-
-const activeView = computed(() => (viewId.value ? activeViewList.data?.[0] ?? null : null))
+const activeView = computed(() => (viewId.value ? viewById(viewId.value) : null))
 
 const crumbs = computed<BreadcrumbsProps['items']>(() => {
 	const items: BreadcrumbsProps['items'] = [{ label: 'Tasks', route: { path: '/tasks' } }]
@@ -406,6 +375,25 @@ const viewMenu = computed<DropdownOptions>(() => {
 	return [{ label: 'Save view', icon: 'lucide-save', onClick: () => (saveViewOpen.value = true) }]
 })
 
+/**
+ * Mobile has no room for the view-mode buttons, so they fold into the same
+ * `…` menu — which is why it renders for clients there and nowhere else.
+ */
+const headerMenu = computed<DropdownOptions>(() => {
+	const items: DropdownOptions = []
+	if (!isDesktop.value) {
+		items.push(
+			...VIEW_MODES.map((mode) => ({
+				label: mode.label,
+				icon: mode.icon,
+				onClick: () => setViewMode(mode.value),
+			})),
+		)
+	}
+	if (!isClient.value) items.push(...viewMenu.value)
+	return items
+})
+
 async function saveViewChanges() {
 	const view = activeView.value
 	if (!view) return
@@ -415,8 +403,7 @@ async function saveViewChanges() {
 			filters_json: JSON.stringify(currentFilters.value),
 			view_type: viewMode.value,
 		})
-		activeViewList.reload()
-		window.dispatchEvent(new CustomEvent(VIEWS_CHANGED_EVENT))
+		refreshViews()
 		toast.success('View updated')
 	} catch {
 		toast.error('Could not update the view')
@@ -424,7 +411,7 @@ async function saveViewChanges() {
 }
 
 function onViewCreated(view: HiveView) {
-	window.dispatchEvent(new CustomEvent(VIEWS_CHANGED_EVENT))
+	refreshViews()
 	const query: LocationQueryRaw = { view_id: view.name, ...currentFilters.value }
 	if (viewMode.value !== 'list') query.view = viewMode.value
 	router.replace({ path: '/tasks', query })

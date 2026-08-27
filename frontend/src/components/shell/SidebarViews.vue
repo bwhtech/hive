@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, type RouteLocationRaw } from 'vue-router'
 import {
 	Dropdown,
@@ -40,68 +40,23 @@ import {
 	dialog,
 	toast,
 	useDoctype,
-	useList,
 	type DropdownOptions,
 } from 'frappe-ui'
 import ViewEditDialog from '@/components/tasks/ViewEditDialog.vue'
+import { useHiveViews } from '@/composables/useHiveViews'
 import { useSession } from '@/composables/useSession'
 import type { HiveView } from '@/types'
 
-/**
- * Saved `Hive View` links. Public views are visible to everyone; private ones
- * only to their owner, so they come back as two queries — one list filtered on
- * `is_public` cannot express "public OR mine".
- *
- * A view created on the tasks page announces itself with this event; edits and
- * deletes go through this component and refresh in place.
- */
-const VIEWS_CHANGED_EVENT = 'hive:views-changed'
-
-const FIELDS = [
-	'name',
-	'label',
-	'emoji',
-	'view_type',
-	'filters_json',
-	'is_public',
-	'owner',
-] as const
-
 const route = useRoute()
-const { userId, isClient } = useSession()
+const { userId } = useSession()
+const { list: views, refresh } = useHiveViews()
 const viewDoctype = useDoctype<HiveView>('Hive View')
-
-const publicViews = useList<HiveView>({
-	doctype: 'Hive View',
-	fields: [...FIELDS],
-	filters: { is_public: 1 },
-	orderBy: 'creation asc',
-	limit: 50,
-	immediate: false,
-})
-
-const myViews = useList<HiveView>({
-	doctype: 'Hive View',
-	fields: [...FIELDS],
-	filters: () => ({ is_public: 0, owner: userId.value }),
-	orderBy: 'creation asc',
-	limit: 50,
-	immediate: false,
-})
 
 const editOpen = ref(false)
 const editing = ref<HiveView | null>(null)
 
-const views = computed(() => {
-	const seen = new Map<string, HiveView>()
-	for (const view of [...(publicViews.data ?? []), ...(myViews.data ?? [])]) {
-		seen.set(view.name, view)
-	}
-	return [...seen.values()]
-})
-
 const activeViewId = computed(() =>
-	route.path === '/tasks' ? (route.query.view_id as string) ?? '' : '',
+	route.path === '/tasks' ? ((route.query.view_id as string) ?? '') : '',
 )
 
 /** A view whose `filters_json` predates a schema change must not break the nav. */
@@ -153,18 +108,4 @@ function confirmDelete(view: HiveView) {
 		},
 	})
 }
-
-function refresh() {
-	// `Hive View` is readable by the team roles only — a client would just get
-	// a 403 for every poll.
-	if (!userId.value || isClient.value) return
-	publicViews.reload()
-	myViews.reload()
-}
-
-watch([userId, isClient], refresh, { immediate: true })
-
-onMounted(() => window.addEventListener(VIEWS_CHANGED_EVENT, refresh))
-
-onBeforeUnmount(() => window.removeEventListener(VIEWS_CHANGED_EVENT, refresh))
 </script>

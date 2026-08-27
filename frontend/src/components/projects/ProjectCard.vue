@@ -20,6 +20,8 @@
 		<p v-if="meta" class="truncate text-sm text-ink-gray-5">{{ meta }}</p>
 
 		<p v-if="summary" class="line-clamp-2 text-p-sm text-ink-gray-6">{{ summary }}</p>
+
+		<slot />
 	</router-link>
 </template>
 
@@ -28,15 +30,30 @@ import { computed } from 'vue'
 import { Badge, Tooltip } from 'frappe-ui'
 import { projectStatusTheme } from '@/lib/status'
 import { stripHtml } from '@/lib/text'
-import type { HiveProject } from '@/types'
+import type { Bool, ProjectStatus } from '@/types'
 
-/** The fields a card needs — a `useList` row, not necessarily a full document. */
-export type ProjectCardProject = Pick<
-	HiveProject,
-	'name' | 'title' | 'slug' | 'status' | 'project_type' | 'client' | 'description' | 'is_private'
->
+/**
+ * The fields a card needs. A `useList` row on the projects page carries all of
+ * them; `get_my_dashboard` returns only the first five, so the rest are
+ * optional and their lines simply do not render.
+ */
+export interface ProjectCardProject {
+	name: string
+	title: string
+	slug: string
+	status: ProjectStatus
+	project_type?: string
+	client?: string
+	description?: string
+	is_private?: Bool
+}
 
 const props = defineProps<{ project: ProjectCardProject }>()
+
+defineSlots<{
+	/** Extra meta under the description — task counts, for instance. */
+	default?: () => unknown
+}>()
 
 /** `type · client`, skipping whichever half is missing. */
 const meta = computed(() =>

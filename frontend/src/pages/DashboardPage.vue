@@ -1,6 +1,6 @@
 <template>
 	<AppHeader title="Dashboard" />
-	<div class="mx-auto w-full max-w-4xl space-y-6 p-4 md:p-6">
+	<div class="mx-auto w-full max-w-4xl space-y-6 px-3 py-5 pb-10 sm:px-5">
 		<!-- Underline tabs read as page sections on desktop; on a phone the same
 		     choice is a one-line Select, per DESIGN.md. -->
 		<Tabs v-if="isDesktop" :model-value="tab" @update:model-value="setTab">

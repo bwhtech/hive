@@ -12,7 +12,7 @@
 		</template>
 	</AppHeader>
 
-	<div class="space-y-4 p-4 md:p-6">
+	<div class="space-y-4 px-3 py-5 pb-10 sm:px-5">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
 			<TextInput
 				v-model="search"
@@ -91,17 +91,10 @@
 			</div>
 		</template>
 	</div>
-
-	<CreateProjectDialog
-		v-if="!isClient"
-		v-model:open="createProjectOpen"
-		@created="openCreatedProject"
-	/>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import {
 	Button,
 	ErrorMessage,
@@ -115,7 +108,6 @@ import {
 } from 'frappe-ui'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import CreateProjectDialog from '@/components/projects/CreateProjectDialog.vue'
 import ProjectCard from '@/components/projects/ProjectCard.vue'
 import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
@@ -144,7 +136,6 @@ const SCOPE_OPTIONS = [
 	{ label: 'External', value: 'External' },
 ]
 
-const router = useRouter()
 const { isClient } = useSession()
 const { createProjectOpen } = useOverlays()
 
@@ -220,9 +211,4 @@ const filtered = computed(() => {
 		return true
 	})
 })
-
-function openCreatedProject(project: HiveProject) {
-	projects.reload()
-	router.push(`/projects/${project.slug || project.name}`)
-}
 </script>

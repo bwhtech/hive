@@ -1,6 +1,6 @@
 <template>
 	<div class="space-y-6">
-		<div class="h-80 rounded-5 border border-outline-gray-1 bg-surface-base p-4">
+		<div class="h-80 rounded-4 border border-outline-gray-1 bg-surface-base p-4">
 			<AreaChart
 				title="Completed tasks"
 				:subtitle="periodLabel"
@@ -24,7 +24,7 @@
 		</div>
 
 		<div v-if="loading" class="grid gap-4 sm:grid-cols-2">
-			<Skeleton v-for="n in 4" :key="n" class="h-48 w-full rounded-5" />
+			<Skeleton v-for="n in 4" :key="n" class="h-48 w-full rounded-4" />
 		</div>
 
 		<EmptyState

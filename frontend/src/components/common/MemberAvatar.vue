@@ -21,5 +21,5 @@ const props = withDefaults(
 	{ size: 'sm' },
 )
 
-const tooltip = computed(() => (props.hideTooltip ? '' : props.name ?? props.user ?? ''))
+const tooltip = computed(() => (props.hideTooltip ? '' : (props.name ?? props.user ?? '')))
 </script>

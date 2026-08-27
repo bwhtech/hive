@@ -2,7 +2,7 @@
 	<div class="space-y-6">
 		<!-- KPI strip: one bordered box, the three readings divided inside it. -->
 		<div
-			class="grid grid-cols-1 divide-y divide-outline-gray-2 rounded-5 border border-outline-gray-1 bg-surface-base sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+			class="grid grid-cols-1 divide-y divide-outline-gray-2 rounded-4 border border-outline-gray-1 bg-surface-base sm:grid-cols-3 sm:divide-x sm:divide-y-0"
 		>
 			<div v-for="kpi in kpis" :key="kpi.title" class="p-4">
 				<NumberCard
@@ -141,7 +141,7 @@
 
 		<DashboardSection title="My projects" icon="lucide-folder" body-class="p-4">
 			<div v-if="loading" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				<Skeleton v-for="n in 3" :key="n" class="h-24 w-full rounded-5" />
+				<Skeleton v-for="n in 3" :key="n" class="h-24 w-full rounded-4" />
 			</div>
 			<EmptyState
 				v-else-if="!projects.length"
@@ -150,11 +150,7 @@
 				icon="lucide-folder"
 			/>
 			<div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				<DashboardProjectCard
-					v-for="project in projects"
-					:key="project.name"
-					:project="project"
-				/>
+				<ProjectCard v-for="project in projects" :key="project.name" :project="project" />
 			</div>
 		</DashboardSection>
 	</div>
@@ -166,9 +162,7 @@ import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { Badge, Skeleton, useCall } from 'frappe-ui'
 import { List, ListCell, ListGroup, ListRow } from 'frappe-ui/list'
 import { NumberCard } from 'frappe-ui/charts'
-import DashboardProjectCard, {
-	type DashboardProject,
-} from '@/components/dashboard/DashboardProjectCard.vue'
+import ProjectCard, { type ProjectCardProject } from '@/components/projects/ProjectCard.vue'
 import DashboardSection from '@/components/dashboard/DashboardSection.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { dueLabel, fromNow, isOverdue } from '@/lib/dates'
@@ -207,7 +201,7 @@ interface DashboardUpdate {
 
 interface MyDashboard {
 	tasks_by_project: DashboardTaskGroup[]
-	my_projects: DashboardProject[]
+	my_projects: ProjectCardProject[]
 	unread_count: number
 	recent_updates: DashboardUpdate[]
 }

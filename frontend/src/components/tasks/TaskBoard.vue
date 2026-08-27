@@ -4,7 +4,7 @@
 			<section
 				v-for="status in TASK_STATUSES"
 				:key="status"
-				class="flex w-72 shrink-0 flex-col rounded-4 bg-surface-gray-1 p-2"
+				class="flex min-w-56 flex-1 basis-72 flex-col rounded-4 bg-surface-gray-1 p-2"
 			>
 				<header class="flex items-center justify-between px-1 pb-2">
 					<span class="text-sm font-medium text-ink-gray-7">{{ status }}</span>
@@ -52,7 +52,7 @@ import { dayjs, DATE_FORMAT } from '@/lib/dates'
 import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from '@/types'
 
 /** The five board columns. `Blocked` is a status, not a column. */
-type BoardStatus = typeof TASK_STATUSES[number]
+type BoardStatus = (typeof TASK_STATUSES)[number]
 
 const props = withDefaults(
 	defineProps<{
@@ -100,7 +100,7 @@ const taskMap = computed(() => {
 })
 
 function dependency(task: HiveTask): HiveTask | null {
-	return task.depends_on ? taskMap.value[task.depends_on] ?? null : null
+	return task.depends_on ? (taskMap.value[task.depends_on] ?? null) : null
 }
 
 function rebuild() {

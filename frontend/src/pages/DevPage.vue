@@ -1,6 +1,6 @@
 <template>
 	<AppHeader title="Dev sandbox" />
-	<div class="mx-auto max-w-2xl space-y-8 p-4 md:p-6">
+	<div class="mx-auto max-w-2xl space-y-8 px-3 py-5 pb-10 sm:px-5">
 		<section class="space-y-2">
 			<h2 class="text-base font-medium text-ink-gray-8">LinkPicker (single)</h2>
 			<LinkPicker v-model="project" doctype="Hive Project" label="Project" />

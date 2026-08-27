@@ -126,7 +126,7 @@
 							:model-value="form.due_date ?? ''"
 							:disabled="!canEdit || isDueDateLocked"
 							:description="
-								isDueDateLocked ? 'Locked from the due date on' : undefined
+								isDueDateLocked ? 'Locked on or after the due date' : undefined
 							"
 							clearable
 							@update:model-value="setDate('due_date', $event)"

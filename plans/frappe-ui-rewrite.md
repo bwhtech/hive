@@ -263,6 +263,19 @@ Each stream owns only the directories listed. Shared changes go through a tiny P
 
 Cross-stream dependencies: W3 mounts W5's `TaskBoard` and W6's `TaskPanel`; W5 mounts W6's `TaskPanel` and `CreateTaskDialog`. Until merge, each stream uses a stub component with the frozen props from §5. Merge order: W6 → W5 → W3.
 
+**W1, W2, W4, W5 and W6 are done** (one commit each on `feat/frappe-ui-w0-scaffold`). They were built in parallel in one working tree with disjoint file ownership, so no stubs were needed: W5 mounts W6's real `TaskPanel` and `CreateTaskDialog`. `yarn typecheck`, `yarn lint` and `yarn build` are green, and the dashboard, projects, task table, board, calendar and task panel were checked in the browser on desktop and mobile.
+
+Notes for W3, W7 and W8:
+- `src/shims.d.ts` no longer declares `*.vue`. Volar types single-file components itself, and the wildcard shadowed them, which made `frappe-ui/experimental`'s own `@ts-expect-error` directives unused and failed typecheck for anything importing that entry point — the command palette in W8 included.
+- W4's tabs mount as `<UpdatesTab :project="project.name" @draft-count="…" />` and `<RequestsTab :project="project.name" v-model:create-open="…" @count="…" />`. `project` is the docname, not the slug, and neither renders a header or a tab bar.
+- W5's board takes `tasks`, `assigneesByTask`, `list` (the `useList` result, for optimistic drops), `readonly` and `showUat`, and emits `select(task)` and `changed`. Pass it a milestone-filtered `tasks`.
+- Saving a view dispatches a `hive:views-changed` window event because frappe-ui's list store does not propagate inserts across instances.
+- Card corners are `rounded-4` in W2 and `rounded-5` in W1; W10 picks one.
+
+Carried into Phase 2:
+- W10: mount `CreateProjectDialog` once in `AppShell.vue` on `useOverlays().createProjectOpen` and drop the `ProjectsPage` mount, so the command palette can open it from any route. Replace the `hive:views-changed` event with a `composables/useHiveViews.ts` singleton. Fold W1's `DashboardProjectCard.vue` into W2's `ProjectCard.vue`.
+- W12: `get_team_stats` is whitelisted with no role check, so a client on the dashboard's `?tab=team` sees team members' overdue and internal task titles. This is pre-existing React behaviour and needs a backend fix.
+
 ### Phase 2 — Integration and cleanup (after Phase 1 merges)
 
 | Stream | Work |

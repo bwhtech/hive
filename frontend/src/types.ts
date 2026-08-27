@@ -65,6 +65,7 @@ export interface HiveProject {
 	github_repo: string | null
 	owner: string
 	links?: HiveProjectLink[]
+	members?: HiveProjectMember[]
 	creation: string
 	modified: string
 }

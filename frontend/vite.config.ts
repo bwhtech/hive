@@ -1,15 +1,23 @@
-import path from 'path';
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import path from 'node:path'
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import frappeui from 'frappe-ui/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import proxyOptions from './proxyOptions';
 
-// https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [
-		react(),
-		tailwindcss(),
+		frappeui({
+			frontendRoute: '/hive',
+			frappeProxy: { port: 8080 },
+			jinjaBootData: true,
+			lucideIcons: true,
+			buildConfig: {
+				indexHtmlPath: '../bwh_hive/www/hive.html',
+				outDir: '../bwh_hive/public/frontend',
+				baseUrl: '/assets/bwh_hive/frontend/',
+			},
+		}),
+		vue(),
 		VitePWA({
 			registerType: 'autoUpdate',
 			manifest: {
@@ -22,16 +30,8 @@ export default defineConfig({
 				scope: '/hive',
 				start_url: '/hive',
 				icons: [
-					{
-						src: 'images/pwa-192x192.png',
-						sizes: '192x192',
-						type: 'image/png',
-					},
-					{
-						src: 'images/pwa-512x512.png',
-						sizes: '512x512',
-						type: 'image/png',
-					},
+					{ src: 'images/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+					{ src: 'images/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
 					{
 						src: 'images/pwa-512x512.png',
 						sizes: '512x512',
@@ -47,19 +47,17 @@ export default defineConfig({
 			},
 		}),
 	],
-	server: {
-		port: 8080,
-		host: '0.0.0.0',
-		proxy: proxyOptions
-	},
 	resolve: {
 		alias: {
-			'@': path.resolve(__dirname, 'src')
-		}
+			'@': path.resolve(__dirname, 'src'),
+		},
 	},
-	build: {
-		outDir: '../bwh_hive/public/frontend',
-		emptyOutDir: true,
-		target: 'es2015',
+	optimizeDeps: {
+		// frappe-ui ships unbuilt source with `~icons/lucide/*` virtual imports
+		// that esbuild's prebundler cannot resolve.
+		exclude: ['frappe-ui'],
+		// Transitive CJS deps that still need converting to ESM once frappe-ui
+		// itself is excluded from prebundling.
+		include: ['tippy.js', 'engine.io-client', 'socket.io-client', 'debug'],
 	},
-});
+})

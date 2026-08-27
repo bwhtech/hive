@@ -1,0 +1,61 @@
+@import 'frappe-ui/style.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	/* The shells size themselves with `h-full`, so the chain to <html> must be
+	   explicit, and the page needs a painted ground in both color schemes. */
+	html,
+	body,
+	#app {
+		height: 100%;
+	}
+
+	body {
+		@apply bg-surface-base text-ink-gray-8 antialiased;
+	}
+}
+
+/*
+ * Rendered rich-text (task descriptions, updates, comments) comes back from
+ * the API as raw HTML. The editor styles its own content, but read-only
+ * renderings need the same ladder.
+ */
+@layer components {
+	.hive-prose {
+		@apply text-p-base text-ink-gray-8;
+	}
+	.hive-prose :where(h1, h2, h3, h4) {
+		@apply mb-1 mt-4 font-semibold text-ink-gray-9 first:mt-0;
+	}
+	.hive-prose :where(h1) { @apply text-lg; }
+	.hive-prose :where(h2) { @apply text-base; }
+	.hive-prose :where(h3, h4) { @apply text-sm; }
+	.hive-prose :where(p) { @apply my-1.5 first:mt-0 last:mb-0; }
+	.hive-prose :where(ul) { @apply my-1.5 list-disc pl-5; }
+	.hive-prose :where(ol) { @apply my-1.5 list-decimal pl-5; }
+	.hive-prose :where(li) { @apply my-0.5; }
+	.hive-prose :where(a) { @apply text-ink-blue-link underline underline-offset-2; }
+	.hive-prose :where(code) {
+		@apply rounded-1 bg-surface-gray-2 px-1 py-0.5 font-mono text-xs text-ink-gray-8;
+	}
+	.hive-prose :where(pre) {
+		@apply my-2 overflow-x-auto rounded-3 bg-surface-gray-2 p-3 font-mono text-xs;
+	}
+	.hive-prose :where(pre code) { @apply bg-transparent p-0; }
+	.hive-prose :where(blockquote) {
+		@apply my-2 border-l-2 border-outline-gray-2 pl-3 text-ink-gray-7;
+	}
+	.hive-prose :where(img) { @apply my-2 max-w-full rounded-3; }
+	.hive-prose :where(table) { @apply my-2 w-full border-collapse text-sm; }
+	.hive-prose :where(th, td) {
+		@apply border border-outline-gray-2 px-2 py-1 text-left;
+	}
+	.hive-prose :where(th) { @apply bg-surface-gray-2 font-medium text-ink-gray-9; }
+	.hive-prose :where(hr) { @apply my-3 border-outline-gray-2; }
+	.hive-prose :where(.mention) {
+		@apply rounded-1 bg-surface-gray-3 px-1 text-ink-gray-8;
+	}
+}

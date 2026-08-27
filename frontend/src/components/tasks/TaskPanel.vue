@@ -170,7 +170,7 @@
 						<Button
 							v-else
 							label="Convert to GitHub issue"
-							icon-left="lucide-github"
+							icon-left="lucide-git-branch"
 							:loading="createIssue.loading"
 							@click="convertToIssue"
 						/>

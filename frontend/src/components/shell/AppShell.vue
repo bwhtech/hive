@@ -18,33 +18,58 @@
 	</DesktopShell>
 
 	<KeyboardShortcutsDialog v-model:open="shortcutsOpen" />
+	<HiveSettingsDialog />
+	<OnboardingDialog v-if="!isClient" />
 </template>
 
 <script setup lang="ts">
+import { watch } from 'vue'
 import {
 	DesktopShell,
 	KeyboardShortcutsDialog,
 	MobileShell,
 	Spinner,
 	useColorScheme,
+	useDoc,
 	useKeyboardShortcut,
 	usePageMeta,
 } from 'frappe-ui'
+import OnboardingDialog from '@/components/global/OnboardingDialog.vue'
+import HiveSettingsDialog from '@/components/settings/SettingsDialog.vue'
 import AppSidebar from '@/components/shell/AppSidebar.vue'
 import MobileShellNav from '@/components/shell/MobileShellNav.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useCelebrate } from '@/composables/useCelebrate'
 import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
+import type { Bool } from '@/types'
 
 // Applies the stored `data-theme` before anything paints.
 useColorScheme()
 usePageMeta(() => ({ title: 'Hive' }))
 
 const { isDesktop } = useBreakpoint()
-const { ready } = useSession()
+const { ready, isClient } = useSession()
 const { celebrate } = useCelebrate()
-const { commandPaletteOpen, shortcutsOpen, openSettings } = useOverlays()
+const { commandPaletteOpen, onboardingOpen, shortcutsOpen, openSettings } = useOverlays()
+
+// A workspace that has never finished onboarding opens the dialog once per
+// session; dismissing it does not come back until the app is reloaded.
+const settings = useDoc<{ name: string; onboarding_completed: Bool }>({
+	doctype: 'Hive Settings',
+	name: 'Hive Settings',
+})
+
+let onboardingOffered = false
+watch(
+	() => [isClient.value, settings.doc] as const,
+	([client, doc]) => {
+		if (onboardingOffered || client || !doc) return
+		onboardingOffered = true
+		if (!doc.onboarding_completed) onboardingOpen.value = true
+	},
+	{ immediate: true },
+)
 
 useKeyboardShortcut([
 	{

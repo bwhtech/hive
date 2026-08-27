@@ -39,7 +39,11 @@
 				aria-label="Filter by scope"
 			/>
 
-			<Switch v-model="myOnly" label="My projects" />
+			<TabButtons
+				:model-value="myOnly ? 'mine' : 'all'"
+				:options="OWNER_OPTIONS"
+				@update:model-value="myOnly = $event === 'mine'"
+			/>
 		</div>
 
 		<div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -103,7 +107,7 @@ import {
 	ErrorMessage,
 	Select,
 	Skeleton,
-	Switch,
+	TabButtons,
 	TextInput,
 	useCall,
 	useList,
@@ -126,6 +130,12 @@ const ALL_SCOPES = 'All'
 const STATUS_OPTIONS = [
 	{ label: 'All statuses', value: ALL_STATUSES },
 	...PROJECT_STATUSES.map((status) => ({ label: status, value: status })),
+]
+
+/** Membership filter. A pair of buttons reads faster here than a switch. */
+const OWNER_OPTIONS = [
+	{ label: 'All', value: 'all' },
+	{ label: 'My projects', value: 'mine' },
 ]
 
 const SCOPE_OPTIONS = [

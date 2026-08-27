@@ -18,6 +18,9 @@
 	</DesktopShell>
 
 	<KeyboardShortcutsDialog v-model:open="shortcutsOpen" />
+	<CommandPalette />
+	<NotificationsSheet />
+	<OverdueTasksDialog />
 	<HiveSettingsDialog />
 	<OnboardingDialog v-if="!isClient" />
 </template>
@@ -34,7 +37,10 @@ import {
 	useKeyboardShortcut,
 	usePageMeta,
 } from 'frappe-ui'
+import CommandPalette from '@/components/global/CommandPalette.vue'
+import NotificationsSheet from '@/components/global/NotificationsSheet.vue'
 import OnboardingDialog from '@/components/global/OnboardingDialog.vue'
+import OverdueTasksDialog from '@/components/global/OverdueTasksDialog.vue'
 import HiveSettingsDialog from '@/components/settings/SettingsDialog.vue'
 import AppSidebar from '@/components/shell/AppSidebar.vue'
 import MobileShellNav from '@/components/shell/MobileShellNav.vue'

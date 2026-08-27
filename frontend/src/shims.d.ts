@@ -2,12 +2,6 @@
 // exports — one would turn it into a module and every `declare module` below
 // into an augmentation, which declares nothing.
 
-declare module '*.vue' {
-	import type { DefineComponent } from 'vue'
-	const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
-	export default component
-}
-
 // frappe-ui ships unbuilt source that imports lucide glyphs through
 // `unplugin-icons`' virtual modules. The vite plugin resolves them at build
 // time; this keeps `vue-tsc` from tripping over the specifier.

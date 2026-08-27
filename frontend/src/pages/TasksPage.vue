@@ -1,18 +1,436 @@
 <template>
-	<AppHeader title="Tasks" />
-	<div class="p-4 md:p-6">
-		<EmptyState
-			title="Tasks is being rebuilt"
-			description="This screen lands with its workstream. The shell, routing and shared contracts are in place."
-			icon="lucide-construction"
+	<AppHeader>
+		<template #left>
+			<Breadcrumbs :items="crumbs" />
+		</template>
+		<template #actions>
+			<TabButtons
+				:model-value="viewMode"
+				:options="VIEW_MODES"
+				@update:model-value="setViewMode(String($event))"
+			/>
+			<Dropdown v-if="!isClient" :options="viewMenu" align="end">
+				<Button variant="ghost" icon="lucide-ellipsis" aria-label="View actions" />
+			</Dropdown>
+			<Button
+				v-if="!isClient"
+				variant="solid"
+				theme="gray"
+				icon-left="lucide-plus"
+				label="Add Task"
+				@click="createTaskOpen = true"
+			/>
+		</template>
+	</AppHeader>
+
+	<div class="flex items-stretch">
+		<div class="min-w-0 flex-1 space-y-4 px-3 py-5 pb-10 sm:px-5">
+			<TaskFilters
+				:q="q"
+				:status="statusFilter"
+				:priority="priorityFilter"
+				:project="projectFilter"
+				:assignee="assigneeFilter"
+				@update:q="setQuery({ q: $event })"
+				@update:status="setQuery({ status: $event })"
+				@update:priority="setQuery({ priority: $event })"
+				@update:project="setQuery({ project: $event })"
+				@update:assignee="setQuery({ assignee: $event })"
+				@reset="resetFilters"
+			/>
+
+			<PageSkeleton v-if="tasks.loading && !tasks.data" :rows="6" />
+
+			<EmptyState
+				v-else-if="!filtered.length"
+				icon="lucide-square-check-big"
+				:title="hasFilters ? 'No tasks match your filters' : 'No tasks yet'"
+				:description="
+					hasFilters
+						? 'Try adjusting your search or filters.'
+						: 'Tasks appear here once they are created in a project.'
+				"
+			>
+				<template v-if="!hasFilters && !isClient" #action>
+					<Button
+						variant="solid"
+						theme="gray"
+						icon-left="lucide-plus"
+						label="Add Task"
+						@click="createTaskOpen = true"
+					/>
+				</template>
+			</EmptyState>
+
+			<TaskBoard
+				v-else-if="viewMode === 'kanban'"
+				:tasks="filtered"
+				:assignees-by-task="assigneesByTask"
+				:list="tasks"
+				:readonly="isClient"
+				@select="openTask"
+				@changed="refreshAssignees"
+			/>
+
+			<TaskCalendar
+				v-else-if="viewMode === 'calendar'"
+				:tasks="filtered"
+				@select="openTask"
+			/>
+
+			<TaskTable
+				v-else
+				:tasks="filtered"
+				:project-titles="projectTitles"
+				:milestone-titles="milestoneTitles"
+				:assignees-by-task="assigneesByTask"
+				:active-task="activeTaskName"
+				@select="openTask"
+			/>
+		</div>
+
+		<TaskPanel
+			v-if="activeTaskName"
+			:name="activeTaskName"
+			@close="closeTask"
+			@changed="refreshTasks"
 		/>
 	</div>
+
+	<CreateTaskDialog
+		v-model:open="createTaskOpen"
+		:defaults="createDefaults"
+		@created="onTaskCreated"
+	/>
+
+	<SaveViewDialog
+		v-model:open="saveViewOpen"
+		:filters="currentFilters"
+		:view-type="viewMode"
+		@created="onViewCreated"
+	/>
 </template>
 
 <script setup lang="ts">
-import { usePageMeta } from 'frappe-ui'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
+import {
+	Breadcrumbs,
+	Button,
+	Dropdown,
+	TabButtons,
+	toast,
+	useCall,
+	useDoctype,
+	useList,
+	usePageMeta,
+	type BreadcrumbsProps,
+	type DropdownOptions,
+} from 'frappe-ui'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import PageSkeleton from '@/components/common/PageSkeleton.vue'
+import SaveViewDialog from '@/components/tasks/SaveViewDialog.vue'
+import TaskBoard from '@/components/tasks/TaskBoard.vue'
+import TaskCalendar from '@/components/tasks/TaskCalendar.vue'
+import TaskFilters from '@/components/tasks/TaskFilters.vue'
+import TaskTable from '@/components/tasks/TaskTable.vue'
+// Owned by W6; both use the frozen §5 props/emits.
+import CreateTaskDialog from '@/components/tasks/CreateTaskDialog.vue'
+import TaskPanel from '@/components/tasks/TaskPanel.vue'
+import { useOverlays } from '@/composables/useOverlays'
+import { useSession } from '@/composables/useSession'
+import type {
+	CreateTaskValues,
+	HiveMilestone,
+	HiveProject,
+	HiveTask,
+	HiveTaskAssignee,
+	HiveView,
+} from '@/types'
 
-usePageMeta(() => ({ title: 'Tasks · Hive' }))
+type ViewMode = HiveView['view_type']
+
+const VIEW_MODES = [
+	{ value: 'list', label: 'List', icon: 'lucide-list', tooltip: 'List' },
+	{ value: 'kanban', label: 'Board', icon: 'lucide-columns-3', tooltip: 'Board' },
+	{ value: 'calendar', label: 'Calendar', icon: 'lucide-calendar', tooltip: 'Calendar' },
+]
+
+/** The filter keys a saved view round-trips. Order fixes the summary order. */
+const FILTER_KEYS = ['q', 'status', 'priority', 'project', 'assignee'] as const
+
+/** Announced to `SidebarViews`, which cannot see this page's insert. */
+const VIEWS_CHANGED_EVENT = 'hive:views-changed'
+
+const route = useRoute()
+const router = useRouter()
+const { isClient } = useSession()
+const { createTaskOpen } = useOverlays()
+const viewDoctype = useDoctype<HiveView>('Hive View')
+
+function param(key: string): string {
+	const value = route.query[key]
+	return typeof value === 'string' ? value : ''
+}
+
+const q = computed(() => param('q'))
+const statusFilter = computed(() => param('status'))
+const priorityFilter = computed(() => param('priority'))
+const projectFilter = computed(() => param('project'))
+const assigneeFilter = computed(() => param('assignee'))
+const viewId = computed(() => param('view_id'))
+const activeTaskName = computed(() => param('task') || null)
+
+const viewMode = computed<ViewMode>(() => {
+	const value = param('view')
+	return value === 'kanban' || value === 'calendar' ? value : 'list'
+})
+
+/** Filters live in the URL, so a view, a refresh and a shared link agree. */
+function setQuery(patch: Record<string, string>) {
+	const query: LocationQueryRaw = {}
+	for (const [key, value] of Object.entries(route.query)) {
+		if (typeof value === 'string' && value) query[key] = value
+	}
+	for (const [key, value] of Object.entries(patch)) {
+		if (value) query[key] = value
+		else delete query[key]
+	}
+	router.replace({ path: '/tasks', query })
+}
+
+function setViewMode(mode: string) {
+	setQuery({ view: mode === 'list' ? '' : mode })
+}
+
+function resetFilters() {
+	setQuery({ q: '', status: '', priority: '', project: '', assignee: '' })
+}
+
+// -- data ----------------------------------------------------------------
+
+const tasks = useList<HiveTask>({
+	doctype: 'Hive Task',
+	fields: [
+		'name',
+		'title',
+		'project',
+		'status',
+		'priority',
+		'size',
+		'milestone',
+		'depends_on',
+		'assigned_to',
+		'is_internal',
+		'start_date',
+		'due_date',
+		'completed_on',
+		'pr_link',
+		'uat_status',
+		'recurrence_frequency',
+		'recurrence_end_date',
+		'creation',
+		'modified',
+	],
+	filters: { is_archived: 0 },
+	orderBy: 'due_date asc',
+	limit: 500,
+	cacheKey: 'tasks-page',
+})
+
+const projects = useList<Pick<HiveProject, 'name' | 'title'>>({
+	doctype: 'Hive Project',
+	fields: ['name', 'title'],
+	limit: 100,
+})
+
+const milestones = useList<Pick<HiveMilestone, 'name' | 'title'>>({
+	doctype: 'Hive Milestone',
+	fields: ['name', 'title'],
+	limit: 500,
+})
+
+const assignees = useCall<Record<string, HiveTaskAssignee[]>>({
+	url: '/api/v2/method/bwh_hive.bwh_hive.api.get_task_assignees',
+	method: 'POST',
+})
+
+const assigneesByTask = computed(() => assignees.data ?? {})
+
+const projectTitles = computed(() =>
+	Object.fromEntries((projects.data ?? []).map((p) => [p.name, p.title])),
+)
+const milestoneTitles = computed(() =>
+	Object.fromEntries((milestones.data ?? []).map((m) => [m.name, m.title])),
+)
+
+function refreshAssignees() {
+	assignees.reload()
+}
+
+function refreshTasks() {
+	tasks.reload()
+	assignees.reload()
+}
+
+// -- filtering -----------------------------------------------------------
+
+const hasFilters = computed(() =>
+	Boolean(
+		q.value ||
+			statusFilter.value ||
+			priorityFilter.value ||
+			projectFilter.value ||
+			assigneeFilter.value,
+	),
+)
+
+const filtered = computed(() => {
+	const query = q.value.toLowerCase()
+	return (tasks.data ?? []).filter((task) => {
+		if (query) {
+			const project = (projectTitles.value[task.project] ?? task.project).toLowerCase()
+			const haystack = `${task.name} ${task.title} ${project} ${task.assigned_to ?? ''}`
+			if (!haystack.toLowerCase().includes(query)) return false
+		}
+		if (statusFilter.value && task.status !== statusFilter.value) return false
+		if (priorityFilter.value && task.priority !== priorityFilter.value) return false
+		if (projectFilter.value && task.project !== projectFilter.value) return false
+		if (assigneeFilter.value) {
+			const list = assigneesByTask.value[task.name] ?? []
+			if (!list.some((a) => a.member === assigneeFilter.value)) return false
+		}
+		return true
+	})
+})
+
+// -- task panel ----------------------------------------------------------
+
+function openTask(task: HiveTask) {
+	// A row that keeps focus swallows the panel's own Escape handling.
+	if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+	setQuery({ task: task.name })
+}
+
+function closeTask() {
+	setQuery({ task: '' })
+}
+
+const createDefaults = computed<Partial<CreateTaskValues>>(() => ({
+	...(projectFilter.value ? { project: projectFilter.value } : {}),
+}))
+
+function onTaskCreated() {
+	refreshTasks()
+}
+
+// -- saved views ---------------------------------------------------------
+
+const activeViewList = useList<HiveView>({
+	doctype: 'Hive View',
+	fields: ['name', 'label', 'emoji', 'view_type', 'filters_json', 'is_public', 'owner'],
+	filters: () => ({ name: viewId.value }),
+	limit: 1,
+	immediate: false,
+	refetch: false,
+})
+
+watch(
+	viewId,
+	(id) => {
+		if (id) activeViewList.reload()
+	},
+	{ immediate: true },
+)
+
+const activeView = computed(() => (viewId.value ? activeViewList.data?.[0] ?? null : null))
+
+const crumbs = computed<BreadcrumbsProps['items']>(() => {
+	const items: BreadcrumbsProps['items'] = [{ label: 'Tasks', route: { path: '/tasks' } }]
+	if (activeView.value) {
+		items.push({
+			label: `${activeView.value.emoji || '📋'} ${activeView.value.label}`,
+		})
+	}
+	return items
+})
+
+/** Only the filters that are actually set; this is what a view stores. */
+const currentFilters = computed(() => {
+	const values: Record<string, string> = {
+		q: q.value,
+		status: statusFilter.value,
+		priority: priorityFilter.value,
+		project: projectFilter.value,
+		assignee: assigneeFilter.value,
+	}
+	const out: Record<string, string> = {}
+	for (const key of FILTER_KEYS) {
+		if (values[key]) out[key] = values[key]
+	}
+	return out
+})
+
+/** True once the toolbar or the view mode drifts from what the view stored. */
+const viewDirty = computed(() => {
+	const view = activeView.value
+	if (!view) return false
+	if (viewMode.value !== (view.view_type || 'list')) return true
+	let saved: Record<string, string>
+	try {
+		saved = JSON.parse(view.filters_json || '{}')
+	} catch {
+		saved = {}
+	}
+	const current = currentFilters.value
+	const savedKeys = Object.keys(saved).sort()
+	const currentKeys = Object.keys(current).sort()
+	if (savedKeys.length !== currentKeys.length) return true
+	return savedKeys.some((key, i) => currentKeys[i] !== key || saved[key] !== current[key])
+})
+
+const saveViewOpen = ref(false)
+
+const viewMenu = computed<DropdownOptions>(() => {
+	if (activeView.value && viewDirty.value) {
+		return [
+			{ label: 'Save changes', icon: 'lucide-save', onClick: saveViewChanges },
+			{
+				label: 'Save as new view',
+				icon: 'lucide-copy-plus',
+				onClick: () => (saveViewOpen.value = true),
+			},
+		]
+	}
+	return [{ label: 'Save view', icon: 'lucide-save', onClick: () => (saveViewOpen.value = true) }]
+})
+
+async function saveViewChanges() {
+	const view = activeView.value
+	if (!view) return
+	try {
+		await viewDoctype.setValue.submit({
+			name: view.name,
+			filters_json: JSON.stringify(currentFilters.value),
+			view_type: viewMode.value,
+		})
+		activeViewList.reload()
+		window.dispatchEvent(new CustomEvent(VIEWS_CHANGED_EVENT))
+		toast.success('View updated')
+	} catch {
+		toast.error('Could not update the view')
+	}
+}
+
+function onViewCreated(view: HiveView) {
+	window.dispatchEvent(new CustomEvent(VIEWS_CHANGED_EVENT))
+	const query: LocationQueryRaw = { view_id: view.name, ...currentFilters.value }
+	if (viewMode.value !== 'list') query.view = viewMode.value
+	router.replace({ path: '/tasks', query })
+}
+
+usePageMeta(() => ({
+	title: activeView.value ? `${activeView.value.label} · Hive` : 'Tasks · Hive',
+}))
 </script>

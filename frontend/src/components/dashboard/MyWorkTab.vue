@@ -4,7 +4,13 @@
 		<div
 			class="grid grid-cols-1 divide-y divide-outline-gray-2 rounded-4 border border-outline-gray-1 bg-surface-base sm:grid-cols-3 sm:divide-x sm:divide-y-0"
 		>
-			<div v-for="kpi in kpis" :key="kpi.title" class="p-4">
+			<div
+				v-for="kpi in kpis"
+				:key="kpi.title"
+				class="p-4"
+				data-testid="kpi"
+				:data-kpi="kpi.title"
+			>
 				<NumberCard
 					:title="kpi.title"
 					:value="kpi.value"
@@ -15,7 +21,8 @@
 			</div>
 		</div>
 
-		<div class="grid gap-6 lg:grid-cols-2">
+		<!-- `items-start` so a short list does not stretch to match the tall one. -->
+		<div class="grid items-start gap-6 lg:grid-cols-2">
 			<DashboardSection title="My tasks" icon="lucide-list-checks">
 				<div v-if="loading" class="space-y-2 p-2">
 					<Skeleton v-for="n in 5" :key="n" class="h-8 w-full" />
@@ -26,7 +33,10 @@
 					description="Tasks assigned to you show up here."
 					icon="lucide-list-checks"
 				/>
-				<List v-else>
+				<!-- Without explicit tracks and a row height, rows collapse to the
+				     height of their text and the status dot claims a third of the
+				     row. -->
+				<List v-else :columns="TASK_COLUMNS" :row-height="36">
 					<ListGroup v-for="group in taskGroups" :key="group.project">
 						<template #header>
 							<RouterLink
@@ -89,7 +99,9 @@
 					description="Updates from your projects show up here."
 					icon="lucide-megaphone"
 				/>
-				<List v-else>
+				<!-- Two-line rows, so the height comes from the content; the tracks
+				     still keep the unread dot and the timestamp off the text. -->
+				<List v-else :columns="UPDATE_COLUMNS">
 					<ListRow
 						v-for="update in updates"
 						:key="update.name"
@@ -205,6 +217,12 @@ interface MyDashboard {
 	unread_count: number
 	recent_updates: DashboardUpdate[]
 }
+
+/** Status dot, title, then the due date pinned to the right. */
+const TASK_COLUMNS = ['1rem', 'minmax(0, 1fr)', 'auto']
+
+/** Unread dot, the update itself, then its age. */
+const UPDATE_COLUMNS = ['1rem', 'minmax(0, 1fr)', 'auto']
 
 /** Characters of stripped update text shown in the feed. */
 const PREVIEW_LENGTH = 120

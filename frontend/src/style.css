@@ -69,8 +69,9 @@
 	.hive-prose :where(img) {
 		@apply my-2 max-w-full rounded-3;
 	}
+	/* A wide table scrolls inside the post rather than stretching the card. */
 	.hive-prose :where(table) {
-		@apply my-2 w-full border-collapse text-sm;
+		@apply my-2 block w-full max-w-full table-auto overflow-x-auto border-collapse text-sm;
 	}
 	.hive-prose :where(th, td) {
 		@apply border border-outline-gray-2 px-2 py-1 text-left;

@@ -3,11 +3,20 @@
 		<SidebarItem
 			v-for="view in views"
 			:key="view.name"
-			:icon="view.emoji || '📋'"
 			:label="view.label"
 			:to="routeFor(view)"
 			:active="activeViewId === view.name"
+			data-testid="sidebar-view"
+			:data-view="view.name"
 		>
+			<!-- The default icon slot sizes its box but not the glyph, so an
+			     emoji renders at the inherited font size and overflows. -->
+			<template #prefix>
+				<span class="grid size-4 place-items-center text-xs leading-none">
+					{{ view.emoji || '📋' }}
+				</span>
+			</template>
+
 			<template #suffix>
 				<Dropdown
 					v-if="view.owner === userId"

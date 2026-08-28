@@ -23,6 +23,8 @@
 					v-for="task in pageRows"
 					:key="task.name"
 					:value="task.name"
+					data-testid="task-row"
+					:data-task="task.name"
 					@click="emit('select', task)"
 				>
 					<ListCell>

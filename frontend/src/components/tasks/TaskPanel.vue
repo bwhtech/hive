@@ -1,6 +1,12 @@
 <template>
 	<component :is="Wrapper" v-bind="wrapperProps" @update:open="onSheetOpenChange">
-		<div v-if="name" class="flex min-h-0 flex-col" :class="isDesktop ? 'h-full' : ''">
+		<div
+			v-if="name"
+			class="flex min-h-0 flex-col"
+			:class="isDesktop ? 'h-full' : ''"
+			data-testid="task-panel"
+			:data-task="name"
+		>
 			<header
 				class="flex shrink-0 items-center gap-1 border-b border-outline-gray-2 px-4 py-2.5"
 			>

@@ -1,7 +1,11 @@
 <template>
-	<div class="rounded-4 border border-outline-amber-2 bg-surface-amber-1 p-3">
+	<div
+		class="rounded-4 border border-outline-gray-2 bg-surface-gray-1 p-3"
+		data-testid="draft-card"
+		:data-draft="draft.name"
+	>
 		<div class="flex items-center gap-2">
-			<Badge label="Draft" theme="amber" variant="subtle" size="sm" />
+			<Badge label="Draft" theme="gray" variant="subtle" size="sm" />
 			<span class="text-xs text-ink-gray-5">Edited {{ fromNow(draft.modified) }}</span>
 		</div>
 
@@ -32,12 +36,7 @@
 			<!-- eslint-disable-next-line vue/no-v-html -- editor output, same as every rendered update -->
 			<div class="hive-prose mt-2" v-html="draft.content" />
 			<div class="mt-3 flex items-center justify-end gap-2">
-				<Button
-					label="Delete"
-					theme="red"
-					variant="ghost"
-					@click="emit('delete', draft.name)"
-				/>
+				<Button label="Delete" variant="ghost" @click="emit('delete', draft.name)" />
 				<Button label="Edit" icon-left="lucide-pencil" @click="startEditing" />
 				<Button
 					variant="solid"

@@ -7,6 +7,8 @@
 		]"
 		role="button"
 		tabindex="0"
+		data-testid="task-card"
+		:data-task="task.name"
 		@click="emit('select', task)"
 		@keydown.enter.prevent="emit('select', task)"
 		@keydown.space.prevent="emit('select', task)"

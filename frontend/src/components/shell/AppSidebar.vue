@@ -56,7 +56,6 @@ import {
 	SidebarHeader,
 	SidebarItem,
 	SidebarSection,
-	useColorScheme,
 	type DropdownOptions,
 } from 'frappe-ui'
 import SidebarPinned from '@/components/shell/SidebarPinned.vue'
@@ -85,18 +84,12 @@ const navItems: NavItem[] = [
 const route = useRoute()
 const { user, isClient, logout } = useSession()
 const { openSettings } = useOverlays()
-const { colorScheme, toggleColorScheme } = useColorScheme()
 
 function isActive(item: NavItem) {
 	return item.exact ? route.path === item.to : route.path.startsWith(item.to)
 }
 
 const userMenu = computed<DropdownOptions>(() => [
-	{
-		label: colorScheme.value === 'dark' ? 'Light mode' : 'Dark mode',
-		icon: colorScheme.value === 'dark' ? 'lucide-sun' : 'lucide-moon',
-		onClick: () => toggleColorScheme(),
-	},
 	{
 		label: 'Raise an issue',
 		icon: 'lucide-bug',

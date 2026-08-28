@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import type { CreateTaskValues, HiveTask } from '@/types'
 
-export type SettingsTab = 'profile' | 'general' | 'members' | 'clients' | 'github'
+export type SettingsTab = 'profile' | 'appearance' | 'general' | 'members' | 'clients' | 'github'
 
 /** What the shell's create-task dialog needs from whoever opened it. */
 export interface CreateTaskContext {

@@ -5,6 +5,8 @@
 				v-for="status in TASK_STATUSES"
 				:key="status"
 				class="flex min-w-56 flex-1 basis-72 flex-col rounded-4 bg-surface-gray-1 p-2"
+				data-testid="board-column"
+				:data-status="status"
 			>
 				<header class="flex items-center justify-between px-1 pb-2">
 					<span class="text-sm font-medium text-ink-gray-7">{{ status }}</span>

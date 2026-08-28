@@ -1,7 +1,7 @@
 <template>
 	<div v-if="members.length" class="flex items-center">
 		<Tooltip v-for="member in shown" :key="member.user" :text="member.name || member.user">
-			<div class="-mr-1.5 rounded-full ring-2 ring-surface-base last:mr-0">
+			<div class="-mr-1 last:mr-0">
 				<Avatar
 					:size="size"
 					:image="member.image ?? undefined"
@@ -11,7 +11,8 @@
 		</Tooltip>
 		<Tooltip v-if="overflow.length" :text="overflowNames">
 			<div
-				class="grid size-6 place-items-center rounded-full bg-surface-gray-3 text-2xs font-medium text-ink-gray-7 ring-2 ring-surface-base"
+				class="grid shrink-0 place-items-center rounded-full bg-surface-gray-3 font-medium text-ink-gray-7"
+				:class="overflowClasses"
 			>
 				+{{ overflow.length }}
 			</div>
@@ -29,6 +30,21 @@ export interface StackMember {
 	image?: string | null
 }
 
+/**
+ * Mirrors `Avatar`'s own size scale so the overflow chip lines up with the
+ * faces beside it. Avatar renders only the first character of its label, so
+ * "+2" cannot go through it.
+ */
+const OVERFLOW_SIZES: Record<string, string> = {
+	xs: 'size-4 text-2xs',
+	sm: 'size-5 text-2xs',
+	md: 'size-6 text-2xs',
+	lg: 'size-7 text-xs',
+	xl: 'size-8 text-xs',
+	'2xl': 'size-10 text-sm',
+	'3xl': 'size-11.5 text-sm',
+}
+
 const props = withDefaults(
 	defineProps<{
 		members: StackMember[]
@@ -41,4 +57,5 @@ const props = withDefaults(
 const shown = computed(() => props.members.slice(0, props.max))
 const overflow = computed(() => props.members.slice(props.max))
 const overflowNames = computed(() => overflow.value.map((m) => m.name || m.user).join(', '))
+const overflowClasses = computed(() => OVERFLOW_SIZES[props.size ?? 'sm'] ?? OVERFLOW_SIZES.sm)
 </script>

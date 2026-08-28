@@ -36,6 +36,8 @@
 				v-for="milestone in milestones"
 				:key="milestone.name"
 				class="rounded-4 border border-outline-gray-1 bg-surface-base p-4"
+				data-testid="milestone-card"
+				:data-milestone="milestone.name"
 			>
 				<div class="flex items-start justify-between gap-4">
 					<div class="min-w-0 space-y-1">

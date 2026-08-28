@@ -41,7 +41,13 @@
 				<ListHeaderCell><span class="sr-only">Actions</span></ListHeaderCell>
 			</ListHeader>
 
-			<ListRow v-for="request in requests" :key="request.name" :value="request.name">
+			<ListRow
+				v-for="request in requests"
+				:key="request.name"
+				:value="request.name"
+				data-testid="request-row"
+				:data-request="request.name"
+			>
 				<ListCell>
 					<div class="min-w-0">
 						<p class="truncate text-base text-ink-gray-8">{{ request.title }}</p>

@@ -2,7 +2,11 @@
 	<PageHeader>
 		<div class="flex min-w-0 flex-1 items-center gap-2">
 			<slot name="left">
-				<PageHeaderTitle :title="title" />
+				<!-- The page title is this view's h1: the shell renders no other
+				     heading, so screen readers and tests both look for it here. -->
+				<PageHeaderTitle>
+					<h1 class="truncate">{{ title }}</h1>
+				</PageHeaderTitle>
 			</slot>
 		</div>
 

@@ -1,8 +1,10 @@
 # Hive frontend rewrite — React → Vue 3 + frappe-ui
 
-Status: IN PROGRESS. W0, all of phase 1, and W10 landed (2026-08-27); W9, W11 and W12 remain. Replaces `frontend/` (React 19 + shadcn, ~16.7k LOC) with a Vue 3 app built on `frappe-ui@1.0.0-beta.55`. Agent features are dropped. Backend stays as is except for the small items in §9.
+Status: IN PROGRESS. W0, all of phase 1, W9 and W10 landed (2026-08-28). W11 and W12 remain. Replaces `frontend/` (React 19 + shadcn, ~16.7k LOC) with a Vue 3 app built on `frappe-ui@1.0.0-beta.55`. Agent features are dropped. Backend stays as is except for the small items in §9.
 
 Sources for this plan: full inventory of `frontend/src`, clone of `frappe/frappe-ui` at `c2fce39` (beta.55), the bundled frappe-ui skill (`SETUP.md`, `COMPONENTS.md`, `DESIGN.md`, `TOKENS.md`).
+
+Next phase: [framework-ui-adoption.md](framework-ui-adoption.md) — adopt shared components from `apps/frappe/ui`, after W11 and W12.
 
 Appendices: [react-inventory.md](frappe-ui-rewrite/react-inventory.md) (every page, API call, param, key) · [frappe-ui-inventory.md](frappe-ui-rewrite/frappe-ui-inventory.md) (components, subpaths, data layer).
 
@@ -308,7 +310,7 @@ Carried into Phase 2:
 
 | Stream | Work |
 |---|---|
-| **W9 e2e** | Run full `e2e/` suite; update selectors/flows; add smoke for kanban DnD, calendar, command palette, settings. Gate on green. |
+| **W9 e2e** | **Done.** Suite green at 104 tests. Specs go through `e2e/helpers/app.ts` (storage seeding, overdue-dialog suppression) and `e2e/helpers/ui.ts` (frappe-ui locators). `AppHeader` now renders the page title as an `h1`, so `getByRole("heading")` works. |
 | **W10 Polish pass** | **Done.** See the notes below. |
 | **W11 Remove React** | Delete `frontend-react/`, prune root `package.json`, update `CLAUDE.md` (frappe-ui, `yarn dev` on 8080 proxying 8000, `frappe-ui` skill), README. |
 | **W12 Backend agent cleanup (separate PR, optional but recommended)** | Remove `agent_api.py`, `orchestrator/`, agent fields from Hive Task / Hive Project / Hive Settings JSON (+ patch to drop columns), `agent_*` whitelisted methods and `resolved_prompts` in `api.py`, `ToDo` doc_events and `reconcile_agent_tasks` cron in `hooks.py`, agent notification channels, `tasks.py` bits. Types in the new frontend never referenced these, so this can land any time. |

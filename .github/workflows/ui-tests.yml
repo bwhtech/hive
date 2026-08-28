@@ -125,6 +125,10 @@ jobs:
           npm install
           npx playwright install --with-deps chromium
 
+      - name: Check e2e locators
+        working-directory: ${{ github.workspace }}
+        run: node e2e/no-markup-locators.mjs
+
       - name: Run Playwright Tests
         working-directory: ${{ github.workspace }}
         run: npx playwright test

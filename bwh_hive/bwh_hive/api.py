@@ -535,6 +535,9 @@ def get_team_stats(period: str = "week"):
 	Args:
 		period: "week" (last 7 days) or "month" (last 30 days)
 	"""
+	if _is_hive_client():
+		frappe.throw("Not permitted", frappe.PermissionError)
+
 	days = 7 if period == "week" else 30
 	cutoff = getdate(nowdate()) - timedelta(days=days)
 	today = nowdate()
@@ -948,86 +951,3 @@ def resolve_project_slug(slug: str):
 	if not name:
 		frappe.throw("Project not found", frappe.DoesNotExistError)
 	return name
-
-
-# --------------------------------------------------------------------------- #
-# Agent surface — thin frontend-facing wrappers (specs/v2 09).
-#
-# The React app can't call doctype methods the way the desk does, so these wrap
-# the whitelisted Hive Task agent methods with a flat (task, ...) signature the
-# frontend calls via useFrappePostCall. Each underlying method re-asserts its
-# own guard (identity + write permission) — these wrappers add no trust boundary.
-# --------------------------------------------------------------------------- #
-@frappe.whitelist(methods=["POST"])
-def agent_approve_spec(task: str, note: str | None = None):
-	"""Approve the agent's spec (wraps Hive Task.approve_spec)."""
-	return frappe.get_doc("Hive Task", task).approve_spec(note=note)
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_request_changes(task: str, comment: str, path: str | None = None, line: str | None = None):
-	"""Request another iteration, sending a single review comment as the §5.3 payload."""
-	body = (comment or "").strip()
-	if not body:
-		frappe.throw("Provide a review comment.")
-	entry: dict = {"author": frappe.session.user, "body": body}
-	if path:
-		entry["path"] = path
-	if line not in (None, ""):
-		entry["line"] = line
-	return frappe.get_doc("Hive Task", task).request_agent_changes([entry])
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_mark_merged(task: str):
-	"""Record that the PR was merged (wraps Hive Task.mark_agent_merged)."""
-	return frappe.get_doc("Hive Task", task).mark_agent_merged()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_retry(task: str):
-	"""Re-provision a clean box for a Failed task (wraps Hive Task.retry_agent)."""
-	return frappe.get_doc("Hive Task", task).retry_agent()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_cancel(task: str):
-	"""Cancel an in-flight agent task (wraps Hive Task.cancel_agent)."""
-	return frappe.get_doc("Hive Task", task).cancel_agent()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_teardown_now(task: str):
-	"""Force-deprovision a Failed box (wraps Hive Task.teardown_agent_now)."""
-	return frappe.get_doc("Hive Task", task).teardown_agent_now()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_handoff(task: str):
-	"""Start the agent loop from the product by assigning the task to the Agent bot.
-
-	Assigning to the Agent user is what triggers provisioning (Phase 1 _assign hook).
-	Re-asserts write permission — the same gate the desk assign flow enforces.
-	"""
-	from frappe.desk.form.assign_to import add as assign_add
-
-	from bwh_hive.bwh_hive.orchestrator import service
-
-	doc = frappe.get_doc("Hive Task", task)
-	doc.check_permission("write")
-	agent_user = service.get_agent_user()
-	if not agent_user:
-		frappe.throw("No Agent bot user is configured.")
-	assign_add({"doctype": "Hive Task", "name": task, "assign_to": [agent_user]})
-	return {"ok": True, "agent_user": agent_user}
-
-
-@frappe.whitelist()
-def resolved_prompts(project: str | None = None):
-	"""Return the resolved {spec,implement,changes} prompts (project override → global).
-
-	Lets the per-project settings UI show which prompt the box would actually receive.
-	"""
-	from bwh_hive.bwh_hive.agent_api import resolve_prompts
-
-	return resolve_prompts(project)

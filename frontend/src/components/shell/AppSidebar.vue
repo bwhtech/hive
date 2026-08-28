@@ -1,6 +1,6 @@
 <template>
 	<Sidebar width="14rem">
-		<SidebarHeader title="Hive" :logo="LOGO_URL" />
+		<SidebarHeader title="Hive" :logo="LOGO_URL" :menu-items="workspaceMenu" />
 
 		<ScrollArea class="min-h-0 flex-1 px-1">
 			<SidebarSection>
@@ -12,15 +12,18 @@
 					:access-key="item.accessKey"
 					:to="item.to"
 					:active="isActive(item)"
+					:suffix="item.suffix"
 				/>
-				<SidebarItem
-					v-if="!isClient"
-					icon="lucide-settings"
-					label="Settings"
-					@click="openSettings('profile')"
-				/>
+				<!-- Search is a nav row, not a header button: the palette is the
+				     app's search, and this is where the recipe puts it. -->
+				<SidebarItem icon="lucide-search" label="Search" @click="commandPaletteOpen = true">
+					<template #suffix>
+						<KeyboardShortcut class="mr-2" combo="Mod+K" />
+					</template>
+				</SidebarItem>
 			</SidebarSection>
 
+			<SidebarProjects />
 			<SidebarViews />
 			<SidebarPinned />
 		</ScrollArea>
@@ -51,6 +54,7 @@ import { useRoute } from 'vue-router'
 import {
 	Avatar,
 	Dropdown,
+	KeyboardShortcut,
 	ScrollArea,
 	Sidebar,
 	SidebarHeader,
@@ -59,7 +63,9 @@ import {
 	type DropdownOptions,
 } from 'frappe-ui'
 import SidebarPinned from '@/components/shell/SidebarPinned.vue'
+import SidebarProjects from '@/components/shell/SidebarProjects.vue'
 import SidebarViews from '@/components/shell/SidebarViews.vue'
+import { useUnreadCount } from '@/components/shell/useUnreadCount'
 import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
 
@@ -72,29 +78,60 @@ interface NavItem {
 	icon: string
 	accessKey: string
 	exact?: boolean
+	suffix?: string
 }
 
-const navItems: NavItem[] = [
-	{ to: '/', label: 'Dashboard', icon: 'lucide-layout-dashboard', accessKey: 'd', exact: true },
-	{ to: '/projects', label: 'Projects', icon: 'lucide-folder', accessKey: 'p' },
-	{ to: '/tasks', label: 'Tasks', icon: 'lucide-square-check-big', accessKey: 't' },
-	{ to: '/team', label: 'Team', icon: 'lucide-users', accessKey: 'm' },
-]
+/** The `SidebarHeader` dropdown takes a narrower shape than `Dropdown` does. */
+interface MenuItem {
+	label: string
+	icon: string
+	onClick: () => void
+}
 
 const route = useRoute()
 const { user, isClient, logout } = useSession()
-const { openSettings } = useOverlays()
+const { commandPaletteOpen, openSettings } = useOverlays()
+const unreadCount = useUnreadCount()
+
+// Projects live in their own section below; the nav block stays at three rows.
+const navItems = computed<NavItem[]>(() => [
+	{
+		to: '/',
+		label: 'Dashboard',
+		icon: 'lucide-layout-dashboard',
+		accessKey: 'd',
+		exact: true,
+		// The same unread count the header bell shows, in the recipe's Inbox slot.
+		suffix: unreadCount.value ? String(unreadCount.value) : undefined,
+	},
+	{ to: '/tasks', label: 'Tasks', icon: 'lucide-square-check-big', accessKey: 't' },
+	{ to: '/team', label: 'Team', icon: 'lucide-users', accessKey: 'm' },
+])
 
 function isActive(item: NavItem) {
 	return item.exact ? route.path === item.to : route.path.startsWith(item.to)
 }
 
-const userMenu = computed<DropdownOptions>(() => [
-	{
+// Workspace-level actions belong to the workspace, so they hang off its header.
+const workspaceMenu = computed<MenuItem[]>(() => {
+	const items: MenuItem[] = []
+	if (!isClient.value) {
+		items.push({
+			label: 'Settings',
+			icon: 'lucide-settings',
+			onClick: () => openSettings('profile'),
+		})
+	}
+	items.push({
 		label: 'Raise an issue',
 		icon: 'lucide-bug',
 		onClick: () => window.open(ISSUE_URL, '_blank', 'noopener'),
-	},
+	})
+	return items
+})
+
+// Everything else moved to the header dropdown; the avatar keeps only Log out.
+const userMenu: DropdownOptions = [
 	{ label: 'Log out', icon: 'lucide-log-out', theme: 'red', onClick: () => logout() },
-])
+]
 </script>

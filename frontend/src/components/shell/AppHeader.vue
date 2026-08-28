@@ -12,25 +12,6 @@
 
 		<div class="flex shrink-0 items-center gap-2">
 			<slot name="actions" />
-			<Button
-				class="hidden md:flex"
-				variant="ghost"
-				icon-left="lucide-search"
-				label="Search"
-				@click="commandPaletteOpen = true"
-			>
-				<template #suffix>
-					<KeyboardShortcut combo="Mod+K" />
-				</template>
-			</Button>
-			<Button
-				class="md:hidden"
-				variant="ghost"
-				icon="lucide-search"
-				tooltip="Search"
-				aria-label="Search"
-				@click="commandPaletteOpen = true"
-			/>
 			<div class="relative">
 				<Button
 					variant="ghost"
@@ -53,10 +34,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue'
-import { Button, KeyboardShortcut, PageHeader, PageHeaderTitle, useCall } from 'frappe-ui'
+import { Button, PageHeader, PageHeaderTitle } from 'frappe-ui'
+import { useUnreadCount } from '@/components/shell/useUnreadCount'
 import { useOverlays } from '@/composables/useOverlays'
-import { useSession } from '@/composables/useSession'
 
 defineProps<{
 	/** Plain-text title. Ignored when the `left` slot is used. */
@@ -66,33 +46,10 @@ defineProps<{
 defineSlots<{
 	/** Replaces the title region — breadcrumbs, a back button, an inline editor. */
 	left?: () => unknown
-	/** Page-specific actions, placed before the global search and bell. */
+	/** Page-specific actions, placed before the bell. */
 	actions?: () => unknown
 }>()
 
-const POLL_INTERVAL = 30_000
-
-const { userId } = useSession()
-const { commandPaletteOpen, notificationsOpen } = useOverlays()
-
-const unread = useCall<number, { doctype: string; filters: string }>({
-	url: '/api/v2/method/frappe.client.get_count',
-	method: 'GET',
-	params: () => ({
-		doctype: 'Notification Log',
-		filters: JSON.stringify({ read: 0, for_user: userId.value }),
-	}),
-	immediate: false,
-})
-
-const unreadCount = computed(() => unread.data ?? 0)
-
-let timer: ReturnType<typeof setInterval> | undefined
-onMounted(() => {
-	if (userId.value) unread.reload()
-	timer = setInterval(() => {
-		if (userId.value) unread.reload()
-	}, POLL_INTERVAL)
-})
-onBeforeUnmount(() => clearInterval(timer))
+const { notificationsOpen } = useOverlays()
+const unreadCount = useUnreadCount()
 </script>

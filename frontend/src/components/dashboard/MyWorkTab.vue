@@ -116,6 +116,19 @@
 							/>
 							<span v-else class="size-2" aria-hidden="true" />
 						</ListCell>
+						<!-- The project's avatar, not the author's: the row is read
+						     as "which project is this from", and the author's name
+						     is already the first thing in the text. -->
+						<ListCell>
+							<ProjectAvatar
+								:name="update.project"
+								:title="update.project_title"
+								:icon="update.project_icon"
+								:color="update.project_color"
+								size="lg"
+								hide-tooltip
+							/>
+						</ListCell>
 						<ListCell>
 							<div class="min-w-0 py-2">
 								<p
@@ -150,21 +163,6 @@
 				</List>
 			</DashboardSection>
 		</div>
-
-		<DashboardSection title="My projects" icon="lucide-folder" body-class="p-4">
-			<div v-if="loading" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				<Skeleton v-for="n in 3" :key="n" class="h-24 w-full rounded-4" />
-			</div>
-			<EmptyState
-				v-else-if="!projects.length"
-				title="No projects yet"
-				description="Projects you are a member of show up here."
-				icon="lucide-folder"
-			/>
-			<div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				<ProjectCard v-for="project in projects" :key="project.name" :project="project" />
-			</div>
-		</DashboardSection>
 	</div>
 </template>
 
@@ -174,9 +172,9 @@ import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { Badge, Skeleton, useCall } from 'frappe-ui'
 import { List, ListCell, ListGroup, ListRow } from 'frappe-ui/list'
 import { NumberCard } from 'frappe-ui/charts'
-import ProjectCard, { type ProjectCardProject } from '@/components/projects/ProjectCard.vue'
 import DashboardSection from '@/components/dashboard/DashboardSection.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
 import { dueLabel, fromNow, isOverdue } from '@/lib/dates'
 import { statusDotClass } from '@/lib/status'
 import { stripHtml, truncate } from '@/lib/text'
@@ -204,6 +202,8 @@ interface DashboardUpdate {
 	name: string
 	project: string
 	project_title: string
+	project_icon: string | null
+	project_color: string | null
 	posted_by: string
 	posted_by_name: string
 	content: string
@@ -213,7 +213,6 @@ interface DashboardUpdate {
 
 interface MyDashboard {
 	tasks_by_project: DashboardTaskGroup[]
-	my_projects: ProjectCardProject[]
 	unread_count: number
 	recent_updates: DashboardUpdate[]
 }
@@ -221,8 +220,8 @@ interface MyDashboard {
 /** Status dot, title, then the due date pinned to the right. */
 const TASK_COLUMNS = ['1rem', 'minmax(0, 1fr)', 'auto']
 
-/** Unread dot, the update itself, then its age. */
-const UPDATE_COLUMNS = ['1rem', 'minmax(0, 1fr)', 'auto']
+/** Unread dot, project avatar, the update itself, then its age. */
+const UPDATE_COLUMNS = ['1rem', 'auto', 'minmax(0, 1fr)', 'auto']
 
 /** Characters of stripped update text shown in the feed. */
 const PREVIEW_LENGTH = 120
@@ -237,7 +236,6 @@ const loading = computed(() => dashboard.loading && !dashboard.data)
 const errorMessage = computed(() => (dashboard.error ? 'Could not load your dashboard.' : null))
 
 const taskGroups = computed(() => dashboard.data?.tasks_by_project ?? [])
-const projects = computed(() => dashboard.data?.my_projects ?? [])
 const updates = computed(() => dashboard.data?.recent_updates ?? [])
 const unreadCount = computed(() => dashboard.data?.unread_count ?? 0)
 

@@ -22,9 +22,11 @@ class HiveProject(Document):
 		agent_spec_prompt: DF.Code | None
 		agent_template_slug: DF.Data | None
 		client: DF.Link | None
+		color: DF.Literal["", "gray", "blue", "green", "amber", "red", "violet"]
 		description: DF.TextEditor | None
 		github_pat: DF.Password | None
 		github_repo: DF.Data | None
+		icon: DF.Data | None
 		is_archived: DF.Check
 		is_private: DF.Check
 		project_type: DF.Link | None

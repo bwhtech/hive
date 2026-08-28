@@ -36,16 +36,28 @@
 				hide-tooltip
 			/>
 
-			<TextInput
-				v-if="editingTitle"
-				v-model="titleDraft"
-				class="min-w-0 flex-1"
-				aria-label="Project title"
-				autofocus
-				@keydown.enter.prevent="commitTitle"
-				@keydown.esc.prevent="editingTitle = false"
-				@blur="commitTitle"
-			/>
+			<!-- Renaming happens in place: the field carries the heading's own
+			     type and padding and no chrome of its own, and a mirror span sizes
+			     it to its text so the caret lands where the title already was and
+			     the status badge does not jump. -->
+			<span v-if="editingTitle" class="relative min-w-0 max-w-full">
+				<!-- `v-text` rather than a mustache: the width has to come from the
+				     draft alone, with no whitespace the template introduces. -->
+				<span
+					v-text="titleDraft || ' '"
+					class="invisible block whitespace-pre px-1 text-lg font-semibold"
+					aria-hidden="true"
+				/>
+				<input
+					ref="titleInput"
+					v-model="titleDraft"
+					class="absolute inset-0 w-full rounded-2 border-0 bg-transparent p-0 px-1 text-lg font-semibold text-ink-gray-9 outline-none focus:ring-0"
+					aria-label="Project title"
+					@keydown.enter.prevent="commitTitle"
+					@keydown.esc.prevent="cancelTitleEdit"
+					@blur="commitTitle"
+				/>
+			</span>
 			<button
 				v-else-if="canEdit"
 				type="button"
@@ -244,7 +256,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import {
 	Badge,
 	Button,
@@ -297,9 +309,18 @@ const links = computed<HiveProjectLink[]>(() => props.project.links ?? [])
 const editingTitle = ref(false)
 const titleDraft = ref('')
 
+const titleInput = ref<HTMLInputElement | null>(null)
+
 function startTitleEdit() {
 	titleDraft.value = props.project.title
 	editingTitle.value = true
+	// The field is only in the DOM after the toggle renders, so `autofocus`
+	// cannot be trusted here.
+	void nextTick(() => titleInput.value?.select())
+}
+
+function cancelTitleEdit() {
+	editingTitle.value = false
 }
 
 function commitTitle() {

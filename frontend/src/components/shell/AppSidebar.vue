@@ -21,6 +21,15 @@
 						<KeyboardShortcut class="mr-2" combo="Mod+K" />
 					</template>
 				</SidebarItem>
+				<!-- Notifications open a sheet rather than a route, so this row has
+				     no `to`; the unread count sits where a route's suffix would. -->
+				<SidebarItem
+					icon="lucide-bell"
+					label="Notifications"
+					:suffix="unreadCount ? String(unreadCount) : undefined"
+					data-testid="sidebar-notifications"
+					@click="notificationsOpen = true"
+				/>
 			</SidebarSection>
 
 			<SidebarProjects />
@@ -90,7 +99,7 @@ interface MenuItem {
 
 const route = useRoute()
 const { user, isClient, logout } = useSession()
-const { commandPaletteOpen, openSettings, shortcutsOpen } = useOverlays()
+const { commandPaletteOpen, notificationsOpen, openSettings, shortcutsOpen } = useOverlays()
 const unreadCount = useUnreadCount()
 
 // Projects live in their own section below; the nav block stays at three rows.
@@ -101,8 +110,6 @@ const navItems = computed<NavItem[]>(() => [
 		icon: 'lucide-layout-dashboard',
 		accessKey: 'd',
 		exact: true,
-		// The same unread count the header bell shows, in the recipe's Inbox slot.
-		suffix: unreadCount.value ? String(unreadCount.value) : undefined,
 	},
 	{ to: '/tasks', label: 'Tasks', icon: 'lucide-square-check-big', accessKey: 't' },
 	{ to: '/team', label: 'Team', icon: 'lucide-users', accessKey: 'm' },

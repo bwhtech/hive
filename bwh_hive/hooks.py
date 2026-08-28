@@ -123,6 +123,7 @@ after_migrate = "bwh_hive.install.after_migrate"
 
 has_permission = {
 	"Hive Project": "bwh_hive.bwh_hive.permissions.project_has_permission",
+	"Hive Pinned Project": "bwh_hive.bwh_hive.permissions.pinned_project_has_permission",
 }
 
 permission_query_conditions = {
@@ -133,6 +134,7 @@ permission_query_conditions = {
 	"Hive Milestone": "bwh_hive.bwh_hive.permissions.milestone_query",
 	"Hive Member": "bwh_hive.bwh_hive.permissions.member_query",
 	"Hive Client": "bwh_hive.bwh_hive.permissions.client_query",
+	"Hive Pinned Project": "bwh_hive.bwh_hive.permissions.pinned_project_query",
 }
 
 # Document Events

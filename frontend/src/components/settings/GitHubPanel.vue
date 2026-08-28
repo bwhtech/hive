@@ -5,9 +5,9 @@
 	/>
 	<SettingsBody>
 		<div v-if="settings.loading && !settings.doc" class="space-y-3 pt-6">
-			<Skeleton class="h-6 w-48" />
-			<Skeleton class="h-4 w-72" />
-			<Skeleton class="h-9 w-40" />
+			<Skeleton class="h-6 w-48 rounded-full" />
+			<Skeleton class="h-4 w-72 rounded-full" />
+			<Skeleton class="h-9 w-40 rounded-4" />
 		</div>
 
 		<div v-else-if="!configured" class="flex flex-col gap-3 pt-6">

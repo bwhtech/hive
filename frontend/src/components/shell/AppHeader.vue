@@ -12,7 +12,9 @@
 
 		<div class="flex shrink-0 items-center gap-2">
 			<slot name="actions" />
-			<div class="relative">
+			<!-- On desktop the sidebar carries Notifications; the bell stays only
+			     where there is no sidebar to put it in. -->
+			<div v-if="!isDesktop" class="relative">
 				<Button
 					variant="ghost"
 					icon="lucide-bell"
@@ -35,6 +37,7 @@
 
 <script setup lang="ts">
 import { Button, PageHeader, PageHeaderTitle } from 'frappe-ui'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useOverlays } from '@/composables/useOverlays'
 import { useUnreadCount } from '@/composables/useUnreadCount'
 
@@ -46,10 +49,11 @@ defineProps<{
 defineSlots<{
 	/** Replaces the title region — breadcrumbs, a back button, an inline editor. */
 	left?: () => unknown
-	/** Page-specific actions, placed before the bell. */
+	/** Page-specific actions, at the trailing end of the header. */
 	actions?: () => unknown
 }>()
 
+const { isDesktop } = useBreakpoint()
 const { notificationsOpen } = useOverlays()
 const unreadCount = useUnreadCount()
 </script>

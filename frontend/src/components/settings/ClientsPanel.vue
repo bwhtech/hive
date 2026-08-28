@@ -23,11 +23,11 @@
 				</div>
 
 				<div v-if="clients.loading && !clients.data" class="space-y-2">
-					<Skeleton v-for="n in 3" :key="n" class="h-11 w-full" />
+					<Skeleton v-for="n in 3" :key="n" class="h-11 w-full rounded-5" />
 				</div>
 				<ul
 					v-else-if="clients.data?.length"
-					class="divide-y divide-outline-gray-1 rounded-4 border border-outline-gray-1"
+					class="divide-y divide-outline-gray-1 rounded-5 border border-outline-gray-1"
 				>
 					<li v-for="client in clients.data" :key="client.name">
 						<button
@@ -116,11 +116,11 @@
 				<section class="space-y-3">
 					<h3 class="text-base font-semibold text-ink-gray-8">Client members</h3>
 					<div v-if="allMembers.loading && !allMembers.data" class="space-y-2">
-						<Skeleton v-for="n in 2" :key="n" class="h-12 w-full" />
+						<Skeleton v-for="n in 2" :key="n" class="h-12 w-full rounded-5" />
 					</div>
 					<ul
 						v-else-if="clientMembers.length"
-						class="divide-y divide-outline-gray-1 rounded-4 border border-outline-gray-1"
+						class="divide-y divide-outline-gray-1 rounded-5 border border-outline-gray-1"
 					>
 						<li
 							v-for="member in clientMembers"

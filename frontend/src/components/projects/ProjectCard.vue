@@ -3,7 +3,7 @@
 		:to="`/projects/${project.slug || project.name}`"
 		data-testid="project-card"
 		:data-project="project.name"
-		class="flex flex-col gap-2 rounded-4 border border-outline-gray-1 bg-surface-base p-4 transition-colors hover:bg-surface-gray-1"
+		class="flex flex-col gap-2 rounded-5 border border-outline-gray-1 bg-surface-base p-4 transition-colors hover:bg-surface-gray-1"
 	>
 		<div class="flex min-w-0 items-start gap-2">
 			<IdentityAvatar

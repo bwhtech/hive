@@ -2,7 +2,7 @@
 	<div class="space-y-6">
 		<!-- KPI strip: one row of four, divided rather than boxed. -->
 		<div
-			class="grid grid-cols-2 divide-outline-gray-1 rounded-4 border border-outline-gray-1 sm:grid-cols-4 sm:divide-x"
+			class="grid grid-cols-2 divide-outline-gray-1 rounded-5 border border-outline-gray-1 sm:grid-cols-4 sm:divide-x"
 		>
 			<div v-for="stat in stats" :key="stat.label" class="px-4 py-3">
 				<p class="text-sm text-ink-gray-5">{{ stat.label }}</p>

@@ -308,3 +308,20 @@ export async function openSettings(page: Page, panel?: string): Promise<Locator>
 	}
 	return settings;
 }
+
+/** A project row in the sidebar. Pass a docname to pick one out. */
+export function sidebarProject(page: Page, name?: string): Locator {
+	return name
+		? page.locator(`[data-testid="sidebar-project"][data-project="${name}"]`)
+		: page.locator('[data-testid="sidebar-project"]');
+}
+
+/** Right-click a sidebar project row and pick an item from its context menu. */
+export async function sidebarProjectAction(
+	page: Page,
+	name: string,
+	item: string | RegExp,
+): Promise<void> {
+	await sidebarProject(page, name).click({ button: "right" });
+	await page.getByRole("menuitem", { name: item }).click();
+}

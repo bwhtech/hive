@@ -2,7 +2,7 @@
 	<div class="space-y-6">
 		<!-- KPI strip: one bordered box, the three readings divided inside it. -->
 		<div
-			class="grid grid-cols-1 divide-y divide-outline-gray-2 rounded-4 border border-outline-gray-1 bg-surface-base sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+			class="grid grid-cols-1 divide-y divide-outline-gray-2 rounded-5 border border-outline-gray-1 bg-surface-base sm:grid-cols-3 sm:divide-x sm:divide-y-0"
 		>
 			<div
 				v-for="kpi in kpis"
@@ -25,7 +25,7 @@
 		<div class="grid items-start gap-6 lg:grid-cols-2">
 			<DashboardSection title="My tasks" icon="lucide-list-checks">
 				<div v-if="loading" class="space-y-2 p-2">
-					<Skeleton v-for="n in 5" :key="n" class="h-8 w-full" />
+					<Skeleton v-for="n in 5" :key="n" class="h-8 w-full rounded-4" />
 				</div>
 				<EmptyState
 					v-else-if="!taskGroups.length"
@@ -91,7 +91,7 @@
 					/>
 				</template>
 				<div v-if="loading" class="space-y-2 p-2">
-					<Skeleton v-for="n in 4" :key="n" class="h-12 w-full" />
+					<Skeleton v-for="n in 4" :key="n" class="h-12 w-full rounded-5" />
 				</div>
 				<EmptyState
 					v-else-if="!updates.length"

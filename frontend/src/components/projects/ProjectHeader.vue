@@ -23,6 +23,7 @@
 						:name="project.name"
 						:icon="project.icon"
 						:color="project.color"
+						:avatar="project.avatar"
 						size="lg"
 						hide-tooltip
 					/>
@@ -34,6 +35,7 @@
 				:name="project.name"
 				:icon="project.icon"
 				:color="project.color"
+				:avatar="project.avatar"
 				size="lg"
 				hide-tooltip
 			/>

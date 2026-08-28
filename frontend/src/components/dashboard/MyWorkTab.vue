@@ -120,6 +120,7 @@
 								:title="update.project_title"
 								:icon="update.project_icon"
 								:color="update.project_color"
+								:avatar="update.project_avatar"
 								size="xl"
 								hide-tooltip
 							/>
@@ -210,6 +211,7 @@ interface DashboardUpdate {
 	project_title: string
 	project_icon: string | null
 	project_color: string | null
+	project_avatar: string | null
 	posted_by: string
 	posted_by_name: string
 	content: string

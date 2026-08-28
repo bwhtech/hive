@@ -262,7 +262,6 @@ const tasks = useList<HiveTask>({
 		'size',
 		'milestone',
 		'depends_on',
-		'assigned_to',
 		'is_internal',
 		'start_date',
 		'due_date',

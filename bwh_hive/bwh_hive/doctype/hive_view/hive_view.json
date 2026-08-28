@@ -14,8 +14,7 @@
   "avatar_options",
   "view_type",
   "filters_json",
-  "is_public",
-  "emoji"
+  "is_public"
  ],
  "fields": [
   {
@@ -60,14 +59,6 @@
    "fieldname": "avatar_options",
    "fieldtype": "Small Text",
    "label": "Avatar Options"
-  },
-  {
-   "description": "Deprecated: replaced by icon/color/avatar. Kept only so existing rows are not lost; nothing reads or writes it. Dropped in a follow-up patch.",
-   "fieldname": "emoji",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Emoji",
-   "read_only": 1
   },
   {
    "fieldname": "view_type",

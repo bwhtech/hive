@@ -69,7 +69,6 @@ class HiveTask(Document):
 			"Cancelled",
 			"Failed",
 		]
-		assigned_to: DF.Link | None
 		completed_on: DF.Date | None
 		depends_on: DF.Link | None
 		description: DF.TextEditor | None

@@ -97,7 +97,6 @@ export interface HiveTask {
 	size: TaskSize | '' | null
 	milestone: string | null
 	depends_on: string | null
-	assigned_to: string
 	is_internal: Bool
 	is_archived: Bool
 	description: string

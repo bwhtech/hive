@@ -240,16 +240,11 @@ function assigneesOf(task: HiveTask): HiveTaskAssignee[] {
 }
 
 function stackFor(task: HiveTask): StackMember[] {
-	const assignees = assigneesOf(task)
-	if (assignees.length) {
-		return assignees.map((a) => ({
-			user: a.member,
-			name: a.member_name || a.member,
-			image: a.user_image,
-		}))
-	}
-	// Tasks created before the `_assign` migration only carry `assigned_to`.
-	return task.assigned_to ? [{ user: task.assigned_to, name: task.assigned_to }] : []
+	return assigneesOf(task).map((a) => ({
+		user: a.member,
+		name: a.member_name || a.member,
+		image: a.user_image,
+	}))
 }
 
 /** A task past its due date that nobody has parked or finished. */
@@ -278,7 +273,7 @@ function groupKeyOf(task: HiveTask, field: TaskGroupField): string {
 		case 'priority':
 			return task.priority
 		case 'assignee':
-			return assigneesOf(task)[0]?.member || task.assigned_to || ''
+			return assigneesOf(task)[0]?.member || ''
 		case 'project':
 			return task.project
 		case 'milestone':

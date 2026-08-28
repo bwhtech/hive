@@ -1,8 +1,8 @@
 [pre_model_sync]
 # Patches added in this section will be executed before doctypes are migrated
 # Read docs to understand patches: https://docs.frappe.io/framework/user/en/database-migrations
-bwh_hive.patches.migrate_assignees_to_assign
-bwh_hive.patches.remigrate_assignees_to_assign
+bwh_hive.patches.migrate_assigned_to_to_assign
 
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
+bwh_hive.patches.drop_legacy_assignee_artifacts

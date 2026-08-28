@@ -241,7 +241,6 @@ const tasks = useList<HiveTask>({
 		'size',
 		'milestone',
 		'depends_on',
-		'assigned_to',
 		'is_internal',
 		'start_date',
 		'due_date',
@@ -330,7 +329,10 @@ const filtered = computed(() => {
 	return (tasks.data ?? []).filter((task) => {
 		if (query) {
 			const project = (projectTitles.value[task.project] ?? task.project).toLowerCase()
-			const haystack = `${task.name} ${task.title} ${project} ${task.assigned_to ?? ''}`
+			const assignees = (assigneesByTask.value[task.name] ?? [])
+				.map((a) => `${a.member} ${a.member_name ?? ''}`)
+				.join(' ')
+			const haystack = `${task.name} ${task.title} ${project} ${assignees}`
 			if (!haystack.toLowerCase().includes(query)) return false
 		}
 		if (statusFilter.value && task.status !== statusFilter.value) return false

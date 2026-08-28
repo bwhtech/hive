@@ -126,17 +126,11 @@ const overdue = computed(() => {
 	return due_date < today()
 })
 
-const stack = computed(() => {
-	if (props.assignees.length) {
-		return props.assignees.map((a) => ({
-			user: a.member,
-			name: a.member_name || a.member,
-			image: a.user_image,
-		}))
-	}
-	// Pre-`_assign` tasks only carry the single `assigned_to` user.
-	return props.task.assigned_to
-		? [{ user: props.task.assigned_to, name: props.task.assigned_to }]
-		: []
-})
+const stack = computed(() =>
+	props.assignees.map((a) => ({
+		user: a.member,
+		name: a.member_name || a.member,
+		image: a.user_image,
+	})),
+)
 </script>

@@ -67,7 +67,7 @@ const events = computed<CalendarEvent[]>(() =>
 		return {
 			id: task.name,
 			title: task.title,
-			participant: task.assigned_to || '',
+			participant: '',
 			fromDate: date,
 			toDate: date,
 			fromTime: '00:00',

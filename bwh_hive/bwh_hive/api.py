@@ -844,7 +844,6 @@ def get_project_activity(project: str, limit: int = 100):
 						"priority",
 						"title",
 						"milestone",
-						"assigned_to",
 						"due_date",
 						"start_date",
 						"completed_on",

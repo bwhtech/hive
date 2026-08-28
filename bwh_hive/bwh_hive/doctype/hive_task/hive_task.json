@@ -13,7 +13,6 @@
   "size",
   "milestone",
   "depends_on",
-  "assigned_to",
   "is_internal",
   "is_archived",
   "start_date",
@@ -97,15 +96,6 @@
    "fieldtype": "Link",
    "label": "Depends On",
    "options": "Hive Task"
-  },
-  {
-   "fieldname": "assigned_to",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Assigned To",
-   "options": "User",
-   "hidden": 1
   },
   {
    "default": "0",

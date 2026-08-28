@@ -1,6 +1,8 @@
 # Copyright (c) 2026, BWH Studios and Contributors
 # See license.txt
 
+import json
+
 import frappe
 from frappe.tests import IntegrationTestCase
 
@@ -162,7 +164,7 @@ class IntegrationTestHiveTask(IntegrationTestCase):
 		from bwh_hive.bwh_hive.api import get_member_tasks
 
 		user = frappe.session.user
-		frappe.db.set_value("Hive Task", self.task.name, "assigned_to", user)
+		frappe.db.set_value("Hive Task", self.task.name, "_assign", json.dumps([user]))
 		frappe.db.set_value("Hive Task", self.task.name, "is_archived", 1)
 
 		result = get_member_tasks(user=user)

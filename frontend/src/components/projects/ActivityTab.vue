@@ -106,7 +106,6 @@ const ACTIVITY_LIMIT = 100
 
 /** Frappe field names read as jargon in a sentence; these are the readable ones. */
 const FIELD_LABELS: Record<string, string> = {
-	assigned_to: 'assignee',
 	client: 'client',
 	completed_on: 'completed date',
 	description: 'description',

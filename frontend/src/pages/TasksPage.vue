@@ -32,11 +32,20 @@
 				:priority="priorityFilter"
 				:project="projectFilter"
 				:assignee="assigneeFilter"
+				:count="filtered.length"
+				:group-by="groupBy"
+				:sort-key="sortKey"
+				:sort-direction="sortDirection"
+				:projects="projects.data ?? []"
+				:members="members"
 				@update:q="setQuery({ q: $event })"
 				@update:status="setQuery({ status: $event })"
 				@update:priority="setQuery({ priority: $event })"
 				@update:project="setQuery({ project: $event })"
 				@update:assignee="setQuery({ assignee: $event })"
+				@update:group-by="groupBy = $event"
+				@update:sort-key="sortKey = $event"
+				@update:sort-direction="sortDirection = $event"
 				@reset="resetFilters"
 			/>
 
@@ -85,7 +94,13 @@
 				:project-titles="projectTitles"
 				:milestone-titles="milestoneTitles"
 				:assignees-by-task="assigneesByTask"
+				:group-by="groupBy"
+				:sort-key="sortKey"
+				:sort-direction="sortDirection"
 				:active-task="activeTaskName"
+				:hide-project="hideProject"
+				:list="tasks"
+				:readonly="isClient"
 				@select="openTask"
 			/>
 		</div>
@@ -135,6 +150,7 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useHiveViews } from '@/composables/useHiveViews'
 import { useOverlays, type CreateTaskContext } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
+import type { TaskGroupField, TaskSortDirection, TaskSortKey } from '@/lib/status'
 import type { HiveMilestone, HiveProject, HiveTask, HiveTaskAssignee, HiveView } from '@/types'
 
 type ViewMode = HiveView['view_type']
@@ -194,6 +210,18 @@ function resetFilters() {
 	setQuery({ q: '', status: '', priority: '', project: '', assignee: '' })
 }
 
+// -- grouping and sorting ------------------------------------------------
+
+// Not URL state: these say how the list reads, not what it contains, so a
+// shared link and a saved view stay about the filters. Grouping is also what
+// keeps a long list readable now that the table has no pages.
+const groupBy = ref<TaskGroupField>('status')
+const sortKey = ref<TaskSortKey>('due_date')
+const sortDirection = ref<TaskSortDirection>('asc')
+
+/** A project badge on every row says nothing once every row shares it. */
+const hideProject = computed(() => Boolean(projectFilter.value) || groupBy.value === 'project')
+
 // -- data ----------------------------------------------------------------
 
 const tasks = useList<HiveTask>({
@@ -225,9 +253,11 @@ const tasks = useList<HiveTask>({
 	cacheKey: 'tasks-page',
 })
 
-const projects = useList<Pick<HiveProject, 'name' | 'title'>>({
+const projects = useList<Pick<HiveProject, 'name' | 'title' | 'is_archived'>>({
 	doctype: 'Hive Project',
-	fields: ['name', 'title'],
+	// `is_archived` is not a filter on the query: archived projects still own
+	// tasks that need a title, they just drop out of the toolbar's options.
+	fields: ['name', 'title', 'is_archived'],
 	limit: 100,
 })
 
@@ -250,6 +280,23 @@ const projectTitles = computed(() =>
 const milestoneTitles = computed(() =>
 	Object.fromEntries((milestones.data ?? []).map((m) => [m.name, m.title])),
 )
+
+/**
+ * Everyone on at least one task. That is the whole useful vocabulary of the
+ * assignee filter, and it comes out of data the page already has — a member
+ * list query would only add a round trip.
+ */
+const members = computed<HiveTaskAssignee[]>(() => {
+	const seen = new Map<string, HiveTaskAssignee>()
+	for (const list of Object.values(assigneesByTask.value)) {
+		for (const assignee of list) {
+			if (!seen.has(assignee.member)) seen.set(assignee.member, assignee)
+		}
+	}
+	return [...seen.values()].sort((a, b) =>
+		(a.member_name || a.member).localeCompare(b.member_name || b.member),
+	)
+})
 
 function refreshAssignees() {
 	assignees.reload()

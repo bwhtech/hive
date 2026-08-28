@@ -24,8 +24,10 @@ export default defineConfig({
 				name: 'BWH Hive',
 				short_name: 'Hive',
 				description: 'Project Management Solution',
-				theme_color: '#000000',
-				background_color: '#000000',
+				// The mark's own green, so the splash and the installed app's
+				// chrome match the icon instead of framing it in black.
+				theme_color: '#1D6E47',
+				background_color: '#1D6E47',
 				display: 'standalone',
 				scope: '/hive',
 				start_url: '/hive',

@@ -55,7 +55,7 @@ import { useSound } from '@/composables/useSound'
  * `ThemeSwitcher` drives `<html data-theme>` through the shared `useColorScheme`
  * singleton, so it needs no wiring — the whole app follows the choice made here.
  */
-const LOGO_URL = `${import.meta.env.BASE_URL}images/hive-logo.png`
+const LOGO_URL = `${import.meta.env.BASE_URL}images/hive-logo.svg`
 
 const { enabled, volume, setSoundEnabled, setSoundVolume, play } = useSound()
 

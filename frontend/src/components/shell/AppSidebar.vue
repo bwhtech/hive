@@ -69,7 +69,7 @@ import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
 import { useUnreadCount } from '@/composables/useUnreadCount'
 
-const LOGO_URL = `${import.meta.env.BASE_URL}images/hive-logo.png`
+const LOGO_URL = `${import.meta.env.BASE_URL}images/hive-logo.svg`
 const ISSUE_URL = 'https://github.com/BuildWithHussain/hive/issues/new'
 
 interface NavItem {

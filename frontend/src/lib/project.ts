@@ -2,8 +2,13 @@ import type { AvatarProps } from 'frappe-ui'
 
 /**
  * A project's visual identity: a lucide icon on a tinted square, the way Linear
- * and Notion do it. Both `Hive Project.icon` and `.color` are optional, so
- * every helper here has to answer for a project that has never been given one.
+ * and Notion do it, or a generated DiceBear avatar in its place. `Hive
+ * Project.icon`, `.color` and `.avatar` are all optional, so every helper here
+ * has to answer for a project that has never been given one.
+ *
+ * The DiceBear half — styles, generation, shuffle — lives in `lib/dicebear.ts`,
+ * which loads a megabyte of style definitions and so must stay out of the path
+ * that merely *draws* a project. Only the guard below belongs here.
  */
 
 /**
@@ -78,6 +83,25 @@ export const DEFAULT_PROJECT_ICON = 'folder'
 
 export function projectIconClass(icon?: string | null): string {
 	return ICON_PREFIX + (icon || DEFAULT_PROJECT_ICON)
+}
+
+/**
+ * An SVG is a script host: `<svg><script>` and `onload=` on any element both
+ * run, and `Hive Project.avatar` is a field any member can write. So a stored
+ * avatar never becomes markup — it is only ever an `<img>` source, which does
+ * not execute script, and only after it has proved to be an SVG data URI.
+ * Anything else resolves to `''`, and `ProjectAvatar` falls back to the icon.
+ *
+ * The check is deliberately narrow. `data:image/svg+xml` is what
+ * `renderProjectAvatar` writes; a `javascript:` or `data:text/html` value —
+ * inert in `src` on any current browser, but not something to rely on — never
+ * gets that far.
+ */
+const AVATAR_DATA_URI = /^data:image\/svg\+xml[;,]/i
+
+export function projectAvatarSrc(avatar?: string | null): string {
+	const value = (avatar ?? '').trim()
+	return AVATAR_DATA_URI.test(value) ? value : ''
 }
 
 /**

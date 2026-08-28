@@ -2,9 +2,13 @@
 	<Dialog :open="open" title="New Project" @update:open="emit('update:open', $event)">
 		<template #default="{ close }">
 			<form class="space-y-4" @submit.prevent="submit">
-				<!-- Icon first, the way the project will read everywhere else. -->
+				<!-- The project's mark first, the way it will read everywhere else. -->
 				<div class="flex items-end gap-2">
-					<ProjectIconPicker v-model:icon="icon" v-model:color="color" />
+					<ProjectIconPicker
+						v-model:icon="icon"
+						v-model:color="color"
+						v-model:avatar="avatar"
+					/>
 					<TextInput
 						v-model="title"
 						class="min-w-0 flex-1"
@@ -78,6 +82,7 @@ import { Button, Dialog, ErrorMessage, Select, TextInput, toast, useNewDoc } fro
 import LinkPicker from '@/components/common/LinkPicker.vue'
 import ProjectIconPicker from '@/components/common/ProjectIconPicker.vue'
 import NewClientDialog from '@/components/projects/NewClientDialog.vue'
+import type { ProjectAvatarValue } from '@/lib/dicebear'
 import type { ProjectColor } from '@/lib/project'
 import type { HiveClient, HiveProject } from '@/types'
 
@@ -97,6 +102,7 @@ const VISIBILITY_OPTIONS = [
 const title = ref('')
 const icon = ref('')
 const color = ref<ProjectColor | ''>('')
+const avatar = ref<ProjectAvatarValue | null>(null)
 const visibility = ref('Public')
 const projectType = ref<string | null>(null)
 const client = ref<string | null>(null)
@@ -115,6 +121,7 @@ watch(
 		title.value = ''
 		icon.value = ''
 		color.value = ''
+		avatar.value = null
 		visibility.value = 'Public'
 		projectType.value = null
 		client.value = null
@@ -142,6 +149,16 @@ async function submit() {
 			// colour and the default folder rather than a frozen guess.
 			...(icon.value ? { icon: icon.value } : {}),
 			...(color.value ? { color: color.value } : {}),
+			// The SVG is what gets drawn; the style, seed and options are what
+			// let the avatar be rolled again, or rebuilt, later.
+			...(avatar.value
+				? {
+						avatar: avatar.value.svg,
+						avatar_style: avatar.value.style,
+						avatar_seed: avatar.value.seed,
+						avatar_options: JSON.stringify(avatar.value.options),
+					}
+				: {}),
 			...(projectType.value ? { project_type: projectType.value } : {}),
 			...(client.value ? { client: client.value } : {}),
 		})

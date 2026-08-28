@@ -13,6 +13,8 @@
     "format:check": "prettier --check src"
   },
   "dependencies": {
+    "@dicebear/core": "^10.7.0",
+    "@dicebear/styles": "^10.6.0",
     "canvas-confetti": "^1.9.4",
     "cuelume": "^0.2.2",
     "frappe-ui": "1.0.0-beta.55",

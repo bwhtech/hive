@@ -11,6 +11,7 @@
 				:title="project.title"
 				:icon="project.icon"
 				:color="project.color"
+				:avatar="project.avatar"
 				size="lg"
 				hide-tooltip
 			/>
@@ -45,8 +46,9 @@ import type { Bool, ProjectStatus } from '@/types'
 
 /**
  * The fields a card needs. A `useList` row carries all of them; anything
- * optional simply does not render its line. `icon` and `color` are optional
- * twice over — a project may also have neither, and `ProjectAvatar` falls back.
+ * optional simply does not render its line. `icon`, `color` and `avatar` are
+ * optional twice over — a project may also have none of them, and
+ * `ProjectAvatar` falls back.
  */
 export interface ProjectCardProject {
 	name: string
@@ -55,6 +57,7 @@ export interface ProjectCardProject {
 	status: ProjectStatus
 	icon?: string
 	color?: string
+	avatar?: string
 	project_type?: string
 	client?: string
 	description?: string

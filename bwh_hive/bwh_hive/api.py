@@ -97,7 +97,7 @@ def get_my_dashboard():
 		projects = frappe.get_all(
 			"Hive Project",
 			filters={"name": ["in", list(all_my_project_ids)]},
-			fields=["name", "title", "status", "project_type", "client", "icon", "color"],
+			fields=["name", "title", "status", "project_type", "client", "icon", "color", "avatar"],
 		)
 		project_map = {p.name: p for p in projects}
 
@@ -148,11 +148,12 @@ def get_my_dashboard():
 		for upd in recent_updates:
 			seen = upd.get("_seen") or "[]"
 			upd["is_unread"] = user not in seen
-			# Get the project's title and avatar (icon + colour)
+			# Get the project's title and mark (icon + colour, or a DiceBear avatar)
 			proj = project_map.get(upd.project)
 			upd["project_title"] = proj.get("title", upd.project) if proj else upd.project
 			upd["project_icon"] = proj.get("icon") if proj else None
 			upd["project_color"] = proj.get("color") if proj else None
+			upd["project_avatar"] = proj.get("avatar") if proj else None
 			# Get poster name
 			upd["posted_by_name"] = (
 				frappe.get_cached_value("User", upd.posted_by, "full_name") or upd.posted_by

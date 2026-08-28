@@ -11,15 +11,15 @@ app_license = "agpl-3.0"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "bwh_hive",
-# 		"logo": "/assets/bwh_hive/logo.png",
-# 		"title": "BWH Hive",
-# 		"route": "/bwh_hive",
-# 		"has_permission": "bwh_hive.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "bwh_hive",
+		"logo": "/assets/bwh_hive/images/hive-mark.svg",
+		"title": "Hive",
+		"route": "/hive",
+		"has_permission": "bwh_hive.bwh_hive.permissions.has_hive_access",
+	}
+]
 
 # Includes in <head>
 # ------------------

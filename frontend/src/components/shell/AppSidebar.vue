@@ -58,7 +58,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
+import type { VNode } from 'vue'
 import { useRoute } from 'vue-router'
 import {
 	Avatar,
@@ -69,6 +70,7 @@ import {
 	SidebarHeader,
 	SidebarItem,
 	SidebarSection,
+	useCall,
 	type DropdownOptions,
 } from 'frappe-ui'
 import SidebarPinned from '@/components/shell/SidebarPinned.vue'
@@ -93,12 +95,22 @@ interface NavItem {
 /** The `SidebarHeader` dropdown takes a narrower shape than `Dropdown` does. */
 interface MenuItem {
 	label: string
-	icon: string
-	onClick: () => void
+	icon?: string
+	onClick?: () => void
+	submenu?: MenuItem[]
+	slots?: { prefix?: () => VNode }
+}
+
+/** One row of `frappe.apps.get_apps`: an installed app that opted into the apps screen. */
+interface AppEntry {
+	name: string
+	logo: string
+	title: string
+	route: string
 }
 
 const route = useRoute()
-const { user, isClient, logout } = useSession()
+const { user, isClient, isSystemManager, logout } = useSession()
 const { commandPaletteOpen, notificationsOpen, openSettings, shortcutsOpen } = useOverlays()
 const unreadCount = useUnreadCount()
 
@@ -119,9 +131,50 @@ function isActive(item: NavItem) {
 	return item.exact ? route.path === item.to : route.path.startsWith(item.to)
 }
 
+// The apps screen hook is the site-wide list of installed apps, so the switcher
+// stays correct as apps are installed or removed without a Hive-side registry.
+const apps = useCall<AppEntry[]>({
+	url: '/api/v2/method/frappe.apps.get_apps',
+	method: 'GET',
+	cacheKey: 'installed-apps',
+})
+
+// Desk is not on the apps screen (it is every site's fallback), so it is added by
+// hand — but only for System Managers, since a client user has no desk access and
+// would land on a permission error. Hive itself is dropped: switching to where you
+// already are is a no-op.
+const deskApp: AppEntry = {
+	name: 'frappe',
+	logo: '/assets/frappe/images/framework.png',
+	title: 'Desk',
+	route: '/desk',
+}
+
+const appSwitcherItems = computed<MenuItem[]>(() =>
+	[
+		...(isSystemManager.value ? [deskApp] : []),
+		...(apps.data ?? []).filter((app) => app.name !== 'bwh_hive'),
+	].map((app) => ({
+		label: app.title,
+		onClick: () => {
+			window.location.href = app.route
+		},
+		slots: {
+			prefix: () => h('img', { src: app.logo, alt: '', class: 'size-4 rounded-sm' }),
+		},
+	})),
+)
+
 // Workspace-level actions belong to the workspace, so they hang off its header.
 const workspaceMenu = computed<MenuItem[]>(() => {
 	const items: MenuItem[] = []
+	if (appSwitcherItems.value.length) {
+		items.push({
+			label: 'Switch app',
+			icon: 'lucide-layout-grid',
+			submenu: appSwitcherItems.value,
+		})
+	}
 	if (!isClient.value) {
 		items.push({
 			label: 'Settings',

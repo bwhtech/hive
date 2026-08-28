@@ -9,6 +9,7 @@ declare global {
 		system_timezone?: string
 		frappe_version?: string
 		read_only_mode?: boolean
+		is_system_manager?: boolean
 	}
 }
 

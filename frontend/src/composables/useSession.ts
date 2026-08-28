@@ -35,6 +35,9 @@ function createSession() {
 	const user = computed(() => userDoc.doc)
 	const member = computed(() => memberDoc.doc)
 	const isClient = computed(() => member.value?.type === 'Client')
+	// Boot data lands on `window` before the app mounts, so this needs no request
+	// of its own; it never changes within a session.
+	const isSystemManager = computed(() => Boolean(window.is_system_manager))
 
 	/** True once we know whether there is a user, and have their doc if so. */
 	const ready = computed(
@@ -55,6 +58,7 @@ function createSession() {
 		member,
 		userId,
 		isClient,
+		isSystemManager,
 		isGuest,
 		ready,
 		logout,

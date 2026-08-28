@@ -97,7 +97,6 @@ test.describe("Saved Views", () => {
 		const viewLabel = `${VIEW_PREFIX} ${rid()}`;
 		await createTestView(request, {
 			label: viewLabel,
-			emoji: "🔥",
 			is_public: 1,
 		});
 
@@ -113,7 +112,6 @@ test.describe("Saved Views", () => {
 		const viewLabel = `${VIEW_PREFIX} ${rid()}`;
 		const view = await createTestView(request, {
 			label: viewLabel,
-			emoji: "📌",
 			view_type: "list",
 			filters_json: JSON.stringify({ status: "Done" }),
 			is_public: 1,
@@ -136,13 +134,12 @@ test.describe("Saved Views", () => {
 		const viewLabel = `${VIEW_PREFIX} ${rid()}`;
 		const view = await createTestView(request, {
 			label: viewLabel,
-			emoji: "🍞",
 			is_public: 1,
 		});
 
 		await gotoHive(page, `/tasks?view_id=${view.name}`);
 
-		// The trail is "Tasks › 🍞 <label>", emoji included.
+		// The trail is "Tasks › <label>".
 		const header = page.getByRole("banner");
 		const trail = (await header.count())
 			? header
@@ -150,7 +147,9 @@ test.describe("Saved Views", () => {
 		await expect(trail.getByText("Tasks", { exact: true })).toBeVisible({
 			timeout: 10000,
 		});
-		await expect(trail.getByText(`🍞 ${viewLabel}`)).toBeVisible();
+		// A view's mark is an icon or a generated avatar now, not an emoji in
+		// the label, so the crumb carries the bare name.
+		await expect(trail.getByText(viewLabel, { exact: true })).toBeVisible();
 	});
 
 	test("should edit a saved view label via sidebar menu", async ({
@@ -248,9 +247,9 @@ test.describe("Saved Views", () => {
 
 		// Filters still match what the view stores, so it only offers "Save view".
 		await openViewActionsMenu(page);
-		await expect(
-			page.getByRole("menuitem", { name: "Save view" }),
-		).toBeVisible({ timeout: 3000 });
+		await expect(page.getByRole("menuitem", { name: "Save view" })).toBeVisible(
+			{ timeout: 3000 },
+		);
 		await page.keyboard.press("Escape");
 
 		await chooseOption(page, "Status", "Done");

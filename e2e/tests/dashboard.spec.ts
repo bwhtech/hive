@@ -91,12 +91,15 @@ test.describe("Dashboard", () => {
 		await cleanupTestProjects(request, PROJECT_PREFIX);
 	});
 
-	test("should display dashboard page with three tabs", async ({ page }) => {
+	test("the dashboard has a My work and a Projects tab", async ({ page }) => {
 		await goToDashboard(page);
 
 		await expect(page.getByRole("tab", { name: /My work/ })).toBeVisible();
 		await expect(page.getByRole("tab", { name: /Projects/ })).toBeVisible();
-		await expect(page.getByRole("tab", { name: /Team/ })).toBeVisible();
+
+		// Team moved out to its own page; a tab here would be a second home for
+		// the same information, which is the duplication that removed it.
+		await expect(page.getByRole("tab", { name: /Team/ })).toHaveCount(0);
 	});
 
 	test("should show correct summary cards with task counts", async ({
@@ -132,20 +135,6 @@ test.describe("Dashboard", () => {
 		await expect(myTasks.getByText(inProgressTask.title)).toBeVisible({
 			timeout: 10000,
 		});
-	});
-
-	test("should show my projects section", async ({ page }) => {
-		await goToDashboard(page);
-
-		const myProjects = section(page, "My projects");
-		await expect(myProjects).toBeVisible({ timeout: 10000 });
-
-		const card = myProjects.locator(
-			`[data-testid="project-card"][data-project="${testProject.name}"]`,
-		);
-		await expect(card).toBeVisible({ timeout: 10000 });
-		await expect(card).toContainText(testProject.title);
-		await expect(card.getByText("Open")).toBeVisible();
 	});
 
 	test("should switch to Projects tab and show project list", async ({

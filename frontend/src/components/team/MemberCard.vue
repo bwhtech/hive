@@ -1,6 +1,17 @@
 <template>
 	<article class="rounded-4 border border-outline-gray-1 bg-surface-base p-4">
-		<button type="button" class="w-full text-left" :aria-expanded="expanded" @click="toggle">
+		<!-- Without a label the button's accessible name is whatever the card
+		     happens to contain -- "3 Active 0 Backlog Workload easing" -- which
+		     never says whose card it is. -->
+		<button
+			type="button"
+			class="w-full text-left"
+			:aria-expanded="expanded"
+			:aria-label="`${expanded ? 'Collapse' : 'Expand'} ${member.member_name}`"
+			data-testid="member-card"
+			:data-member="member.user"
+			@click="toggle"
+		>
 			<header class="flex items-center gap-3">
 				<MemberAvatar
 					:name="member.member_name"

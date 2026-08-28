@@ -13,6 +13,7 @@ import {
 	getList,
 	updateDoc,
 } from "../helpers/frappe";
+import { tabButton } from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E TeamTab Project";
 const TASK_PREFIX = "E2E TeamTab Task";
@@ -31,17 +32,23 @@ function daysFromNow(n: number): string {
 /**
  * Navigate to Dashboard > Team tab with overdue dialog suppressed.
  */
-async function goToTeamTab(page: Page) {
-	await page.goto("/hive");
-	await page.waitForLoadState("domcontentloaded");
-	await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({
+/**
+ * The dashboard's Team tab was folded into the `/team` page, so this is a
+ * navigation now rather than a tab click.
+ */
+async function goToTeamPage(page: Page) {
+	await page.goto("/hive/team");
+	await page.waitForLoadState("networkidle");
+	await expect(page.getByRole("heading", { name: "Team" })).toBeVisible({
 		timeout: 15000,
 	});
+}
 
-	// Click Team tab
-	const teamTab = page.getByRole("tab", { name: /Team/ });
-	await expect(teamTab).toBeVisible();
-	await teamTab.click();
+/** Open a member's card so its task lists render. */
+async function expandMember(page: Page, name: string) {
+	const card = page.getByRole("button", { name: new RegExp(`Expand ${name}`) });
+	await expect(card.first()).toBeVisible({ timeout: 15000 });
+	await card.first().click();
 }
 
 /**
@@ -98,7 +105,7 @@ async function ensureTeamMember(
 	});
 }
 
-test.describe("Dashboard Team Tab & Time Series Chart", () => {
+test.describe("Team page", () => {
 	let testProject: HiveProject;
 	let completedTask: HiveTask;
 	let overdueTask: HiveTask;
@@ -158,7 +165,7 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 	test("should display completed tasks chart with weekly/monthly toggle", async ({
 		page,
 	}) => {
-		await goToTeamTab(page);
+		await goToTeamPage(page);
 
 		// Chart card heading
 		await expect(
@@ -166,18 +173,18 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 		).toBeVisible({ timeout: 10000 });
 
 		// Weekly and Monthly toggle buttons
-		await expect(page.getByRole("button", { name: "Weekly" })).toBeVisible();
-		await expect(page.getByRole("button", { name: "Monthly" })).toBeVisible();
+		await expect(tabButton(page, "Week")).toBeVisible();
+		await expect(tabButton(page, "Month")).toBeVisible();
 	});
 
 	test("should switch between weekly and monthly chart periods", async ({
 		page,
 	}) => {
-		await goToTeamTab(page);
+		await goToTeamPage(page);
 
 		// Weekly is default (should have active styling)
-		const weeklyBtn = page.getByRole("button", { name: "Weekly" });
-		const monthlyBtn = page.getByRole("button", { name: "Monthly" });
+		const weeklyBtn = tabButton(page, "Week");
+		const monthlyBtn = tabButton(page, "Month");
 		await expect(weeklyBtn).toBeVisible();
 
 		// Click Monthly
@@ -197,7 +204,7 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 	test("should show member card with overdue badge for member with overdue tasks", async ({
 		page,
 	}) => {
-		await goToTeamTab(page);
+		await goToTeamPage(page);
 
 		// Administrator member card should be visible
 		await expect(page.getByText("Administrator").first()).toBeVisible({
@@ -213,7 +220,7 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 	test("should show member card with completed badge for member with completed tasks", async ({
 		page,
 	}) => {
-		await goToTeamTab(page);
+		await goToTeamPage(page);
 
 		// Done badge should appear (e.g., "1 done")
 		await expect(page.getByText(/\d+ done/).first()).toBeVisible({
@@ -224,9 +231,11 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 	test("should display overdue task details under member card", async ({
 		page,
 	}) => {
-		await goToTeamTab(page);
+		await goToTeamPage(page);
+		// The per-member task lists now live behind the card's toggle.
+		await expandMember(page, "Administrator");
 
-		// "Overdue" section header should be visible (CSS uppercase transforms visually)
+		// "Overdue" section header should be visible
 		await expect(page.getByText(/Overdue \(\d+\)/).first()).toBeVisible({
 			timeout: 10000,
 		});
@@ -240,9 +249,10 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 	test("should display completed task details under member card", async ({
 		page,
 	}) => {
-		await goToTeamTab(page);
+		await goToTeamPage(page);
+		await expandMember(page, "Administrator");
 
-		// "Completed" section header should be visible (CSS uppercase transforms visually)
+		// "Completed" section header should be visible
 		await expect(page.getByText(/Completed \(\d+\)/).first()).toBeVisible({
 			timeout: 10000,
 		});

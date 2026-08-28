@@ -120,8 +120,11 @@ test.describe("Client Experience", () => {
 	test("a client sees the team but cannot change it", async ({ page }) => {
 		await openClientProject(page);
 
-		// Overview is the default tab; prove it rendered before asserting
-		// that the editing controls are absent from it.
+		// Ask for Overview rather than trusting it to be the default: the tab is
+		// URL state, and a test that assumes it passes or fails on run order.
+		await page.getByRole("tab", { name: /Overview/ }).click();
+
+		// Prove the section rendered before asserting its controls are absent.
 		const team = page.getByRole("heading", { name: "Team" });
 		await expect(team).toBeVisible({ timeout: 10000 });
 

@@ -6,12 +6,7 @@ import {
 	HiveProject,
 } from "../helpers/hive";
 import { docExists } from "../helpers/frappe";
-import {
-	expectDialog,
-	gotoHive,
-	projectCard,
-	runCommand,
-} from "../helpers/ui";
+import { expectDialog, gotoHive, projectCard, runCommand } from "../helpers/ui";
 
 test.describe("Projects", () => {
 	let testProject: HiveProject;
@@ -24,8 +19,10 @@ test.describe("Projects", () => {
 		await gotoHive(page, "/projects");
 
 		await expect(page).toHaveURL(/\/hive\/projects/);
+		// `exact` matters: the sidebar's own "New project" button matches too,
+		// because role-name matching ignores case.
 		await expect(
-			page.getByRole("button", { name: "New Project" }),
+			page.getByRole("button", { name: "New Project", exact: true }),
 		).toBeVisible();
 	});
 

@@ -1,5 +1,12 @@
 import { APIRequestContext } from "@playwright/test";
-import { createDoc, deleteDoc, getDoc, getList, updateDoc, callMethod } from "./frappe";
+import {
+	createDoc,
+	deleteDoc,
+	getDoc,
+	getList,
+	updateDoc,
+	callMethod,
+} from "./frappe";
 
 /**
  * Hive View document interface.
@@ -7,7 +14,6 @@ import { createDoc, deleteDoc, getDoc, getList, updateDoc, callMethod } from "./
 export interface HiveView {
 	name: string;
 	label: string;
-	emoji: string;
 	view_type: "list" | "kanban";
 	filters_json: string;
 	is_public: 0 | 1;
@@ -140,7 +146,17 @@ export async function listProjects(
 	} = {},
 ): Promise<HiveProject[]> {
 	return getList<HiveProject>(request, "Hive Project", {
-		fields: ["name", "title", "slug", "status", "project_type", "client", "is_private", "owner", "creation"],
+		fields: [
+			"name",
+			"title",
+			"slug",
+			"status",
+			"project_type",
+			"client",
+			"is_private",
+			"owner",
+			"creation",
+		],
 		filters: options.filters,
 		limit: options.limit,
 	});
@@ -191,7 +207,15 @@ export async function listFeatureRequests(
 	} = {},
 ): Promise<HiveFeatureRequest[]> {
 	return getList<HiveFeatureRequest>(request, "Hive Feature Request", {
-		fields: ["name", "title", "project", "requested_by", "status", "priority", "creation"],
+		fields: [
+			"name",
+			"title",
+			"project",
+			"requested_by",
+			"status",
+			"priority",
+			"creation",
+		],
 		filters: options.filters,
 		limit: options.limit,
 	});
@@ -311,10 +335,7 @@ export async function cleanupTestMilestones(
 					milestone: null,
 				});
 			} catch (e) {
-				console.warn(
-					`Failed to unlink task ${task.name} from milestone:`,
-					e,
-				);
+				console.warn(`Failed to unlink task ${task.name} from milestone:`, e);
 			}
 		}
 		try {
@@ -413,7 +434,6 @@ export async function createTestView(
 	request: APIRequestContext,
 	options: {
 		label?: string;
-		emoji?: string;
 		view_type?: "list" | "kanban";
 		filters_json?: string;
 		is_public?: 0 | 1;
@@ -423,7 +443,6 @@ export async function createTestView(
 
 	return createDoc<HiveView>(request, "Hive View", {
 		label,
-		emoji: options.emoji ?? "",
 		view_type: options.view_type ?? "list",
 		filters_json: options.filters_json ?? "{}",
 		is_public: options.is_public ?? 0,

@@ -48,6 +48,7 @@ export interface HiveProject {
 	project_type?: string;
 	client?: string;
 	is_private?: 0 | 1;
+	is_archived?: 0 | 1;
 	owner?: string;
 	creation?: string;
 	modified?: string;

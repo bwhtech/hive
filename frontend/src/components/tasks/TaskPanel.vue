@@ -30,8 +30,8 @@
 
 			<component :is="Scroller" v-bind="scrollerProps">
 				<div v-if="!task.doc && task.loading" class="space-y-3 py-2">
-					<Skeleton class="h-8 w-full" />
-					<Skeleton v-for="n in 5" :key="n" class="h-9 w-full" />
+					<Skeleton class="h-8 w-full rounded-4" />
+					<Skeleton v-for="n in 5" :key="n" class="h-9 w-full rounded-4" />
 				</div>
 
 				<div v-else-if="task.doc" class="space-y-4">
@@ -211,7 +211,7 @@
 
 					<section
 						v-if="hasClient"
-						class="space-y-3 rounded-4 border border-outline-gray-2 p-3"
+						class="space-y-3 rounded-5 border border-outline-gray-2 p-3"
 					>
 						<div class="flex items-center justify-between gap-2">
 							<span class="text-sm font-medium text-ink-gray-6">UAT status</span>
@@ -278,7 +278,6 @@
 				/>
 				<div class="flex flex-1 items-center justify-end gap-1.5 text-sm text-ink-gray-5">
 					<template v-if="autosave === 'saving'">
-						<Spinner class="size-3" />
 						<span>Saving…</span>
 					</template>
 					<template v-else-if="autosave === 'saved'">
@@ -304,7 +303,6 @@ import {
 	ScrollArea,
 	Select,
 	Skeleton,
-	Spinner,
 	toast,
 	useCall,
 	useDoc,

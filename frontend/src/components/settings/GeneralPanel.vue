@@ -30,11 +30,11 @@
 				</div>
 
 				<div v-if="types.loading && !types.data" class="space-y-2">
-					<Skeleton v-for="n in 3" :key="n" class="h-9 w-full" />
+					<Skeleton v-for="n in 3" :key="n" class="h-9 w-full rounded-4" />
 				</div>
 				<ul
 					v-else-if="types.data?.length"
-					class="divide-y divide-outline-gray-1 rounded-4 border border-outline-gray-1"
+					class="divide-y divide-outline-gray-1 rounded-5 border border-outline-gray-1"
 				>
 					<li
 						v-for="type in types.data"

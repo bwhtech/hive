@@ -1,6 +1,22 @@
 <template>
-	<div v-if="!ready" class="grid h-screen place-items-center bg-surface-base">
-		<Spinner class="size-6 text-ink-gray-5" />
+	<!-- The shell's own silhouette while the session resolves: a sidebar
+	     column and a page block, so the real layout lands in place rather than
+	     replacing a centred spinner. -->
+	<div v-if="!ready" class="flex h-screen bg-surface-base" data-testid="shell-skeleton">
+		<div
+			v-if="isDesktop"
+			class="flex w-56 shrink-0 flex-col gap-2 border-r border-outline-gray-1 p-3"
+		>
+			<Skeleton class="mb-4 h-6 w-24 rounded-full" />
+			<Skeleton v-for="n in 3" :key="`nav-${n}`" class="h-7 rounded-4" />
+			<Skeleton class="mt-4 h-3 w-16 rounded-full" />
+			<Skeleton v-for="n in 4" :key="`project-${n}`" class="h-7 rounded-4" />
+		</div>
+		<div class="flex min-w-0 flex-1 flex-col gap-4 p-6">
+			<Skeleton class="h-6 w-48 rounded-full" />
+			<Skeleton class="h-28 rounded-6" />
+			<Skeleton class="h-28 rounded-6" />
+		</div>
 	</div>
 
 	<MobileShell v-else-if="!isDesktop">
@@ -42,7 +58,7 @@ import {
 	DesktopShell,
 	KeyboardShortcutsDialog,
 	MobileShell,
-	Spinner,
+	Skeleton,
 	useColorScheme,
 	useDoc,
 	useKeyboardShortcut,

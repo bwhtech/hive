@@ -50,11 +50,11 @@
 			<div
 				v-for="n in 6"
 				:key="n"
-				class="space-y-3 rounded-4 border border-outline-gray-1 p-4"
+				class="space-y-3 rounded-5 border border-outline-gray-1 p-4"
 			>
-				<Skeleton class="h-5 w-3/4" />
-				<Skeleton class="h-4 w-1/2" />
-				<Skeleton class="h-4 w-full" />
+				<Skeleton class="h-5 w-3/4 rounded-full" />
+				<Skeleton class="h-4 w-1/2 rounded-full" />
+				<Skeleton class="h-4 w-full rounded-full" />
 			</div>
 		</div>
 

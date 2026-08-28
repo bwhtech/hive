@@ -4,7 +4,7 @@
 	<!-- Dashboard geometry: this is the team's dashboard now that the Dashboard
 	     page no longer carries one. -->
 	<div class="mx-auto w-full max-w-4xl space-y-6 px-3 py-5 pb-10 sm:px-5">
-		<div class="h-80 rounded-4 border border-outline-gray-1 bg-surface-base p-4">
+		<div class="h-80 rounded-5 border border-outline-gray-1 bg-surface-base p-4">
 			<AreaChart
 				title="Completed tasks"
 				:subtitle="periodLabel"
@@ -43,16 +43,16 @@
 				<div
 					v-for="n in 4"
 					:key="n"
-					class="space-y-4 rounded-4 border border-outline-gray-1 p-4"
+					class="space-y-4 rounded-5 border border-outline-gray-1 p-4"
 				>
 					<div class="flex items-center gap-3">
 						<Skeleton class="size-10 rounded-full" />
 						<div class="flex-1 space-y-1.5">
-							<Skeleton class="h-4 w-24" />
-							<Skeleton class="h-3 w-16" />
+							<Skeleton class="h-4 w-24 rounded-full" />
+							<Skeleton class="h-3 w-16 rounded-full" />
 						</div>
 					</div>
-					<Skeleton class="h-16 w-full" />
+					<Skeleton class="h-16 w-full rounded-6" />
 				</div>
 			</div>
 

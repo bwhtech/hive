@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="rounded-4 border border-outline-gray-2 bg-surface-gray-1 p-3"
+		class="rounded-5 border border-outline-gray-2 bg-surface-gray-1 p-3"
 		data-testid="draft-card"
 		:data-draft="draft.name"
 	>

@@ -38,7 +38,7 @@
 
 			<section v-if="pending.length" class="space-y-3">
 				<h3 class="text-base font-semibold text-ink-gray-8">Pending invitations</h3>
-				<ul class="divide-y divide-outline-gray-1 rounded-4 border border-outline-gray-1">
+				<ul class="divide-y divide-outline-gray-1 rounded-5 border border-outline-gray-1">
 					<li
 						v-for="invite_ in pending"
 						:key="invite_.name"
@@ -74,11 +74,11 @@
 				</div>
 
 				<div v-if="members.loading && !members.data" class="space-y-2">
-					<Skeleton v-for="n in 3" :key="n" class="h-12 w-full" />
+					<Skeleton v-for="n in 3" :key="n" class="h-12 w-full rounded-5" />
 				</div>
 				<ul
 					v-else-if="filtered.length"
-					class="divide-y divide-outline-gray-1 rounded-4 border border-outline-gray-1"
+					class="divide-y divide-outline-gray-1 rounded-5 border border-outline-gray-1"
 				>
 					<li
 						v-for="member in filtered"

@@ -1,5 +1,5 @@
 <template>
-	<section class="rounded-4 border border-outline-gray-1 bg-surface-base">
+	<section class="rounded-5 border border-outline-gray-1 bg-surface-base">
 		<header class="flex h-11 items-center gap-2 border-b border-outline-gray-1 px-4">
 			<span
 				v-if="icon"

@@ -76,7 +76,7 @@
 			<TabButtons v-model="groupBy" :options="GROUP_OPTIONS" />
 
 			<div v-if="tasks.loading && !tasks.data" class="space-y-2">
-				<Skeleton v-for="n in 3" :key="n" class="h-8 w-full" />
+				<Skeleton v-for="n in 3" :key="n" class="h-8 w-full rounded-4" />
 			</div>
 
 			<ErrorMessage v-else-if="tasks.error" message="Could not load these tasks." />

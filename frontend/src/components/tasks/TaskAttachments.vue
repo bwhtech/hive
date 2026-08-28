@@ -83,7 +83,10 @@
 						@drop.prevent="onDrop"
 					>
 						<template v-if="uploading || busy">
-							<Spinner class="size-4 text-ink-gray-5" />
+							<span
+								class="lucide-upload size-5 animate-pulse text-ink-gray-5"
+								aria-hidden="true"
+							/>
 							<span class="text-sm text-ink-gray-5">
 								{{ uploading ? `Uploading ${progress}%` : 'Uploading…' }}
 							</span>
@@ -112,17 +115,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import {
-	Button,
-	FileUploader,
-	Spinner,
-	Switch,
-	Tooltip,
-	dialog,
-	toast,
-	upload,
-	useList,
-} from 'frappe-ui'
+import { Button, FileUploader, Switch, Tooltip, dialog, toast, upload, useList } from 'frappe-ui'
 import { List, ListCell, ListRow } from 'frappe-ui/list'
 import type { Bool } from '@/types'
 

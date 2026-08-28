@@ -180,3 +180,23 @@ def client_query(user: str | None) -> str:
 		return ""
 
 	return "1=0"
+
+
+def pinned_project_query(user: str | None) -> str:
+	"""A pin is one user's own sidebar shortcut; nobody else's are listable."""
+	if not user:
+		user = frappe.session.user
+	return f"`tabHive Pinned Project`.`user` = {frappe.db.escape(user)}"
+
+
+def pinned_project_has_permission(doc, ptype: str | None = None, user: str | None = None) -> bool:
+	"""Only the pin's own user may read, change or drop it.
+
+	`create` is allowed through: `before_insert` stamps the session user, so a
+	pin cannot be created for anyone else.
+	"""
+	if not user:
+		user = frappe.session.user
+	if ptype == "create":
+		return True
+	return doc.user == user

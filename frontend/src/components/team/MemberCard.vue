@@ -1,5 +1,5 @@
 <template>
-	<article class="rounded-4 border border-outline-gray-1 bg-surface-base p-4">
+	<article class="rounded-5 border border-outline-gray-1 bg-surface-base p-4">
 		<!-- Without a label the button's accessible name is whatever the card
 		     happens to contain -- "3 Active 0 Backlog Workload easing" -- which
 		     never says whose card it is. -->

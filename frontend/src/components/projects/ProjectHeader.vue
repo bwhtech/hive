@@ -13,9 +13,13 @@
 				@update:color="saveIdentity({ color: $event })"
 				@update:avatar="saveIdentity({ avatar: $event })"
 			>
+				<!-- `flex`, not the default inline-block: an inline button sits on
+				     the text baseline and picks up line-height below the avatar,
+				     which stretched the hover ring into a tall rectangle. The
+				     radius matches the `lg` square avatar so the ring hugs it. -->
 				<button
 					type="button"
-					class="shrink-0 rounded-2 ring-outline-gray-3 hover:ring-2"
+					class="flex shrink-0 rounded-[6px] ring-outline-gray-3 hover:ring-2"
 					aria-label="Project icon and color"
 					data-testid="project-icon-trigger"
 				>
@@ -99,12 +103,7 @@
 			<!-- One overlay for everything secondary. A plain Dropdown could not
 			     hold the repo Combobox or the link list, so the actions menu is a
 			     Popover panel of label/control rows. -->
-			<Popover
-				v-if="canEdit || links.length"
-				v-model:open="detailsOpen"
-				align="end"
-				:offset="4"
-			>
+			<Popover v-model:open="detailsOpen" align="end" :offset="4">
 				<template #trigger>
 					<Button variant="ghost" icon="lucide-ellipsis" aria-label="Project actions" />
 				</template>
@@ -196,8 +195,18 @@
 							/>
 						</div>
 
-						<div v-if="canEdit" class="p-1">
+						<div class="p-1">
+							<!-- Pinning is per user, so a client can do it too. -->
 							<Button
+								class="w-full justify-start"
+								variant="ghost"
+								:icon-left="pinnedHere ? 'lucide-pin-off' : 'lucide-pin'"
+								:label="pinnedHere ? 'Unpin from sidebar' : 'Pin to top of sidebar'"
+								data-testid="project-pin-toggle"
+								@click="togglePin(project.name)"
+							/>
+							<Button
+								v-if="canEdit"
 								class="w-full justify-start"
 								variant="ghost"
 								theme="red"
@@ -272,6 +281,7 @@ import {
 } from 'frappe-ui'
 import type { ProjectAvatarValue } from '@/lib/dicebear'
 import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
+import { usePinnedProjects } from '@/composables/usePinnedProjects'
 import IdentityPicker from '@/components/common/IdentityPicker.vue'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import ManageLinksDialog from '@/components/projects/ManageLinksDialog.vue'
@@ -389,6 +399,9 @@ const clientLabel = computed(() => {
 	if (!client) return ''
 	return clients.data?.find((row) => row.name === client)?.company_name ?? client
 })
+
+const { isPinned, toggle: togglePin } = usePinnedProjects()
+const pinnedHere = computed(() => isPinned(props.project.name))
 
 const statusOptions = computed<DropdownOptions>(() =>
 	PROJECT_STATUSES.map((status) => ({

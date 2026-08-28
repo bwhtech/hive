@@ -1,10 +1,10 @@
 <template>
 	<div class="space-y-3">
-		<div class="h-[36rem] rounded-4 border border-outline-gray-1 p-3">
+		<div class="h-[36rem] rounded-5 border border-outline-gray-1 p-3">
 			<Calendar :events="events" :config="CONFIG" :on-click="onEventClick" />
 		</div>
 
-		<section v-if="undated.length" class="rounded-4 border border-outline-gray-1 p-3">
+		<section v-if="undated.length" class="rounded-5 border border-outline-gray-1 p-3">
 			<p class="mb-2 text-sm text-ink-gray-5">No due date ({{ undated.length }})</p>
 			<div class="flex flex-wrap gap-1.5">
 				<button

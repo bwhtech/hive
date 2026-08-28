@@ -63,6 +63,18 @@ export interface HiveProject {
 	icon: string
 	/** One of `PROJECT_COLORS`; empty derives a colour from `name`. */
 	color: ProjectColor | ''
+	/**
+	 * Generated DiceBear avatar as a `data:image/svg+xml` URI. Set means the
+	 * project shows this instead of `icon`. Untrusted: only `projectAvatarSrc`
+	 * may hand it to the DOM, and only to an `<img src>`.
+	 */
+	avatar: string
+	/** DiceBear style id the avatar came from, e.g. `notionists`. */
+	avatar_style: string
+	/** Seed the avatar came from; style + seed + options reproduce the SVG. */
+	avatar_seed: string
+	/** JSON object of hand-picked component variants, or empty. */
+	avatar_options: string
 	project_type: string
 	client: string
 	description: string

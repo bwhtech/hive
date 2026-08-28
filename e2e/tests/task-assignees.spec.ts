@@ -6,22 +6,60 @@ import {
 	HiveProject,
 	HiveTask,
 } from "../helpers/hive";
+import { taskCard, taskPanel } from "../helpers/ui";
 import { getList, deleteDoc, callMethod } from "../helpers/frappe";
 
 const TEST_PREFIX = "E2E Assign";
 const PROJECT_PREFIX = "E2E Assign Project";
 
 /**
- * Navigate to a project page with the overdue dialog suppressed and wait for the Tasks tab.
+ * Assignment flows, not assignment markup.
+ *
+ * These used to assert that an avatar element existed, keyed off a Tailwind
+ * `group/card` class and a shadcn `data-slot`, both of which described how the
+ * old React app painted a card rather than anything a user does. What matters
+ * is that assigning somebody sticks, and that a board tells you at a glance
+ * which work is claimed — so that is what these check, with the server as the
+ * source of truth rather than the DOM.
  */
+
 async function goToProjectTasks(page: Page, projectName: string) {
 	await page.goto(`/hive/projects/${projectName}`);
 	await page.waitForLoadState("domcontentloaded");
 
-	// Wait for the Tasks tab to be visible, then click it
 	const tasksTab = page.getByRole("tab", { name: /Tasks/ });
 	await expect(tasksTab).toBeVisible({ timeout: 15000 });
 	await tasksTab.click();
+}
+
+/** Open a task's panel from the board. */
+async function openTaskPanel(page: Page, title: string) {
+	await page.getByText(title).first().click();
+	const panel = taskPanel(page);
+	await expect(panel).toBeVisible({ timeout: 10000 });
+	return panel;
+}
+
+/**
+ * Who the server thinks a task belongs to.
+ *
+ * Read through a list query naming `_assign`, the way the app itself reads it —
+ * the single-document REST endpoint does not return that field.
+ */
+async function assigneesOf(
+	request: import("@playwright/test").APIRequestContext,
+	taskName: string,
+): Promise<string[]> {
+	const [row] = await getList<{ _assign?: string }>(request, "Hive Task", {
+		fields: ["name", "_assign"],
+		filters: { name: taskName },
+		limit: 1,
+	});
+	try {
+		return JSON.parse(row?._assign || "[]") as string[];
+	} catch {
+		return [];
+	}
 }
 
 async function cleanupTestTasks(
@@ -45,9 +83,6 @@ async function cleanupTestTasks(
 	}
 }
 
-/**
- * Assign a user to a task via Frappe's standard assign_to API.
- */
 async function assignUserToTask(
 	request: import("@playwright/test").APIRequestContext,
 	taskName: string,
@@ -82,7 +117,6 @@ test.describe("Task Assignees", () => {
 			status: "Backlog",
 		});
 
-		// Assign Administrator to taskWithAssignee
 		await assignUserToTask(request, taskWithAssignee.name, "Administrator");
 	});
 
@@ -91,104 +125,64 @@ test.describe("Task Assignees", () => {
 		await cleanupTestProjects(request, PROJECT_PREFIX);
 	});
 
-	test("should display assignee avatar on kanban card", async ({ page }) => {
+	test("the board shows which work is claimed", async ({ page }) => {
 		await goToProjectTasks(page, testProject.name);
 
-		// The task card with an assignee should show an avatar
-		const assignedCard = page
-			.locator(".group\\/card")
-			.filter({ hasText: taskWithAssignee.title });
-		await expect(assignedCard).toBeVisible({ timeout: 10000 });
+		const assigned = taskCard(page).filter({ hasText: taskWithAssignee.title });
+		await expect(assigned).toBeVisible({ timeout: 10000 });
+		await expect(
+			assigned.locator('[data-testid="avatar-stack"]'),
+		).toBeVisible();
 
-		// Avatar is rendered as an img or a fallback span inside the card
-		const avatar = assignedCard.locator('[data-slot="avatar"]');
-		await expect(avatar.first()).toBeVisible({ timeout: 5000 });
+		const unassigned = taskCard(page).filter({ hasText: taskNoAssignee.title });
+		await expect(unassigned).toBeVisible();
+		await expect(
+			unassigned.locator('[data-testid="avatar-stack"]'),
+		).toHaveCount(0);
 	});
 
-	test("should not display assignee avatar on unassigned task card", async ({
-		page,
-	}) => {
-		await goToProjectTasks(page, testProject.name);
-
-		const unassignedCard = page
-			.locator(".group\\/card")
-			.filter({ hasText: taskNoAssignee.title });
-		await expect(unassignedCard).toBeVisible({ timeout: 10000 });
-
-		// No avatar group should be present on unassigned card
-		const avatars = unassignedCard.locator('[data-slot="avatar"]');
-		await expect(avatars).toHaveCount(0);
-	});
-
-	test("should display assignee in task detail sheet", async ({ page }) => {
-		await goToProjectTasks(page, testProject.name);
-
-		// Open task detail sheet
-		await page.getByText(taskWithAssignee.title).first().click();
-		const sheet = page.locator('[role="dialog"]');
-		await expect(sheet.getByText("Task Details")).toBeVisible({
-			timeout: 5000,
-		});
-
-		// The assignee should be visible in the sheet (Administrator's display name)
-		// Look for an avatar element inside the assignees section
-		const assigneeSection = sheet.locator('[data-slot="avatar"]');
-		await expect(assigneeSection.first()).toBeVisible({ timeout: 5000 });
-	});
-
-	test("should show empty assignees for unassigned task in detail sheet", async ({
-		page,
-	}) => {
-		await goToProjectTasks(page, testProject.name);
-
-		// Open task detail sheet for unassigned task
-		await page.getByText(taskNoAssignee.title).first().click();
-		const sheet = page.locator('[role="dialog"]');
-		await expect(sheet.getByText("Task Details")).toBeVisible({
-			timeout: 5000,
-		});
-
-		// The "Add" button for assignees should be visible but no assignee avatars
-		// in the assignee area (look for the add button near the Assignees label)
-		await expect(sheet.getByText("Assignees")).toBeVisible();
-	});
-
-	test("should add assignee from task detail sheet", async ({
-		page,
-		request,
-	}) => {
-		// Create a fresh task with no assignees for this test
-		const freshTask = await createTestTask(request, {
+	test("assigning from the task panel sticks", async ({ page, request }) => {
+		const task = await createTestTask(request, {
 			title: `${TEST_PREFIX} AddAssign ${Date.now()}`,
 			project: testProject.name,
 			status: "To Do",
 		});
 
+		await expect(await assigneesOf(request, task.name)).toEqual([]);
+
 		await goToProjectTasks(page, testProject.name);
+		const panel = await openTaskPanel(page, task.title);
 
-		// Open task detail sheet
-		await page.getByText(freshTask.title).first().click();
-		const sheet = page.locator('[role="dialog"]');
-		await expect(sheet.getByText("Task Details")).toBeVisible({
-			timeout: 5000,
-		});
+		// The control is labelled, so the flow does not care what it is built from.
+		await panel.getByLabel("Assignees").click();
+		// Name the member rather than taking whichever option sorts first: the
+		// site carries `_Test` users that `assign_to.add` rejects, and the app
+		// would correctly toast that failure instead of assigning anyone.
+		const member = page.getByRole("option", { name: /Administrator/ }).first();
+		await expect(member).toBeVisible({ timeout: 10000 });
+		await member.click();
 
-		// Click the "Add" button to open assignee picker
-		const addButton = sheet.getByRole("button", { name: /Add/ }).first();
-		await expect(addButton).toBeVisible({ timeout: 5000 });
-		await addButton.click();
+		// Poll before closing the picker: `Escape` dismisses the popover, and
+		// dismissing it before the change has been sent loses the selection.
+		await expect
+			.poll(() => assigneesOf(request, task.name), { timeout: 15000 })
+			.not.toEqual([]);
+		await page.keyboard.press("Escape");
 
-		// The assignee popover should appear with a search input
-		const popover = page.locator('[data-slot="popover-content"]');
-		await expect(popover).toBeVisible({ timeout: 5000 });
+		const assigned = await assigneesOf(request, task.name);
+		await page.reload();
+		await page.waitForLoadState("networkidle");
+		const reopened = await openTaskPanel(page, task.title);
+		await expect(reopened.getByLabel("Assignees")).toContainText(
+			assigned[0].split("@")[0],
+			{ ignoreCase: true },
+		);
+	});
 
-		// Select the first member in the list
-		const firstMember = popover.locator('[data-slot="command-item"]').first();
-		await expect(firstMember).toBeVisible();
-		await firstMember.click();
+	test("an unassigned task reads as unassigned", async ({ page }) => {
+		await goToProjectTasks(page, testProject.name);
+		const panel = await openTaskPanel(page, taskNoAssignee.title);
 
-		// An avatar should now appear in the sheet's assignee area
-		const assigneeAvatar = sheet.locator('[data-slot="avatar"]');
-		await expect(assigneeAvatar.first()).toBeVisible({ timeout: 5000 });
+		await expect(panel.getByLabel("Assignees")).toContainText("Unassigned");
 	});
 });

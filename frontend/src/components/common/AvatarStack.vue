@@ -1,5 +1,7 @@
 <template>
-	<div v-if="members.length" class="flex items-center">
+	<!-- frappe-ui's `Avatar` publishes no `data-slot`, so the stack carries the
+	     testid: it is the thing a spec means by "who is on this task". -->
+	<div v-if="members.length" class="flex items-center" data-testid="avatar-stack">
 		<Tooltip v-for="member in shown" :key="member.user" :text="member.name || member.user">
 			<div class="-mr-1 last:mr-0">
 				<Avatar

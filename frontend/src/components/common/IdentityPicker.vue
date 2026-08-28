@@ -22,7 +22,7 @@
 			</slot>
 		</template>
 		<template #default>
-			<div class="w-64 space-y-3">
+			<div class="w-64 space-y-3 p-3">
 				<!-- An icon and an avatar are alternatives, not layers, so the
 				     control that picks between them is a value control and the
 				     panels follow — hence TabButtons rather than Tabs.
@@ -107,26 +107,6 @@
 						:options="aspectOptions(aspect.key)"
 						@update:model-value="pickVariant(aspect.key, String($event))"
 					/>
-
-					<!-- No style shipped today obliges us to credit it, but a
-					     CC BY 4.0 one would, and the picker is the only place a
-					     user meets the styles. Credit every style, so adding an
-					     attribution-bound one needs no new markup. The "remixed
-					     by DiceBear" clause is dropped when DiceBear is also the
-					     artist, which it is for all the abstract sets. -->
-					<p class="text-p-xs text-ink-gray-5">
-						{{ styleMeta.label }} by
-						<a v-bind="CREDIT_LINK" :href="styleMeta.artistUrl">{{
-							styleMeta.artist
-						}}</a>
-						<template v-if="styleMeta.artist !== 'DiceBear'">
-							· remixed by DiceBear</template
-						>
-						·
-						<a v-bind="CREDIT_LINK" :href="styleMeta.licenseUrl">{{
-							styleMeta.license
-						}}</a>
-					</p>
 				</template>
 			</div>
 		</template>
@@ -183,13 +163,6 @@ const MODE_OPTIONS = [
 	{ label: 'Icon', value: 'icon' },
 	{ label: 'Avatar', value: 'avatar' },
 ]
-
-/** Shared attrs for the two credit links, so each one fits on a line. */
-const CREDIT_LINK = {
-	target: '_blank',
-	rel: 'noopener noreferrer',
-	class: 'underline',
-}
 
 const STYLE_OPTIONS = PROJECT_AVATAR_STYLES.map((style) => ({
 	label: style.label,

@@ -6,10 +6,12 @@
 			     team the mark is the icon picker's trigger; a client just sees it. -->
 			<IdentityPicker
 				v-if="canEdit"
-				:icon="project.icon"
-				:color="project.color"
-				@update:icon="emit('save', { icon: $event })"
-				@update:color="emit('save', { color: $event })"
+				:icon="project.icon ?? ''"
+				:color="identityColor"
+				:avatar="storedAvatarValue(project)"
+				@update:icon="saveIdentity({ icon: $event })"
+				@update:color="saveIdentity({ color: $event })"
+				@update:avatar="saveIdentity({ avatar: $event })"
 			>
 				<button
 					type="button"
@@ -266,12 +268,14 @@ import {
 	useList,
 	type DropdownOptions,
 } from 'frappe-ui'
+import type { ProjectAvatarValue } from '@/lib/dicebear'
 import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
 import IdentityPicker from '@/components/common/IdentityPicker.vue'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import ManageLinksDialog from '@/components/projects/ManageLinksDialog.vue'
 import NewClientDialog from '@/components/projects/NewClientDialog.vue'
 import { useSession } from '@/composables/useSession'
+import { identityPatch, storedAvatarValue, type ProjectColor } from '@/lib/project'
 import { projectStatusTheme } from '@/lib/status'
 import {
 	PROJECT_STATUSES,
@@ -293,6 +297,34 @@ const emit = defineEmits<{
 
 const { isClient } = useSession()
 const canEdit = computed(() => !isClient.value)
+
+/**
+ * An identity is six fields that must move together: switching to an icon has
+ * to clear the avatar, and an avatar has to carry its style, seed and options
+ * or it can never be rolled again. Emitting one changed field at a time left
+ * the other five behind, which is why a shuffle used to preview and then not
+ * save.
+ */
+/** Kept out of the template: a `|` in a type assertion parses as a Vue filter. */
+const identityColor = computed<ProjectColor | ''>(
+	() => (props.project.color ?? '') as ProjectColor | '',
+)
+
+function saveIdentity(change: {
+	icon?: string
+	color?: ProjectColor | ''
+	avatar?: ProjectAvatarValue | null
+}) {
+	const current = storedAvatarValue(props.project)
+	emit(
+		'save',
+		identityPatch(
+			change.icon ?? props.project.icon ?? '',
+			change.color ?? identityColor.value,
+			'avatar' in change ? (change.avatar ?? null) : current,
+		),
+	)
+}
 
 const links = computed<HiveProjectLink[]>(() => props.project.links ?? [])
 

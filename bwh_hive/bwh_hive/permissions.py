@@ -200,3 +200,19 @@ def pinned_project_has_permission(doc, ptype: str | None = None, user: str | Non
 	if ptype == "create":
 		return True
 	return doc.user == user
+
+
+# Roles that grant access to Hive at all. Anyone on the team or on a client's
+# side belongs in the app; everyone else is kept off the apps screen.
+HIVE_ROLES = ("System Manager", "Hive Team", "Hive Client")
+
+
+def has_hive_access(user: str | None = None) -> bool:
+	"""Whether `user` is allowed to see Hive at all."""
+	if not user:
+		user = frappe.session.user
+
+	if user == "Administrator":
+		return True
+
+	return any(role in frappe.get_roles(user) for role in HIVE_ROLES)

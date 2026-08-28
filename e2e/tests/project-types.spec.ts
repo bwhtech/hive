@@ -1,27 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "../helpers/app";
 import { createDoc, deleteDoc, getList } from "../helpers/frappe";
+import { openSettings } from "../helpers/ui";
 
 const TEST_PREFIX = "E2E PT";
 
 /**
  * Open Settings dialog and switch to the General tab.
  */
-async function openGeneralSettings(page: import("@playwright/test").Page) {
-	await page.goto("/hive");
-	await page.waitForLoadState("networkidle");
-
-	await page.getByRole("button", { name: "Settings" }).click();
-
-	const dialog = page.getByRole("dialog");
-	await expect(dialog).toBeVisible({ timeout: 5000 });
-
-	await dialog.getByRole("tab", { name: "General" }).click();
-
-	// Wait for the Project Types section to load
-	await expect(dialog.getByText("Project Types")).toBeVisible({
-		timeout: 5000,
+async function openGeneralSettings(page: Page) {
+	const dialog = await openSettings(page, "General");
+	await expect(dialog.getByText("Project types")).toBeVisible({
+		timeout: 10000,
 	});
-
 	return dialog;
 }
 
@@ -66,7 +56,7 @@ test.describe("Project Types", () => {
 
 		// The install hook bootstraps these 4 default types
 		await expect(dialog.getByText("Development")).toBeVisible({
-			timeout: 5000,
+			timeout: 10000,
 		});
 		await expect(dialog.getByText("Implementation")).toBeVisible();
 		await expect(dialog.getByText("Retainer")).toBeVisible();
@@ -83,18 +73,16 @@ test.describe("Project Types", () => {
 		const dialog = await openGeneralSettings(page);
 
 		// Fill in the input and click Add
-		await dialog
-			.getByPlaceholder("e.g. Build, Hiring, Support...")
-			.fill(typeName);
+		await dialog.getByLabel("New project type").fill(typeName);
 		await dialog.getByRole("button", { name: "Add" }).click();
 
 		// Wait for success toast
 		await expect(
-			page.getByText(`Project type "${typeName}" added`),
+			page.getByText(`Added "${typeName}"`),
 		).toBeVisible({ timeout: 10000 });
 
 		// Verify it appears in the list
-		await expect(dialog.getByText(typeName)).toBeVisible({ timeout: 5000 });
+		await expect(dialog.getByText(typeName)).toBeVisible({ timeout: 10000 });
 	});
 
 	test("should add a project type via Enter key", async ({
@@ -106,19 +94,17 @@ test.describe("Project Types", () => {
 		const typeName = `${TEST_PREFIX} Enter ${Date.now()}`;
 		const dialog = await openGeneralSettings(page);
 
-		const input = dialog.getByPlaceholder(
-			"e.g. Build, Hiring, Support...",
-		);
+		const input = dialog.getByLabel("New project type");
 		await input.fill(typeName);
 		await input.press("Enter");
 
 		// Wait for success toast
 		await expect(
-			page.getByText(`Project type "${typeName}" added`),
+			page.getByText(`Added "${typeName}"`),
 		).toBeVisible({ timeout: 10000 });
 
 		// Verify it appears in the list
-		await expect(dialog.getByText(typeName)).toBeVisible({ timeout: 5000 });
+		await expect(dialog.getByText(typeName)).toBeVisible({ timeout: 10000 });
 	});
 
 	test("should delete a project type", async ({ page, request }) => {
@@ -133,21 +119,17 @@ test.describe("Project Types", () => {
 		const dialog = await openGeneralSettings(page);
 
 		// Verify it's visible
-		await expect(dialog.getByText(typeName)).toBeVisible({ timeout: 5000 });
+		await expect(dialog.getByText(typeName)).toBeVisible({ timeout: 10000 });
 
-		// Click the delete button next to this project type
-		// Each row has the type name and a ghost delete button
-		const row = dialog.locator("div").filter({ hasText: typeName }).locator("button").last();
-		await row.click();
+		await dialog.getByRole("button", { name: `Remove ${typeName}` }).click();
 
-		// Wait for success toast
-		await expect(
-			page.getByText(`Project type "${typeName}" removed`),
-		).toBeVisible({ timeout: 10000 });
+		// Removal is a soft archive, and the toast carries the Undo.
+		await expect(page.getByText(`${typeName} archived`)).toBeVisible({
+			timeout: 10000,
+		});
 
-		// Verify it's no longer in the list
-		await expect(dialog.getByText(typeName)).not.toBeVisible({
-			timeout: 5000,
+		await expect(dialog.getByText(typeName)).toHaveCount(0, {
+			timeout: 10000,
 		});
 	});
 
@@ -160,9 +142,7 @@ test.describe("Project Types", () => {
 		await expect(addButton).toBeDisabled();
 
 		// Type spaces only — should still be disabled
-		await dialog
-			.getByPlaceholder("e.g. Build, Hiring, Support...")
-			.fill("   ");
+		await dialog.getByLabel("New project type").fill("   ");
 		await expect(addButton).toBeDisabled();
 	});
 });

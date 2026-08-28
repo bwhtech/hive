@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/app";
 import {
 	createTestProject,
 	createTestMilestone,
@@ -9,6 +9,14 @@ import {
 	HiveMilestone,
 } from "../helpers/hive";
 import { getDoc, getList, deleteDoc, updateDoc } from "../helpers/frappe";
+import {
+	chooseOption,
+	expectDialog,
+	gotoHive,
+	milestoneCard,
+	openProjectTab,
+	selectTrigger,
+} from "../helpers/ui";
 
 const TEST_PREFIX = "E2E Milestone";
 const PROJECT_PREFIX = "E2E Milestone Project";
@@ -58,13 +66,9 @@ test.describe("Milestones", () => {
 	test("should show empty state when no milestones exist", async ({
 		page,
 	}) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, `/projects/${testProject.name}`);
+		await openProjectTab(page, "Milestones");
 
-		// Navigate to Milestones tab
-		await page.getByRole("tab", { name: /Milestones/ }).click();
-
-		// Verify empty state
 		await expect(page.getByText("No milestones yet")).toBeVisible({
 			timeout: 10000,
 		});
@@ -76,37 +80,23 @@ test.describe("Milestones", () => {
 	test("should create a milestone via the Add Milestone button", async ({
 		page,
 	}) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, `/projects/${testProject.name}`);
+		await openProjectTab(page, "Milestones");
 
-		// Navigate to Milestones tab
-		await page.getByRole("tab", { name: /Milestones/ }).click();
+		// The header and the empty state both offer this; either will do.
+		await page.getByRole("button", { name: "Add Milestone" }).first().click();
 
-		// Click Add Milestone
-		await page.getByRole("button", { name: "Add Milestone" }).click();
+		const dialog = await expectDialog(page, "New milestone");
 
-		// Dialog should open
-		const dialog = page.getByRole("dialog");
-		await expect(dialog).toBeVisible({ timeout: 5000 });
-		await expect(dialog.getByText("New Milestone")).toBeVisible();
-
-		// Fill in title
 		const milestoneTitle = `${TEST_PREFIX} UI ${Date.now()}`;
-		await dialog
-			.locator('input[placeholder="e.g. Beta Release"]')
-			.fill(milestoneTitle);
+		await dialog.getByLabel("Title").fill(milestoneTitle);
 
-		// Submit
-		await dialog
-			.getByRole("button", { name: "Create Milestone" })
-			.click();
+		await dialog.getByRole("button", { name: "Create milestone" }).click();
 
-		// Verify success toast
 		await expect(page.getByText("Milestone created")).toBeVisible({
 			timeout: 10000,
 		});
 
-		// Verify milestone appears in the list
 		await expect(page.getByText(milestoneTitle)).toBeVisible({
 			timeout: 10000,
 		});
@@ -117,29 +107,23 @@ test.describe("Milestones", () => {
 		request,
 	}) => {
 		const milestoneTitle = `${TEST_PREFIX} Display ${Date.now()}`;
-		await createTestMilestone(request, {
+		const milestone = await createTestMilestone(request, {
 			title: milestoneTitle,
 			project: testProject.name,
 			status: "In Progress",
 			target_date: "2026-06-15",
 		});
 
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, `/projects/${testProject.name}`);
+		await openProjectTab(page, "Milestones");
 
-		// Navigate to Milestones tab
-		await page.getByRole("tab", { name: /Milestones/ }).click();
-
-		// Verify milestone title is visible
-		await expect(page.getByText(milestoneTitle)).toBeVisible({
-			timeout: 10000,
-		});
-
-		// Verify the status badge shows "In Progress"
-		await expect(page.getByText("In Progress").first()).toBeVisible();
-
-		// Verify the target date is displayed (formatted as "Jun 15, 2026")
-		await expect(page.getByText("Jun 15, 2026")).toBeVisible();
+		const card = milestoneCard(page, milestone.name);
+		await expect(card).toBeVisible({ timeout: 10000 });
+		await expect(card).toContainText(milestoneTitle);
+		await expect(selectTrigger(card, "Milestone status")).toHaveText(
+			/In Progress/,
+		);
+		await expect(card.getByText("15 Jun 2026")).toBeVisible();
 	});
 
 	test("should change milestone status via the status selector", async ({
@@ -153,39 +137,19 @@ test.describe("Milestones", () => {
 			status: "Upcoming",
 		});
 
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, `/projects/${testProject.name}`);
+		await openProjectTab(page, "Milestones");
 
-		// Navigate to Milestones tab
-		await page.getByRole("tab", { name: /Milestones/ }).click();
+		const card = milestoneCard(page, milestone.name);
+		await expect(card).toBeVisible({ timeout: 10000 });
 
-		// Wait for milestone to appear
-		await expect(page.getByText(milestoneTitle)).toBeVisible({
-			timeout: 10000,
-		});
+		const status = selectTrigger(card, "Milestone status");
+		await expect(status).toHaveText(/Upcoming/);
 
-		// Find the milestone card (data-slot="card") containing our title
-		const card = page
-			.locator('[data-slot="card"]')
-			.filter({ hasText: milestoneTitle });
-		const statusTrigger = card.locator('[data-slot="select-trigger"]');
+		await chooseOption(page, "Milestone status", "Completed", card);
 
-		await expect(statusTrigger).toContainText("Upcoming");
-		await statusTrigger.click();
+		await expect(status).toHaveText(/Completed/, { timeout: 10000 });
 
-		// Wait for dropdown content to appear, then select "Completed"
-		const completedOption = page
-			.locator('[data-slot="select-item"]')
-			.filter({ hasText: "Completed" });
-		await expect(completedOption).toBeVisible({ timeout: 5000 });
-		await completedOption.click();
-
-		// Wait for the status badge to reflect the change
-		await expect(statusTrigger).toContainText("Completed", {
-			timeout: 10000,
-		});
-
-		// Verify via API that status was updated
 		const updated = await getDoc<HiveMilestone>(
 			request,
 			"Hive Milestone",
@@ -205,54 +169,28 @@ test.describe("Milestones", () => {
 			status: "In Progress",
 		});
 
-		// Create 3 tasks linked to this milestone: 2 Done, 1 Backlog
-		await createTestTask(request, {
-			title: `${TEST_PREFIX} Task Done 1`,
-			project: testProject.name,
-			status: "Done",
-		}).then((t) =>
-			updateDoc(request, "Hive Task", t.name, {
+		// Two of three linked tasks done, so the card should read 2/3 and 67%.
+		for (const [title, status] of [
+			[`${TEST_PREFIX} Task Done 1`, "Done"],
+			[`${TEST_PREFIX} Task Done 2`, "Done"],
+			[`${TEST_PREFIX} Task Backlog`, "Backlog"],
+		]) {
+			const task = await createTestTask(request, {
+				title,
+				project: testProject.name,
+				status,
+			});
+			await updateDoc(request, "Hive Task", task.name, {
 				milestone: milestone.name,
-			}),
-		);
+			});
+		}
 
-		await createTestTask(request, {
-			title: `${TEST_PREFIX} Task Done 2`,
-			project: testProject.name,
-			status: "Done",
-		}).then((t) =>
-			updateDoc(request, "Hive Task", t.name, {
-				milestone: milestone.name,
-			}),
-		);
+		await gotoHive(page, `/projects/${testProject.name}`);
+		await openProjectTab(page, "Milestones");
 
-		await createTestTask(request, {
-			title: `${TEST_PREFIX} Task Backlog`,
-			project: testProject.name,
-			status: "Backlog",
-		}).then((t) =>
-			updateDoc(request, "Hive Task", t.name, {
-				milestone: milestone.name,
-			}),
-		);
-
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-
-		// Navigate to Milestones tab
-		await page.getByRole("tab", { name: /Milestones/ }).click();
-
-		// Wait for milestone to appear
-		await expect(page.getByText(milestoneTitle)).toBeVisible({
-			timeout: 10000,
-		});
-
-		// Verify progress text shows "2/3 tasks"
-		await expect(page.getByText("2/3 tasks")).toBeVisible({
-			timeout: 10000,
-		});
-
-		// Verify progress percentage shows "67%"
-		await expect(page.getByText("67%")).toBeVisible();
+		const card = milestoneCard(page, milestone.name);
+		await expect(card).toBeVisible({ timeout: 10000 });
+		await expect(card.getByText("2/3 tasks")).toBeVisible({ timeout: 10000 });
+		await expect(card.getByText("67%")).toBeVisible();
 	});
 });

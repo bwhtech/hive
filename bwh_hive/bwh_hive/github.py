@@ -1,9 +1,9 @@
 import time
 
+import frappe
 import jwt
 import requests
-
-import frappe
+from frappe import _
 
 
 def _get_app_jwt(settings) -> str:
@@ -39,7 +39,9 @@ def _get_installation_token(settings) -> str:
 
 	installations = resp.json()
 	if not installations:
-		frappe.throw("GitHub App is not installed on any account. Install it from the GitHub App settings page.")
+		frappe.throw(
+			_("GitHub App is not installed on any account. Install it from the GitHub App settings page.")
+		)
 
 	installation_id = installations[0]["id"]
 
@@ -114,14 +116,18 @@ def get_repos() -> list[dict]:
 			timeout=15,
 		)
 		if resp.status_code != 200:
-			frappe.throw(f"GitHub API error ({resp.status_code}): {resp.json().get('message', 'Unknown error')}")
+			frappe.throw(
+				f"GitHub API error ({resp.status_code}): {resp.json().get('message', 'Unknown error')}"
+			)
 
 		data = resp.json()
 		for repo in data.get("repositories", []):
-			repos.append({
-				"full_name": repo["full_name"],
-				"private": repo["private"],
-			})
+			repos.append(
+				{
+					"full_name": repo["full_name"],
+					"private": repo["private"],
+				}
+			)
 
 		if len(repos) >= data.get("total_count", 0):
 			break

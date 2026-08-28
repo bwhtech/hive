@@ -1,13 +1,37 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
+  "extends": "frappe-ui/tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
+      "@/*": [
+        "./src/*"
+      ],
+      "#components/*": [
+        "./node_modules/frappe-ui/src/components/*"
+      ],
+      "#molecules/*": [
+        "./node_modules/frappe-ui/src/molecules/*"
+      ],
+      "#composables/*": [
+        "./node_modules/frappe-ui/src/composables/*"
+      ],
+      "#utils/*": [
+        "./node_modules/frappe-ui/src/utils/*"
+      ]
+    },
+    "types": [
+      "vite/client",
+      "vite-plugin-pwa/client",
+      "node"
+    ],
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "vite.config.ts",
+    "tailwind.config.js",
+    "postcss.config.js"
+  ]
 }

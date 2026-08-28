@@ -1,15 +1,11 @@
 import frappe
 
-AGENT_BOT_ROLE = "Agent Bot"
-AGENT_BOT_USER = "agent@hive.local"
-
 
 def after_install():
 	"""Bootstrap Hive roles, members, and default project types."""
 	_ensure_roles()
 	_bootstrap_system_managers()
 	_ensure_default_project_types()
-	_ensure_agent_bot()
 	frappe.db.commit()
 
 
@@ -18,7 +14,6 @@ def after_migrate():
 	_ensure_roles()
 	_bootstrap_system_managers()
 	_ensure_default_project_types()
-	_ensure_agent_bot()
 	_generate_missing_project_slugs()
 	frappe.db.commit()
 
@@ -60,39 +55,6 @@ def _bootstrap_system_managers():
 					"is_active": 1,
 				}
 			).insert(ignore_permissions=True)
-
-
-def _ensure_agent_bot():
-	"""Ensure the v2 Agent bot role, user, and Hive Member exist (specs/v2 §A.4).
-
-	The bot carries the shared callback service key (00-architecture.md §2.2) and is
-	identified by the `Agent Bot` role. A Hive Member of type Team makes it selectable
-	in assignee pickers, which is what triggers provisioning.
-	"""
-	if not frappe.db.exists("Role", AGENT_BOT_ROLE):
-		frappe.get_doc({"doctype": "Role", "role_name": AGENT_BOT_ROLE, "desk_access": 0}).insert(
-			ignore_permissions=True
-		)
-
-	if not frappe.db.exists("User", AGENT_BOT_USER):
-		user = frappe.get_doc(
-			{
-				"doctype": "User",
-				"email": AGENT_BOT_USER,
-				"first_name": "Agent",
-				"user_type": "System User",
-				"send_welcome_email": 0,
-			}
-		)
-		user.insert(ignore_permissions=True)
-
-	if AGENT_BOT_ROLE not in frappe.get_roles(AGENT_BOT_USER):
-		frappe.get_doc("User", AGENT_BOT_USER).add_roles(AGENT_BOT_ROLE)
-
-	if not frappe.db.exists("Hive Member", {"user": AGENT_BOT_USER}):
-		frappe.get_doc(
-			{"doctype": "Hive Member", "user": AGENT_BOT_USER, "type": "Team", "is_active": 1}
-		).insert(ignore_permissions=True)
 
 
 def _generate_missing_project_slugs():

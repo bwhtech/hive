@@ -1,30 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "../helpers/app";
 import { callMethod } from "../helpers/frappe";
+import { chooseOption, openSettings, selectTrigger } from "../helpers/ui";
 
 const TEST_EMAIL = `e2e-invite-${Date.now()}@example.com`;
 
 /**
- * Open the Settings dialog and switch to the Members tab.
+ * Open the Settings dialog on its Members panel.
  */
-async function openMembersSettings(page: import("@playwright/test").Page) {
-	await page.goto("/hive");
-	await page.waitForLoadState("networkidle");
-
-	// Click the Settings button in the sidebar
-	await page.getByRole("button", { name: "Settings" }).click();
-
-	// Settings dialog should open
-	const dialog = page.getByRole("dialog");
-	await expect(dialog).toBeVisible({ timeout: 5000 });
-
-	// Click the Members tab
-	await dialog.getByRole("tab", { name: "Members" }).click();
-
-	// Wait for the Members section to be visible
-	await expect(dialog.getByText("Invite Member")).toBeVisible({
-		timeout: 5000,
+async function openMembersSettings(page: Page) {
+	const dialog = await openSettings(page, "Members");
+	await expect(dialog.getByText("Invite a member")).toBeVisible({
+		timeout: 10000,
 	});
-
 	return dialog;
 }
 
@@ -36,9 +23,7 @@ async function cleanupPendingInvitations(
 	emailPattern: string,
 ) {
 	try {
-		const pending = await callMethod<
-			{ name: string; email: string }[]
-		>(
+		const pending = await callMethod<{ name: string; email: string }[]>(
 			request,
 			"frappe.core.api.user_invitation.get_pending_invitations",
 			{ app_name: "bwh_hive" },
@@ -65,18 +50,18 @@ test.describe("Members", () => {
 		await cleanupPendingInvitations(request, "e2e-invite-");
 	});
 
-	test("should display active members list in settings", async ({
-		page,
-	}) => {
+	test("should display active members list in settings", async ({ page }) => {
 		const dialog = await openMembersSettings(page);
 
-		// Should show the Members heading with a count
-		await expect(dialog.getByText(/^Members \(\d+\)/)).toBeVisible();
-
-		// At least one member should be visible (the admin user)
 		await expect(
-			dialog.getByText("Administrator Bhaisaab"),
-		).toBeVisible({ timeout: 5000 });
+			dialog.getByRole("heading", { name: /^\d+ members?$/ }),
+		).toBeVisible();
+
+		// The signed-in admin is a member, so the list is never empty. The name
+		// also appears in the row's meta line, hence `.first()`.
+		await expect(dialog.getByText("Administrator").first()).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test("should send an invitation and see it as pending", async ({
@@ -87,133 +72,93 @@ test.describe("Members", () => {
 
 		const dialog = await openMembersSettings(page);
 
-		// Fill in the email and click Invite
-		await dialog.getByPlaceholder("email@example.com").fill(TEST_EMAIL);
-		await dialog.getByRole("button", { name: /invite/i }).click();
+		await dialog.getByLabel("Invitee email").fill(TEST_EMAIL);
+		await dialog.getByRole("button", { name: "Invite", exact: true }).click();
 
-		// Wait for the success toast
 		await expect(
 			page.getByText(`Invitation sent to ${TEST_EMAIL}`),
 		).toBeVisible({ timeout: 10000 });
 
-		// The pending invitations section should appear with our email
-		await expect(
-			dialog.getByText("Pending Invitations"),
-		).toBeVisible({ timeout: 5000 });
+		await expect(dialog.getByText("Pending invitations")).toBeVisible({
+			timeout: 10000,
+		});
 		await expect(dialog.getByText(TEST_EMAIL)).toBeVisible();
 	});
 
 	test("should cancel a pending invitation", async ({ page, request }) => {
-		// Clean up any stale invitations from previous tests
 		await cleanupPendingInvitations(request, "e2e-invite-");
 
-		// Create a single pending invitation via API
 		const inviteEmail = `e2e-invite-cancel-${Date.now()}@example.com`;
-		await callMethod(
-			request,
-			"bwh_hive.bwh_hive.api.invite_member",
-			{
-				email: inviteEmail,
-				role: "Hive Team",
-			},
-		);
+		await callMethod(request, "bwh_hive.bwh_hive.api.invite_member", {
+			email: inviteEmail,
+			role: "Hive Team",
+		});
 
 		const dialog = await openMembersSettings(page);
 
-		// Verify the pending invitation is visible
-		await expect(
-			dialog.getByText("Pending Invitations"),
-		).toBeVisible({ timeout: 5000 });
+		await expect(dialog.getByText("Pending invitations")).toBeVisible({
+			timeout: 10000,
+		});
 		await expect(dialog.getByText(inviteEmail)).toBeVisible();
 
-		// Click the cancel (X) button in the pending invitations section.
-		// The "Pending Invitations" section is an ItemGroup. Find the cancel button
-		// that is a sibling of the title containing our invite email.
-		const pendingSection = dialog.locator('[data-slot="item-group"]').first();
-		const cancelBtn = pendingSection
-			.locator('[data-slot="item-actions"] button')
-			.first();
-		await cancelBtn.click();
+		await dialog
+			.getByRole("button", { name: `Cancel invitation to ${inviteEmail}` })
+			.click();
 
-		// Wait for the success toast
 		await expect(
 			page.getByText(`Invitation to ${inviteEmail} cancelled`),
 		).toBeVisible({ timeout: 10000 });
 
-		// The email should no longer be in the pending list
-		await expect(dialog.getByText(inviteEmail)).not.toBeVisible({
-			timeout: 5000,
+		await expect(dialog.getByText(inviteEmail)).toHaveCount(0, {
+			timeout: 10000,
 		});
 	});
 
 	test("should filter members by type", async ({ page }) => {
 		const dialog = await openMembersSettings(page);
 
-		// The type filter dropdown is the small one near "Members (N)" heading
-		// It shows "all" by default and has className w-[100px]
-		const filterTrigger = dialog.locator("button[role='combobox']").last();
-		await expect(filterTrigger).toBeVisible();
-		await expect(filterTrigger).toContainText("all");
+		const filter = selectTrigger(dialog, "Filter by member type");
+		await expect(filter).toHaveText(/All/);
 
-		// Switch to "Team" filter
-		await filterTrigger.click();
-		await page.getByRole("option", { name: "Team" }).click();
+		await chooseOption(page, "Filter by member type", "Team", dialog);
+		await expect(filter).toHaveText(/Team/);
 
-		// Should show only Team members — use heading role to avoid matching the tab
-		await expect(
-			dialog.getByRole("heading", { name: /^Members/ }),
-		).toBeVisible();
+		await chooseOption(page, "Filter by member type", "Client", dialog);
+		await expect(filter).toHaveText(/Client/);
 
-		// Switch to "Client" filter
-		await dialog.locator("button[role='combobox']").last().click();
-		await page.getByRole("option", { name: "Client" }).click();
-
-		// Should still show Members section (even if showing Client members or empty state)
+		// Either some client members or the empty state — both are valid.
 		await expect(
 			dialog
-				.getByRole("heading", { name: /^Members/ })
+				.getByRole("heading", { name: /^\d+ members?$/ })
 				.or(dialog.getByText("No members found")),
 		).toBeVisible();
 	});
 
-	test("should invite a member with Client role", async ({
-		page,
-		request,
-	}) => {
+	test("should invite a member with Client role", async ({ page, request }) => {
 		await cleanupPendingInvitations(request, "e2e-invite-client-");
 
 		const clientEmail = `e2e-invite-client-${Date.now()}@example.com`;
 		const dialog = await openMembersSettings(page);
 
-		// Fill in the email
-		await dialog
-			.getByPlaceholder("email@example.com")
-			.fill(clientEmail);
+		await dialog.getByLabel("Invitee email").fill(clientEmail);
 
-		// The role dropdown is the first combobox (near the invite input, w-[140px])
-		// It currently shows "Team" — switch it to "Client"
-		const roleDropdown = dialog.locator("button[role='combobox']").first();
-		await expect(roleDropdown).toContainText("Team");
-		await roleDropdown.click();
-		await page.getByRole("option", { name: "Client" }).click();
+		await expect(selectTrigger(dialog, "Role")).toHaveText(/Team/);
+		await chooseOption(page, "Role", "Client", dialog);
 
-		// When Client role is selected, a client org dropdown appears — select one
-		const clientDropdown = dialog.locator("button[role='combobox']").nth(1);
-		await expect(clientDropdown).toBeVisible();
-		await clientDropdown.click();
-		await page.getByRole("option", { name: "Acme Corp" }).click();
+		// Choosing the Client role reveals a client-organisation picker.
+		const clientPicker = dialog.getByRole("button", { name: /Select client/ });
+		await expect(clientPicker).toBeVisible({ timeout: 5000 });
+		await clientPicker.click();
+		await page.getByRole("option").first().click();
 
-		// Click Invite button
-		await dialog.getByRole("button", { name: /invite/i }).click();
+		await dialog.getByRole("button", { name: "Invite", exact: true }).click();
 
-		// Wait for success toast
 		await expect(
 			page.getByText(`Invitation sent to ${clientEmail}`),
 		).toBeVisible({ timeout: 10000 });
 
-		// The pending invitation should appear
 		await expect(dialog.getByText(clientEmail)).toBeVisible({
-			timeout: 5000,
+			timeout: 10000,
 		});
 	});
 });

@@ -10,6 +10,12 @@
  "engine": "InnoDB",
  "field_order": [
   "title",
+  "icon",
+  "color",
+  "avatar",
+  "avatar_style",
+  "avatar_seed",
+  "avatar_options",
   "slug",
   "status",
   "is_private",
@@ -21,19 +27,7 @@
   "links_section",
   "links",
   "is_archived",
-  "github_repo",
-  "agent_section",
-  "agent_enabled",
-  "github_pat",
-  "agent_template_slug",
-  "target_app_name",
-  "target_app_repo",
-  "target_app_branch",
-  "skills_repo_override",
-  "agent_prompts_section",
-  "agent_spec_prompt",
-  "agent_implement_prompt",
-  "agent_changes_prompt"
+  "github_repo"
  ],
  "fields": [
   {
@@ -43,6 +37,43 @@
    "in_standard_filter": 1,
    "label": "Title",
    "reqd": 1
+  },
+  {
+   "description": "Lucide icon name shown on the project avatar (e.g. rocket). Blank falls back to a folder.",
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "label": "Icon"
+  },
+  {
+   "description": "Avatar tint. Blank derives a stable color from the project id.",
+   "fieldname": "color",
+   "fieldtype": "Select",
+   "label": "Color",
+   "options": "\ngray\nblue\ngreen\namber\nred\nviolet"
+  },
+  {
+   "description": "Generated DiceBear avatar, stored as a data:image/svg+xml URI. Set means it is shown instead of the icon. Rendered only as an <img> source, never as markup.",
+   "fieldname": "avatar",
+   "fieldtype": "Long Text",
+   "label": "Avatar"
+  },
+  {
+   "description": "DiceBear style id the avatar was generated from (e.g. notionists).",
+   "fieldname": "avatar_style",
+   "fieldtype": "Data",
+   "label": "Avatar Style"
+  },
+  {
+   "description": "Seed the avatar was generated from. Same style, seed and options always give the same SVG.",
+   "fieldname": "avatar_seed",
+   "fieldtype": "Data",
+   "label": "Avatar Seed"
+  },
+  {
+   "description": "JSON object of hand-picked component variants, e.g. {\"hair\": \"variant07\"}. Blank leaves every component to the seed.",
+   "fieldname": "avatar_options",
+   "fieldtype": "Small Text",
+   "label": "Avatar Options"
   },
   {
    "fieldname": "slug",
@@ -125,99 +156,12 @@
    "fieldtype": "Data",
    "label": "GitHub Repository",
    "description": "GitHub repository in owner/repo format (e.g. BuildWithHussain/hive)"
-  },
-  {
-   "collapsible": 1,
-   "fieldname": "agent_section",
-   "fieldtype": "Section Break",
-   "label": "Agent (v2)"
-  },
-  {
-   "default": "0",
-   "description": "Only agent-enabled projects can spawn agent boxes (specs/v2 §4.3).",
-   "fieldname": "agent_enabled",
-   "fieldtype": "Check",
-   "label": "Agent Enabled"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "Project PAT used inside the box for gh / git push (GIT_PAT).",
-   "fieldname": "github_pat",
-   "fieldtype": "Password",
-   "label": "GitHub PAT"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "BenchSpace template/golden to provision (defaults to Hive Settings).",
-   "fieldname": "agent_template_slug",
-   "fieldtype": "Data",
-   "label": "Agent Template Slug"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "Frappe app to install in the box (TARGET_APP_NAME).",
-   "fieldname": "target_app_name",
-   "fieldtype": "Data",
-   "label": "Target App Name"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "App source URL (TARGET_APP_REPO).",
-   "fieldname": "target_app_repo",
-   "fieldtype": "Data",
-   "label": "Target App Repo"
-  },
-  {
-   "default": "develop",
-   "depends_on": "agent_enabled",
-   "description": "App branch (TARGET_APP_BRANCH).",
-   "fieldname": "target_app_branch",
-   "fieldtype": "Data",
-   "label": "Target App Branch"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "Optional override for the global SKILLS_REPO.",
-   "fieldname": "skills_repo_override",
-   "fieldtype": "Data",
-   "label": "Skills Repo Override"
-  },
-  {
-   "collapsible": 1,
-   "depends_on": "agent_enabled",
-   "fieldname": "agent_prompts_section",
-   "fieldtype": "Section Break",
-   "label": "Agent Prompt Overrides"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "Overrides the global Spec Prompt for this project. Blank = inherit the global default.",
-   "fieldname": "agent_spec_prompt",
-   "fieldtype": "Code",
-   "label": "Spec Prompt Override",
-   "options": "Text"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "Overrides the global Implement Prompt for this project. Blank = inherit the global default.",
-   "fieldname": "agent_implement_prompt",
-   "fieldtype": "Code",
-   "label": "Implement Prompt Override",
-   "options": "Text"
-  },
-  {
-   "depends_on": "agent_enabled",
-   "description": "Overrides the global Changes Prompt for this project. Blank = inherit the global default.",
-   "fieldname": "agent_changes_prompt",
-   "fieldtype": "Code",
-   "label": "Changes Prompt Override",
-   "options": "Text"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-21 11:21:25.164031",
+ "modified": "2026-08-28 15:40:00.000000",
  "modified_by": "Administrator",
  "module": "BWH Hive",
  "name": "Hive Project",

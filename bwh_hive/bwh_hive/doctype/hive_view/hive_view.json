@@ -6,7 +6,12 @@
  "engine": "InnoDB",
  "field_order": [
   "label",
-  "emoji",
+  "icon",
+  "color",
+  "avatar",
+  "avatar_style",
+  "avatar_seed",
+  "avatar_options",
   "view_type",
   "filters_json",
   "is_public"
@@ -19,9 +24,41 @@
    "reqd": 1
   },
   {
-   "fieldname": "emoji",
+   "description": "Lucide icon name shown on the view avatar (e.g. rocket). Blank falls back to a folder.",
+   "fieldname": "icon",
    "fieldtype": "Data",
-   "label": "Emoji"
+   "label": "Icon"
+  },
+  {
+   "description": "Avatar tint. Blank derives a stable color from the view id.",
+   "fieldname": "color",
+   "fieldtype": "Select",
+   "label": "Color",
+   "options": "\ngray\nblue\ngreen\namber\nred\nviolet"
+  },
+  {
+   "description": "Generated DiceBear avatar, stored as a data:image/svg+xml URI. Set means it is shown instead of the icon. Rendered only as an <img> source, never as markup.",
+   "fieldname": "avatar",
+   "fieldtype": "Long Text",
+   "label": "Avatar"
+  },
+  {
+   "description": "DiceBear style id the avatar was generated from (e.g. notionists).",
+   "fieldname": "avatar_style",
+   "fieldtype": "Data",
+   "label": "Avatar Style"
+  },
+  {
+   "description": "Seed the avatar was generated from. Same style, seed and options always give the same SVG.",
+   "fieldname": "avatar_seed",
+   "fieldtype": "Data",
+   "label": "Avatar Seed"
+  },
+  {
+   "description": "JSON object of hand-picked component variants, e.g. {\"hair\": \"variant07\"}. Blank leaves every component to the seed.",
+   "fieldname": "avatar_options",
+   "fieldtype": "Small Text",
+   "label": "Avatar Options"
   },
   {
    "fieldname": "view_type",
@@ -44,7 +81,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-25 18:00:00.000000",
+ "modified": "2026-08-28 17:00:00.000000",
  "modified_by": "Administrator",
  "module": "BWH Hive",
  "name": "Hive View",

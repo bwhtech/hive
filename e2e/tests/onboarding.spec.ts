@@ -1,5 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/app";
 import { updateDoc } from "../helpers/frappe";
+import { gotoHive } from "../helpers/ui";
 
 test.describe("Onboarding", () => {
 	test.beforeAll(async ({ request }) => {
@@ -17,13 +18,12 @@ test.describe("Onboarding", () => {
 	});
 
 	test("should show onboarding dialog on fresh state", async ({ page }) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/");
 
 		// The onboarding dialog should appear
-		const dialog = page.getByRole("dialog");
+		const dialog = page.getByRole("dialog", { name: "Welcome to Hive" });
 		await expect(dialog).toBeVisible({ timeout: 10000 });
-		await expect(dialog.getByText("Welcome to Hive")).toBeVisible();
+		await expect(dialog).toContainText("Invite your team");
 	});
 
 	test("should walk through all onboarding steps and complete", async ({
@@ -35,10 +35,9 @@ test.describe("Onboarding", () => {
 			onboarding_completed: 0,
 		});
 
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/");
 
-		const dialog = page.getByRole("dialog");
+		const dialog = page.getByRole("dialog", { name: "Welcome to Hive" });
 		await expect(dialog).toBeVisible({ timeout: 10000 });
 
 		// --- Step 1: Invite team members ---
@@ -53,29 +52,29 @@ test.describe("Onboarding", () => {
 		// --- Step 2: Add clients ---
 		await expect(dialog.getByText("Add your clients")).toBeVisible();
 		await expect(
-			dialog.getByPlaceholder("Company name..."),
+			dialog.getByPlaceholder("Company name…"),
 		).toBeVisible();
 
 		// Click Next to proceed
 		await dialog.getByRole("button", { name: "Next" }).click();
 
 		// --- Step 3: Setup project types ---
-		await expect(dialog.getByText("Setup project types")).toBeVisible();
+		await expect(dialog.getByText("Set up project types")).toBeVisible();
 		await expect(
-			dialog.getByPlaceholder("e.g. Build, Hiring, Support..."),
+			dialog.getByPlaceholder("e.g. Build, Hiring, Support…"),
 		).toBeVisible();
 
 		// Click Next to reach the final step
 		await dialog.getByRole("button", { name: "Next" }).click();
 
 		// --- Final step: Let's Go! ---
-		await expect(dialog.getByText("You're all set!")).toBeVisible();
+		await expect(dialog.getByText("You are all set")).toBeVisible();
 		await expect(
 			dialog.getByText("Your workspace is ready"),
 		).toBeVisible();
 
 		// Click "Let's Go!" to complete onboarding
-		await dialog.getByRole("button", { name: "Let's Go!" }).click();
+		await dialog.getByRole("button", { name: "Let's go" }).click();
 
 		// Dialog should close
 		await expect(dialog).not.toBeVisible({ timeout: 5000 });
@@ -90,10 +89,9 @@ test.describe("Onboarding", () => {
 			onboarding_completed: 0,
 		});
 
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/");
 
-		const dialog = page.getByRole("dialog");
+		const dialog = page.getByRole("dialog", { name: "Welcome to Hive" });
 		await expect(dialog).toBeVisible({ timeout: 10000 });
 
 		// Step 1: Skip
@@ -105,11 +103,11 @@ test.describe("Onboarding", () => {
 		await dialog.getByRole("button", { name: "Skip" }).click();
 
 		// Step 3: Skip
-		await expect(dialog.getByText("Setup project types")).toBeVisible();
+		await expect(dialog.getByText("Set up project types")).toBeVisible();
 		await dialog.getByRole("button", { name: "Skip" }).click();
 
 		// Should reach the final "Let's Go!" step
-		await expect(dialog.getByText("You're all set!")).toBeVisible();
+		await expect(dialog.getByText("You are all set")).toBeVisible();
 	});
 
 	test("should allow navigating back to previous steps", async ({
@@ -120,10 +118,9 @@ test.describe("Onboarding", () => {
 			onboarding_completed: 0,
 		});
 
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/");
 
-		const dialog = page.getByRole("dialog");
+		const dialog = page.getByRole("dialog", { name: "Welcome to Hive" });
 		await expect(dialog).toBeVisible({ timeout: 10000 });
 
 		// Step 1 — Back button should be disabled
@@ -150,13 +147,13 @@ test.describe("Onboarding", () => {
 			onboarding_completed: 1,
 		});
 
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/");
 
-		// Dialog should NOT appear
-		// Wait a bit to make sure it doesn't show up
+		// The onboarding dialog specifically should stay away.
 		await page.waitForTimeout(2000);
-		await expect(page.getByRole("dialog")).not.toBeVisible();
+		await expect(
+			page.getByRole("dialog", { name: "Welcome to Hive" }),
+		).toHaveCount(0);
 
 		// Page should still load normally
 		await expect(page).toHaveURL(/\/hive/);

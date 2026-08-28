@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/app";
 import {
 	createTestProject,
 	createTestTask,
@@ -7,6 +7,18 @@ import {
 	HiveTask,
 } from "../helpers/hive";
 import { getList, deleteDoc } from "../helpers/frappe";
+import { boardColumn, sidebarPinned, taskCard, taskPanel } from "../helpers/ui";
+
+/**
+ * Pinning flows, not pinning markup.
+ *
+ * These used to reach for `.group/card` and a `.ring-primary/30` class — how
+ * the deleted React app painted a pinned card, not anything a user does. Pinned
+ * work is meant to be reachable from the sidebar wherever you are, to float to
+ * the top of its column, and to survive a reload; that is what these check.
+ * `localStorage` is asserted only where the rule under test is about the store
+ * itself, such as the five-pin cap.
+ */
 
 const TEST_PREFIX = "E2E Pin";
 const PROJECT_PREFIX = "E2E Pin Project";
@@ -42,7 +54,9 @@ async function clearPinnedTasks(page: import("@playwright/test").Page) {
 /**
  * Get pinned task names from localStorage.
  */
-async function getPinnedFromStorage(page: import("@playwright/test").Page): Promise<string[]> {
+async function getPinnedFromStorage(
+	page: import("@playwright/test").Page,
+): Promise<string[]> {
 	return page.evaluate(() => {
 		try {
 			return JSON.parse(localStorage.getItem("hive-pinned-tasks") || "[]");
@@ -82,258 +96,130 @@ test.describe("Task Pinning", () => {
 	});
 
 	test.afterAll(async ({ request }) => {
-		await cleanupTestTasks(request);
 		await cleanupTestProjects(request, PROJECT_PREFIX);
+		await cleanupTestTasks(request);
 	});
 
 	test.beforeEach(async ({ page }) => {
-		// Clear pinned tasks before each test
 		await page.goto(`/hive/projects/${testProject.name}`);
 		await page.waitForLoadState("networkidle");
 		await clearPinnedTasks(page);
 	});
 
-	test("should pin a task from kanban card hover button", async ({ page }) => {
-		// Navigate to project and switch to Tasks tab
+	/** Open the project's board. */
+	async function openBoard(page: import("@playwright/test").Page) {
 		await page.goto(`/hive/projects/${testProject.name}`);
 		await page.waitForLoadState("networkidle");
 		await page.getByRole("tab", { name: /Tasks/ }).click();
+	}
 
-		// Find the task card and hover to reveal pin button
-		const taskCard = page.getByText(taskA.title).first();
-		await expect(taskCard).toBeVisible({ timeout: 10000 });
-		await taskCard.hover();
+	test("pinning a task puts it in the sidebar", async ({ page }) => {
+		await openBoard(page);
 
-		// Click the pin button (aria-label="Pin task")
-		const pinButton = page
-			.locator(".group\\/card")
-			.filter({ hasText: taskA.title })
-			.getByLabel("Pin task");
-		await pinButton.click();
+		const card = taskCard(page, taskA.name);
+		await expect(card).toBeVisible({ timeout: 10000 });
+		await card.hover();
+		await card.getByLabel("Pin task").click();
 
-		// Verify: task is stored in localStorage
-		const pinned = await getPinnedFromStorage(page);
-		expect(pinned).toContain(taskA.name);
-
-		// Verify: the pinned task dock appears at bottom-right
-		await expect(page.getByText(taskA.title).last()).toBeVisible({
-			timeout: 5000,
+		await expect(sidebarPinned(page, taskA.name)).toBeVisible({
+			timeout: 10000,
 		});
+
+		// Pinned work follows you around the app, not just this board.
+		await page.goto("/hive/");
+		await page.waitForLoadState("networkidle");
+		await expect(sidebarPinned(page, taskA.name)).toBeVisible();
 	});
 
-	test("should unpin a task from kanban card hover button", async ({ page }) => {
-		// Pre-pin a task via localStorage
+	test("unpinning takes it back out", async ({ page }) => {
 		await page.evaluate(
-			(name) => localStorage.setItem("hive-pinned-tasks", JSON.stringify([name])),
+			(name) =>
+				localStorage.setItem("hive-pinned-tasks", JSON.stringify([name])),
 			taskA.name,
 		);
+		await openBoard(page);
 
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
-
-		// The pinned card should show the unpin button (always visible, not just on hover)
-		const taskCard = page
-			.locator(".group\\/card")
-			.filter({ hasText: taskA.title });
-		await expect(taskCard).toBeVisible({ timeout: 10000 });
-
-		const unpinButton = taskCard.getByLabel("Unpin task");
-		await expect(unpinButton).toBeVisible();
-		await unpinButton.click();
-
-		// Verify: task removed from localStorage
-		const pinned = await getPinnedFromStorage(page);
-		expect(pinned).not.toContain(taskA.name);
-	});
-
-	test("should pin a task via P keyboard shortcut in detail sheet", async ({
-		page,
-	}) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
-
-		// Open task detail sheet by clicking the card
-		await page.getByText(taskB.title).first().click();
-		const sheet = page.locator('[role="dialog"]');
-		await expect(sheet.getByText("Task Details")).toBeVisible({
-			timeout: 5000,
+		await expect(sidebarPinned(page, taskA.name)).toBeVisible({
+			timeout: 10000,
 		});
 
-		// Press P to pin the task
-		await page.keyboard.press("p");
+		const card = taskCard(page, taskA.name);
+		await card.getByLabel("Unpin task").click();
 
-		// Verify: task appears in localStorage
-		const pinned = await getPinnedFromStorage(page);
-		expect(pinned).toContain(taskB.name);
+		await expect(sidebarPinned(page, taskA.name)).toHaveCount(0);
 	});
 
-	test("should unpin a task via P keyboard shortcut in detail sheet", async ({
-		page,
-	}) => {
-		// Pre-pin
+	test("the task panel pins and unpins the open task", async ({ page }) => {
+		await openBoard(page);
+		await taskCard(page, taskC.name).click();
+
+		const panel = taskPanel(page);
+		await expect(panel).toBeVisible({ timeout: 10000 });
+
+		await panel.getByLabel("Pin task").click();
+		await expect(sidebarPinned(page, taskC.name)).toBeVisible({
+			timeout: 10000,
+		});
+
+		await panel.getByLabel("Unpin task").click();
+		await expect(sidebarPinned(page, taskC.name)).toHaveCount(0);
+	});
+
+	test("a pin survives a reload", async ({ page }) => {
+		await openBoard(page);
+
+		const card = taskCard(page, taskA.name);
+		await card.hover();
+		await card.getByLabel("Pin task").click();
+		await expect(sidebarPinned(page, taskA.name)).toBeVisible({
+			timeout: 10000,
+		});
+
+		await page.reload();
+		await page.waitForLoadState("networkidle");
+		await expect(sidebarPinned(page, taskA.name)).toBeVisible({
+			timeout: 10000,
+		});
+	});
+
+	test("a pinned task floats to the top of its column", async ({ page }) => {
 		await page.evaluate(
-			(name) => localStorage.setItem("hive-pinned-tasks", JSON.stringify([name])),
+			(name) =>
+				localStorage.setItem("hive-pinned-tasks", JSON.stringify([name])),
 			taskB.name,
 		);
+		await openBoard(page);
 
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
-
-		// Open task detail sheet
-		await page.getByText(taskB.title).first().click();
-		const sheet = page.locator('[role="dialog"]');
-		await expect(sheet.getByText("Task Details")).toBeVisible({
-			timeout: 5000,
-		});
-
-		// Press P to unpin
-		await page.keyboard.press("p");
-
-		const pinned = await getPinnedFromStorage(page);
-		expect(pinned).not.toContain(taskB.name);
-	});
-
-	test("should pin task via detail sheet button", async ({ page }) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
-
-		// Open detail sheet
-		await page.getByText(taskC.title).first().click();
-		const sheet = page.locator('[role="dialog"]');
-		await expect(sheet.getByText("Task Details")).toBeVisible({
-			timeout: 5000,
-		});
-
-		// Click the pin button in the sheet header
-		const pinButton = sheet.getByLabel("Pin task");
-		await expect(pinButton).toBeVisible();
-		await pinButton.click();
-
-		// Verify localStorage
-		const pinned = await getPinnedFromStorage(page);
-		expect(pinned).toContain(taskC.name);
-	});
-
-	test("should persist pinned tasks across page reload", async ({ page }) => {
-		// Pin a task
-		await page.evaluate(
-			(name) => localStorage.setItem("hive-pinned-tasks", JSON.stringify([name])),
-			taskA.name,
-		);
-
-		// Reload the page
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-
-		// The dock should still show the pinned task
-		await expect(page.getByText(taskA.title).last()).toBeVisible({
+		// Alpha and Beta are both in Backlog; Beta is pinned, so it leads.
+		const backlog = boardColumn(page, "Backlog");
+		await expect(backlog.locator('[data-testid="task-card"]')).toHaveCount(2, {
 			timeout: 10000,
 		});
 
-		// localStorage should still have it
-		const pinned = await getPinnedFromStorage(page);
-		expect(pinned).toContain(taskA.name);
-	});
-
-	test("should highlight pinned task card on kanban with visual ring", async ({
-		page,
-	}) => {
-		// Pin a task
-		await page.evaluate(
-			(name) => localStorage.setItem("hive-pinned-tasks", JSON.stringify([name])),
-			taskA.name,
-		);
-
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
-
-		// The pinned card should have the ring styling class
-		const pinnedCard = page
-			.locator(".group\\/card")
-			.filter({ hasText: taskA.title });
-		await expect(pinnedCard).toBeVisible({ timeout: 10000 });
-		await expect(pinnedCard.locator(".ring-primary\\/30").or(pinnedCard)).toBeVisible();
-	});
-
-	test("should enforce max 5 pinned tasks (FIFO eviction)", async ({ page }) => {
-		// Create 5 extra tasks and pin them all
-		const extraTasks: HiveTask[] = [];
-		for (let i = 0; i < 5; i++) {
-			// We'll simulate by setting localStorage directly
-			extraTasks.push({ name: `fake-task-${i}` } as HiveTask);
-		}
-
-		// Set 5 pinned tasks in localStorage
-		const fiveNames = extraTasks.map((t) => t.name);
-		await page.evaluate(
-			(names) => localStorage.setItem("hive-pinned-tasks", JSON.stringify(names)),
-			fiveNames,
-		);
-
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
-
-		// Pin one more task via the kanban card
-		const taskCard = page.getByText(taskA.title).first();
-		await expect(taskCard).toBeVisible({ timeout: 10000 });
-		await taskCard.hover();
-
-		const pinButton = page
-			.locator(".group\\/card")
-			.filter({ hasText: taskA.title })
-			.getByLabel("Pin task");
-		await pinButton.click();
-
-		// Verify: should have 5 tasks (oldest evicted) and include taskA
-		const pinned = await getPinnedFromStorage(page);
-		expect(pinned.length).toBeLessThanOrEqual(5);
-		expect(pinned).toContain(taskA.name);
-		// The first fake task should have been evicted
-		expect(pinned).not.toContain("fake-task-0");
-	});
-
-	test("should float pinned tasks to top of kanban column", async ({ page }) => {
-		// Pin taskA (which is in Backlog along with taskB)
-		await page.evaluate(
-			(name) => localStorage.setItem("hive-pinned-tasks", JSON.stringify([name])),
-			taskA.name,
-		);
-
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
-		await page.getByRole("tab", { name: /Tasks/ }).click();
-
-		// Wait for both tasks to be visible
-		await expect(page.getByText(taskA.title).first()).toBeVisible({
-			timeout: 10000,
-		});
-		await expect(page.getByText(taskB.title).first()).toBeVisible({
-			timeout: 10000,
-		});
-
-		// Get the Backlog column and check that taskA appears before taskB
-		// Both are in Backlog, but taskA is pinned so it should be first
-		const backlogCards = page
-			.locator("[data-column='Backlog'] .group\\/card, [id='Backlog'] .group\\/card")
-			.or(
-				page.locator(".group\\/card").filter({
-					has: page.getByText(taskA.title).or(page.getByText(taskB.title)),
-				}),
+		const order = await backlog
+			.locator('[data-testid="task-card"]')
+			.evaluateAll((cards) =>
+				cards.map((c) => c.getAttribute("data-task") || ""),
 			);
+		expect(order.indexOf(taskB.name)).toBeLessThan(order.indexOf(taskA.name));
+	});
 
-		const allCardTexts = await backlogCards.allTextContents();
-		const indexA = allCardTexts.findIndex((t) => t.includes(taskA.title));
-		const indexB = allCardTexts.findIndex((t) => t.includes(taskB.title));
+	test("only five tasks stay pinned, oldest first out", async ({ page }) => {
+		const existing = ["pin-1", "pin-2", "pin-3", "pin-4", "pin-5"];
+		await page.evaluate(
+			(names) =>
+				localStorage.setItem("hive-pinned-tasks", JSON.stringify(names)),
+			existing,
+		);
+		await openBoard(page);
 
-		// Pinned task A should appear before unpinned task B
-		if (indexA >= 0 && indexB >= 0) {
-			expect(indexA).toBeLessThan(indexB);
-		}
+		const card = taskCard(page, taskA.name);
+		await expect(card).toBeVisible({ timeout: 10000 });
+		await card.hover();
+		await card.getByLabel("Pin task").click();
+
+		await expect
+			.poll(() => getPinnedFromStorage(page))
+			.toEqual(["pin-2", "pin-3", "pin-4", "pin-5", taskA.name]);
 	});
 });

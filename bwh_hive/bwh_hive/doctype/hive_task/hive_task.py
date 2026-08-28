@@ -45,31 +45,6 @@ class HiveTask(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		agent_box_slug: DF.Data | None
-		agent_box_torn_down: DF.Check
-		agent_branch: DF.Data | None
-		agent_code_url: DF.Data | None
-		agent_control_token: DF.Password | None
-		agent_control_url: DF.Data | None
-		agent_dev_box: DF.Data | None
-		agent_last_error: DF.SmallText | None
-		agent_site_url: DF.Data | None
-		agent_spec_path: DF.Data | None
-		agent_status: DF.Literal[
-			"",
-			"Queued",
-			"Provisioning",
-			"Spec In Progress",
-			"Spec Created",
-			"Spec Approved",
-			"Implementing",
-			"PR Ready",
-			"Changes Requested",
-			"Merged",
-			"Cancelled",
-			"Failed",
-		]
-		assigned_to: DF.Link | None
 		completed_on: DF.Date | None
 		depends_on: DF.Link | None
 		description: DF.TextEditor | None
@@ -203,82 +178,6 @@ class HiveTask(Document):
 					title="recurring task: assign failed",
 					message=f"Failed to assign {assignees} to {new_task.name}",
 				)
-
-	@frappe.whitelist()
-	def approve_spec(self, note: str | None = None) -> dict:
-		"""Human approval of the agent's spec (specs/v2 04-phase-3 §A.1).
-
-		Routes through the orchestrator so the transition is validated and the
-		implementation run is dispatched. Mirrors approve_uat's desk-action shape.
-		"""
-		from bwh_hive.bwh_hive.orchestrator import service
-
-		self._assert_agent_reviewer()
-		service.set_agent_status(self, "Spec Approved", actor="human", message=note)
-		return {"ok": True, "agent_status": "Spec Approved"}
-
-	@frappe.whitelist()
-	def request_agent_changes(self, comments: str | list) -> dict:
-		"""Human requests another iteration on a PR Ready task (specs/v2 05-phase-4 §B.6).
-
-		`comments` is the §5.3 payload — a JSON array (or list) of {author, body, path?, line?}.
-		Routes through the orchestrator, which transitions the task and dispatches /changes/apply.
-		"""
-		from bwh_hive.bwh_hive.orchestrator import service
-
-		self._assert_agent_reviewer()
-		parsed = comments if isinstance(comments, list) else frappe.parse_json(comments)
-		if not parsed:
-			frappe.throw("Provide at least one review comment.")
-		service.request_changes(self, parsed)
-		return {"ok": True, "agent_status": "Implementing"}
-
-	@frappe.whitelist()
-	def mark_agent_merged(self) -> dict:
-		"""Human records that the PR was merged on GitHub (specs/v2 05-phase-4 §B.8)."""
-		from bwh_hive.bwh_hive.orchestrator import service
-
-		self._assert_agent_reviewer()
-		service.mark_merged(self)
-		return {"ok": True, "agent_status": "Merged"}
-
-	@frappe.whitelist()
-	def cancel_agent(self) -> dict:
-		"""Human cancels an in-flight agent task (specs/v2 06-phase-5 step 2)."""
-		from bwh_hive.bwh_hive.orchestrator import service
-
-		self._assert_agent_reviewer()
-		service.cancel_agent_task(self.name)
-		return {"ok": True, "agent_status": "Cancelled"}
-
-	@frappe.whitelist()
-	def retry_agent(self) -> dict:
-		"""Re-provision a clean box for a Failed agent task (specs/v2 06-phase-5 step 8)."""
-		from bwh_hive.bwh_hive.orchestrator import service
-
-		self._assert_agent_reviewer()
-		return service.retry_agent_task(self.name)
-
-	@frappe.whitelist()
-	def teardown_agent_now(self) -> dict:
-		"""Force-deprovision a Failed box ahead of the grace sweep (specs/v2 06-phase-5 step 9)."""
-		from bwh_hive.bwh_hive.orchestrator import service
-
-		self._assert_agent_reviewer()
-		service.force_teardown(self.name)
-		return {"ok": True}
-
-	def _assert_agent_reviewer(self) -> None:
-		"""A human reviewer with write access — never the Agent bot itself.
-
-		Identity check, not a role check: Administrator implicitly holds every role, so a
-		role test would wrongly block a legitimate admin reviewer.
-		"""
-		from bwh_hive.bwh_hive.orchestrator import service
-
-		if frappe.session.user == service.get_agent_user():
-			frappe.throw("The Agent bot cannot review its own work.", frappe.PermissionError)
-		self.check_permission("write")
 
 	@frappe.whitelist()
 	def approve_uat(self):

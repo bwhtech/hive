@@ -1,4 +1,12 @@
-import { test, expect, Page } from "@playwright/test";
+import {
+	test,
+	expect,
+	allowOverdueDialog,
+	readStoredValue,
+	todayISO,
+	STORAGE_KEYS,
+	Page,
+} from "../helpers/app";
 import {
 	createTestProject,
 	cleanupTestProjects,
@@ -6,54 +14,30 @@ import {
 	HiveTask,
 } from "../helpers/hive";
 import { callMethod, createDoc, deleteDoc, getList } from "../helpers/frappe";
+import { dialog, gotoHive } from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E Overdue Dialog";
 const TASK_PREFIX = "E2E Overdue Task";
-const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
-
-function todayISO(): string {
-	const d = new Date();
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 /** Return a yyyy-MM-dd string for N days ago. */
 function daysAgo(n: number): string {
 	const d = new Date();
 	d.setDate(d.getDate() - n);
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+	const month = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${d.getFullYear()}-${month}-${day}`;
 }
 
+/** The dialog itself, so assertions never match the dashboard behind it. */
+function overdueDialog(page: Page) {
+	return dialog(page, "Overdue tasks");
+}
 
-/**
- * Navigate to the dashboard WITHOUT suppressing the overdue dialog.
- */
+/** Land on the dashboard with the once-a-day dialog allowed through. */
 async function goToDashboardAllowDialog(page: Page) {
-	// Remove the overdue key so the dialog can appear
-	await page.addInitScript(
-		({ overdueKey }) => {
-			localStorage.removeItem(overdueKey);
-		},
-		{ overdueKey: OVERDUE_KEY },
-	);
-	await page.goto("/hive");
-	await page.waitForLoadState("domcontentloaded");
-}
-
-/**
- * Navigate to the dashboard with the overdue dialog suppressed.
- */
-async function goToDashboardSuppressed(page: Page) {
-	await page.addInitScript(
-		({ overdueKey, todayStr }) => {
-			localStorage.setItem(overdueKey, todayStr);
-		},
-		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-	);
-	await page.goto("/hive");
-	await page.waitForLoadState("domcontentloaded");
-	await expect(
-		page.getByRole("heading", { name: "Dashboard" }),
-	).toBeVisible({ timeout: 15000 });
+	await allowOverdueDialog(page);
+	await gotoHive(page, "/");
+	await expect(overdueDialog(page)).toBeVisible({ timeout: 15000 });
 }
 
 async function cleanupTestTasks(
@@ -131,95 +115,66 @@ test.describe("Overdue Tasks Dialog", () => {
 	}) => {
 		await goToDashboardAllowDialog(page);
 
-		// The dialog should appear with the "Overdue Tasks" title
-		await expect(
-			page.getByRole("heading", { name: "Overdue Tasks" }),
-		).toBeVisible({ timeout: 15000 });
+		const overdue = overdueDialog(page);
 
-		// Both overdue tasks should be listed
-		await expect(page.getByText(overdueTask1.title)).toBeVisible();
-		await expect(page.getByText(overdueTask2.title)).toBeVisible();
+		// Both overdue tasks are listed, each with its own priority badge. The
+		// list also holds whatever else is overdue on the site, so every
+		// assertion is scoped to the row of the task it is about.
+		const row1 = overdue.getByRole("listitem").filter({
+			hasText: overdueTask1.title,
+		});
+		const row2 = overdue.getByRole("listitem").filter({
+			hasText: overdueTask2.title,
+		});
+		await expect(row1).toBeVisible();
+		await expect(row2).toBeVisible();
+		await expect(row1.getByText("High", { exact: true })).toBeVisible();
+		await expect(row2.getByText("Medium", { exact: true })).toBeVisible();
 
-		// Priority badges should be visible
+		await expect(overdue.getByRole("button", { name: "Got it" })).toBeVisible();
 		await expect(
-			page.locator('[role="dialog"] [data-slot="badge"]').filter({ hasText: "High" }).first(),
-		).toBeVisible();
-		await expect(
-			page.locator('[role="dialog"] [data-slot="badge"]').filter({ hasText: "Medium" }).first(),
-		).toBeVisible();
-
-		// Footer buttons should be present
-		await expect(
-			page.getByRole("button", { name: "Got it" }),
-		).toBeVisible();
-		await expect(
-			page.getByRole("button", { name: "View All Tasks" }),
+			overdue.getByRole("button", { name: "View all tasks" }),
 		).toBeVisible();
 	});
 
 	test("should not show dialog if already shown today", async ({ page }) => {
-		// Pre-set localStorage to today's date
-		await goToDashboardSuppressed(page);
-
-		// Dashboard should load but dialog should NOT appear
+		// The fixture already stamped today's date, so the dialog stays away
+		await gotoHive(page, "/");
 		await expect(
 			page.getByRole("heading", { name: "Dashboard" }),
 		).toBeVisible({ timeout: 15000 });
 
-		// Wait a moment for any dialog to potentially appear
+		// Give the overdue call the time it would need to open the dialog
 		await page.waitForTimeout(2000);
-
-		// Dialog should not be visible
-		await expect(
-			page.getByRole("heading", { name: "Overdue Tasks" }),
-		).toBeHidden();
+		await expect(overdueDialog(page)).toBeHidden();
 	});
 
-	test("should dismiss dialog and set localStorage on 'Got it' click", async ({
+	test("should dismiss dialog and stamp today on 'Got it' click", async ({
 		page,
 	}) => {
 		await goToDashboardAllowDialog(page);
 
-		// Wait for dialog
-		await expect(
-			page.getByRole("heading", { name: "Overdue Tasks" }),
-		).toBeVisible({ timeout: 15000 });
+		await overdueDialog(page).getByRole("button", { name: "Got it" }).click();
+		await expect(overdueDialog(page)).toBeHidden();
 
-		// Click "Got it"
-		await page.getByRole("button", { name: "Got it" }).click();
+		expect(
+			await readStoredValue(page, STORAGE_KEYS.overdueDialogLastShown),
+		).toBe(todayISO());
 
-		// Dialog should close
-		await expect(
-			page.getByRole("heading", { name: "Overdue Tasks" }),
-		).toBeHidden();
-
-		// localStorage should be set to today
-		const stored = await page.evaluate(
-			(key) => localStorage.getItem(key),
-			OVERDUE_KEY,
-		);
-		expect(stored).toBe(todayISO());
-
-		// Dashboard should be visible
 		await expect(
 			page.getByRole("heading", { name: "Dashboard" }),
 		).toBeVisible();
 	});
 
-	test("should navigate to /tasks on 'View All Tasks' click", async ({
+	test("should navigate to /tasks on 'View all tasks' click", async ({
 		page,
 	}) => {
 		await goToDashboardAllowDialog(page);
 
-		// Wait for dialog
-		await expect(
-			page.getByRole("heading", { name: "Overdue Tasks" }),
-		).toBeVisible({ timeout: 15000 });
+		await overdueDialog(page)
+			.getByRole("button", { name: "View all tasks" })
+			.click();
 
-		// Click "View All Tasks"
-		await page.getByRole("button", { name: "View All Tasks" }).click();
-
-		// Should navigate to /tasks
 		await page.waitForURL("**/hive/tasks", { timeout: 10000 });
 		await expect(page).toHaveURL(/\/hive\/tasks/);
 	});
@@ -227,21 +182,14 @@ test.describe("Overdue Tasks Dialog", () => {
 	test("should navigate to project on task click", async ({ page }) => {
 		await goToDashboardAllowDialog(page);
 
-		// Wait for dialog
-		await expect(
-			page.getByRole("heading", { name: "Overdue Tasks" }),
-		).toBeVisible({ timeout: 15000 });
+		await overdueDialog(page)
+			.getByRole("listitem")
+			.filter({ hasText: overdueTask2.title })
+			.click();
 
-		// Click on the first overdue task
-		await page.getByText(overdueTask2.title).click();
-
-		// Should navigate to the project page with task query param (URL uses slug)
-		await page.waitForURL(`**/hive/projects/${testProject.slug || testProject.name}**`, {
-			timeout: 10000,
-		});
-		await expect(page).toHaveURL(
-			new RegExp(`/hive/projects/${testProject.slug || testProject.name}`),
-		);
+		// The route uses the project slug, falling back to its docname
+		const slug = testProject.slug || testProject.name;
+		await page.waitForURL(`**/hive/projects/${slug}**`, { timeout: 10000 });
+		await expect(page).toHaveURL(new RegExp(`/hive/projects/${slug}`));
 	});
 });
-

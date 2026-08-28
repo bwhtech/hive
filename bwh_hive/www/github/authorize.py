@@ -1,9 +1,8 @@
 import json
 from base64 import b64decode
 
-import requests
-
 import frappe
+import requests
 from frappe.utils import now_datetime
 
 

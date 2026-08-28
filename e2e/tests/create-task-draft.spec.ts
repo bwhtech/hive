@@ -1,9 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/app";
 import {
 	createTestProject,
 	cleanupTestProjects,
 	HiveProject,
 } from "../helpers/hive";
+import { chooseOption, selectTrigger } from "../helpers/ui";
 import { getList, deleteDoc } from "../helpers/frappe";
 
 const TEST_PREFIX = "E2E Draft";
@@ -35,10 +36,7 @@ async function cleanupTestTasks(
  * Clear the create task draft from localStorage.
  */
 async function clearDraft(page: import("@playwright/test").Page) {
-	await page.evaluate(
-		(key) => localStorage.removeItem(key),
-		DRAFT_KEY,
-	);
+	await page.evaluate((key) => localStorage.removeItem(key), DRAFT_KEY);
 }
 
 /**
@@ -87,19 +85,10 @@ test.describe("Create Task Draft Persistence", () => {
 
 		// Fill in the title
 		const taskTitle = `${TEST_PREFIX} Draft Save ${Date.now()}`;
-		await dialog
-			.locator('input[placeholder="What needs to be done?"]')
-			.fill(taskTitle);
+		await dialog.getByLabel("Title").fill(taskTitle);
 
 		// Change priority to "High"
-		const priorityTrigger = dialog
-			.locator('[data-slot="select-trigger"]')
-			.first();
-		await priorityTrigger.click();
-		await page
-			.locator('[data-slot="select-item"]')
-			.filter({ hasText: "High" })
-			.click();
+		await chooseOption(page, "Priority", "High", dialog);
 
 		// Close the dialog by pressing Escape
 		await page.keyboard.press("Escape");
@@ -147,22 +136,13 @@ test.describe("Create Task Draft Persistence", () => {
 		await expect(dialog).toBeVisible({ timeout: 5000 });
 
 		// Verify the title field is restored
-		const titleInput = dialog.locator(
-			'input[placeholder="What needs to be done?"]',
-		);
+		const titleInput = dialog.getByLabel("Title");
 		await expect(titleInput).toHaveValue(taskTitle);
 
-		// Verify priority is restored to "Urgent"
-		const priorityTrigger = dialog
-			.locator('[data-slot="select-trigger"]')
-			.first();
-		await expect(priorityTrigger).toContainText("Urgent");
-
-		// Verify status is restored to "In Progress"
-		const statusTrigger = dialog
-			.locator('[data-slot="select-trigger"]')
-			.nth(1);
-		await expect(statusTrigger).toContainText("In Progress");
+		// Name the controls rather than counting them: an `nth(1)` breaks the
+		// moment a field is added above it.
+		await expect(selectTrigger(dialog, "Priority")).toContainText("Urgent");
+		await expect(selectTrigger(dialog, "Status")).toContainText("In Progress");
 	});
 
 	test("should clear draft from localStorage after successful task creation", async ({
@@ -175,9 +155,7 @@ test.describe("Create Task Draft Persistence", () => {
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible({ timeout: 5000 });
 
-		await dialog
-			.locator('input[placeholder="What needs to be done?"]')
-			.fill(taskTitle);
+		await dialog.getByLabel("Title").fill(taskTitle);
 
 		// Verify draft exists before submission
 		const draftBefore = await getDraft(page);
@@ -221,9 +199,7 @@ test.describe("Create Task Draft Persistence", () => {
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible({ timeout: 5000 });
 
-		await dialog
-			.locator('input[placeholder="What needs to be done?"]')
-			.fill(taskTitle);
+		await dialog.getByLabel("Title").fill(taskTitle);
 
 		// Close dialog
 		await page.keyboard.press("Escape");
@@ -247,9 +223,7 @@ test.describe("Create Task Draft Persistence", () => {
 		const dialogAfterNav = page.getByRole("dialog");
 		await expect(dialogAfterNav).toBeVisible({ timeout: 5000 });
 
-		const titleInput = dialogAfterNav.locator(
-			'input[placeholder="What needs to be done?"]',
-		);
+		const titleInput = dialogAfterNav.getByLabel("Title");
 		await expect(titleInput).toHaveValue(taskTitle);
 	});
 });

@@ -1,4 +1,4 @@
-import { test, expect, Page, Locator } from "@playwright/test";
+import { test, expect, Page, Locator } from "../helpers/app";
 import {
 	createTestProject,
 	cleanupTestProjects,
@@ -6,15 +6,10 @@ import {
 	HiveTask,
 } from "../helpers/hive";
 import { createDoc, deleteDoc, getList, updateDoc } from "../helpers/frappe";
+import { openSettings, taskPanel } from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E Lock Due Date";
 const TASK_PREFIX = "E2E LockDD Task";
-const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
-
-function todayISO(): string {
-	const d = new Date();
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 /** Return a yyyy-MM-dd string offset by N days from today (positive = future, negative = past). */
 function daysFromNow(n: number): string {
@@ -25,50 +20,50 @@ function daysFromNow(n: number): string {
 
 /** Navigate to project tasks tab, suppressing the overdue dialog. */
 async function goToProjectTasks(page: Page, projectName: string) {
-	await page.addInitScript(
-		({ overdueKey, todayStr }) => {
-			localStorage.setItem(overdueKey, todayStr);
-		},
-		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-	);
 	await page.goto(`/hive/projects/${projectName}?tab=tasks`);
 	await page.waitForLoadState("domcontentloaded");
 }
 
-/** Open task detail sheet by clicking on the task title. */
+/**
+ * Open the task panel by clicking the task title.
+ *
+ * On desktop the panel is a pane beside the board, not a dialog — it only
+ * becomes a `BottomSheet` on a phone — so it is located by its testid.
+ */
 async function openTaskSheet(page: Page, taskTitle: string) {
 	await expect(page.getByText(taskTitle).first()).toBeVisible({
 		timeout: 15000,
 	});
 	await page.getByText(taskTitle).first().click();
-	const sheet = page.locator('[role="dialog"]');
-	await expect(sheet.getByText("Task Details")).toBeVisible({
-		timeout: 5000,
-	});
-	return sheet;
-}
-
-/** Open the Settings dialog from the sidebar. */
-async function openSettings(page: Page) {
-	const settingsBtn = page
-		.locator('[data-slot="sidebar-menu-button"]')
-		.filter({ hasText: "Settings" });
-	await settingsBtn.click();
-	await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
+	const panel = taskPanel(page);
+	await expect(panel).toBeVisible({ timeout: 5000 });
+	return panel;
 }
 
 /** Switch to the General tab inside the Settings dialog. */
 async function switchToGeneralTab(page: Page) {
 	await page.getByRole("tab", { name: "General" }).click();
-	await expect(page.getByRole("heading", { name: "Due Dates" })).toBeVisible({ timeout: 5000 });
+	await expect(page.getByRole("heading", { name: "Due dates" })).toBeVisible({
+		timeout: 5000,
+	});
+}
+
+/**
+ * The panel no longer swaps the picker for plain text when the date is locked:
+ * it disables the `DatePicker` and hangs this note off it as a description.
+ */
+const LOCKED_NOTE = "Locked on or after the due date";
+
+/** The Due date field inside the task panel. */
+function dueDateInput(scope: Locator): Locator {
+	return scope.getByRole("textbox", { name: "Due date" });
 }
 
 /** Locate the lock due date switch in the Settings dialog. */
 function lockDueDateSwitch(page: Page): Locator {
-	return page
-		.locator(".flex.items-center")
-		.filter({ hasText: "Lock due date on or after due date" })
-		.locator('[data-slot="switch"]');
+	return page.getByRole("switch", {
+		name: "Lock the due date once it arrives",
+	});
 }
 
 async function cleanupTestTasks(
@@ -140,24 +135,18 @@ test.describe("Lock Due Date Config", () => {
 	test("settings toggle is visible in General tab and defaults to ON", async ({
 		page,
 	}) => {
-		await page.addInitScript(
-			({ overdueKey, todayStr }) => {
-				localStorage.setItem(overdueKey, todayStr);
-			},
-			{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-		);
 		await page.goto("/hive");
 		await page.waitForLoadState("domcontentloaded");
-		await expect(
-			page.getByRole("heading", { name: "Dashboard" }),
-		).toBeVisible({ timeout: 15000 });
+		await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({
+			timeout: 15000,
+		});
 
 		await openSettings(page);
 		await switchToGeneralTab(page);
 
 		const toggle = lockDueDateSwitch(page);
 		await expect(toggle).toBeVisible();
-		await expect(toggle).toHaveAttribute("data-checked", "");
+		await expect(toggle).toBeChecked();
 	});
 
 	test("due date is locked (read-only) for task with past due date", async ({
@@ -166,18 +155,8 @@ test.describe("Lock Due Date Config", () => {
 		await goToProjectTasks(page, testProject.name);
 		const sheet = await openTaskSheet(page, pastDueTask.title);
 
-		// Due date should be rendered as plain text (not a button/DatePicker)
-		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ hasText: "Due Date" });
-		const lockedText = dueDateLabel.locator("p.text-sm.text-muted-foreground");
-		await expect(lockedText).toBeVisible();
-		await expect(lockedText).toHaveAttribute(
-			"title",
-			"Due date is locked on or after the due date",
-		);
-
-		// There should be no DatePicker button in the Due Date section
-		const datePickerBtn = dueDateLabel.locator("button");
-		await expect(datePickerBtn).toHaveCount(0);
+		await expect(sheet.getByText(LOCKED_NOTE)).toBeVisible();
+		await expect(dueDateInput(sheet)).toBeDisabled();
 	});
 
 	test("due date is editable for task with future due date", async ({
@@ -186,16 +165,8 @@ test.describe("Lock Due Date Config", () => {
 		await goToProjectTasks(page, testProject.name);
 		const sheet = await openTaskSheet(page, futureDueTask.title);
 
-		// Due date should be rendered as a DatePicker (button)
-		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ hasText: "Due Date" });
-
-		// Should NOT have the locked text with title attribute
-		const lockedText = dueDateLabel.locator('p[title="Due date is locked on or after the due date"]');
-		await expect(lockedText).toHaveCount(0);
-
-		// Should have a clickable button (the DatePicker trigger)
-		const datePickerBtn = dueDateLabel.locator("button");
-		await expect(datePickerBtn).toBeVisible();
+		await expect(sheet.getByText(LOCKED_NOTE)).toHaveCount(0);
+		await expect(dueDateInput(sheet)).toBeEnabled();
 	});
 
 	test("due date is editable when lock setting is disabled", async ({
@@ -210,16 +181,9 @@ test.describe("Lock Due Date Config", () => {
 		await goToProjectTasks(page, testProject.name);
 		const sheet = await openTaskSheet(page, pastDueTask.title);
 
-		// Even though due date is in the past, it should be editable because the setting is OFF
-		const dueDateLabel = sheet.locator(".grid.gap-2").filter({ hasText: "Due Date" });
-
-		// Should NOT have the locked title
-		const lockedText = dueDateLabel.locator('p[title="Due date is locked on or after the due date"]');
-		await expect(lockedText).toHaveCount(0);
-
-		// Should have a clickable DatePicker button
-		const datePickerBtn = dueDateLabel.locator("button");
-		await expect(datePickerBtn).toBeVisible();
+		// The due date is in the past, so only the setting keeps it editable.
+		await expect(sheet.getByText(LOCKED_NOTE)).toHaveCount(0);
+		await expect(dueDateInput(sheet)).toBeEnabled();
 
 		// Re-enable the setting for subsequent tests
 		await updateDoc(request, "Hive Settings", "Hive Settings", {
@@ -227,33 +191,25 @@ test.describe("Lock Due Date Config", () => {
 		});
 	});
 
-	test("toggling setting OFF in UI disables the lock", async ({
-		page,
-	}) => {
-		await page.addInitScript(
-			({ overdueKey, todayStr }) => {
-				localStorage.setItem(overdueKey, todayStr);
-			},
-			{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-		);
+	test("toggling setting OFF in UI disables the lock", async ({ page }) => {
 		await page.goto("/hive");
 		await page.waitForLoadState("domcontentloaded");
-		await expect(
-			page.getByRole("heading", { name: "Dashboard" }),
-		).toBeVisible({ timeout: 15000 });
+		await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({
+			timeout: 15000,
+		});
 
 		await openSettings(page);
 		await switchToGeneralTab(page);
 
 		const toggle = lockDueDateSwitch(page);
-		await expect(toggle).toHaveAttribute("data-checked", "");
+		await expect(toggle).toBeChecked();
 
 		// Toggle OFF
 		await toggle.click();
-		await expect(toggle).toHaveAttribute("data-unchecked", "");
+		await expect(toggle).not.toBeChecked();
 
 		// Toggle back ON
 		await toggle.click();
-		await expect(toggle).toHaveAttribute("data-checked", "");
+		await expect(toggle).toBeChecked();
 	});
 });

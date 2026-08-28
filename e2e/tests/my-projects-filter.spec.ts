@@ -1,52 +1,41 @@
-import { test, expect, Page } from "@playwright/test";
+import {
+	test,
+	expect,
+	readStoredValue,
+	seedStorage,
+	STORAGE_KEYS,
+	Page,
+} from "../helpers/app";
 import {
 	createTestProject,
 	cleanupTestProjects,
 	HiveProject,
 } from "../helpers/hive";
 import { createDoc, getList } from "../helpers/frappe";
+import { gotoHive, projectCard, tabButton } from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E MyProj";
-const LS_KEY = "hive_projects_my_only";
-const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
 
-/**
- * Get today in yyyy-MM-dd format (matches OverdueTasksDialog's date-fns format).
- */
-function todayISO(): string {
-	const d = new Date();
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** The membership filter is a `TabButtons` pair, not a pressed button. */
+function myProjectsTab(page: Page) {
+	return tabButton(page, "My projects");
 }
 
 /**
- * Navigate to the projects page with the overdue dialog suppressed.
+ * Land on the projects page, optionally with the membership filter already on.
+ * Presetting it avoids a race between the click and the memberships call.
  */
 async function goToProjects(
 	page: Page,
 	options: { myProjectsOnly?: boolean } = {},
 ) {
-	const today = todayISO();
-	const myOnly = options.myProjectsOnly;
+	await seedStorage(page, {
+		[STORAGE_KEYS.projectsMyOnly]:
+			options.myProjectsOnly === undefined ? null : options.myProjectsOnly,
+	});
 
-	await page.addInitScript(
-		({ overdueKey, lsKey, todayStr, myOnlyVal }) => {
-			localStorage.setItem(overdueKey, todayStr);
-			if (myOnlyVal !== undefined) {
-				localStorage.setItem(lsKey, String(myOnlyVal));
-			} else {
-				localStorage.removeItem(lsKey);
-			}
-		},
-		{ overdueKey: OVERDUE_KEY, lsKey: LS_KEY, todayStr: today, myOnlyVal: myOnly },
-	);
-
-	await page.goto("/hive/projects");
-	await page.waitForLoadState("domcontentloaded");
-
-	// Wait for the toggle button to confirm the page is interactive
-	await expect(
-		page.getByRole("button", { name: "My Projects" }),
-	).toBeVisible({ timeout: 15000 });
+	await gotoHive(page, "/projects");
+	await expect(myProjectsTab(page)).toBeVisible({ timeout: 15000 });
 }
 
 test.describe("My Projects Filter Toggle", () => {
@@ -57,15 +46,11 @@ test.describe("My Projects Filter Toggle", () => {
 		await cleanupTestProjects(request, PROJECT_PREFIX);
 
 		// Create project WITH member in one shot (child table in the create payload)
-		memberProject = await createDoc<HiveProject>(
-			request,
-			"Hive Project",
-			{
-				title: `${PROJECT_PREFIX} Member ${Date.now()}`,
-				status: "Open",
-				members: [{ member: "Administrator", role: "Member" }],
-			},
-		);
+		memberProject = await createDoc<HiveProject>(request, "Hive Project", {
+			title: `${PROJECT_PREFIX} Member ${Date.now()}`,
+			status: "Open",
+			members: [{ member: "Administrator", role: "Member" }],
+		});
 		nonMemberProject = await createTestProject(request, {
 			title: `${PROJECT_PREFIX} NonMember ${Date.now()}`,
 		});
@@ -90,107 +75,61 @@ test.describe("My Projects Filter Toggle", () => {
 		await cleanupTestProjects(request, PROJECT_PREFIX);
 	});
 
-	test("should show My Projects toggle button unpressed by default", async ({
+	test("should show the My projects tab unselected by default", async ({
 		page,
 	}) => {
 		await goToProjects(page);
 
-		const toggle = page.getByRole("button", { name: "My Projects" });
-		await expect(toggle).toBeVisible();
-		await expect(toggle).toHaveAttribute("aria-pressed", "false");
+		await expect(myProjectsTab(page)).not.toBeChecked();
+		await expect(tabButton(page, "All")).toBeChecked();
 	});
 
-	test("should filter to only member projects when toggle is pressed", async ({
+	test("should filter to only member projects when My projects is on", async ({
 		page,
 	}) => {
-		// Start with toggle already pressed to avoid race between toggle click
-		// and membership API response
 		await goToProjects(page, { myProjectsOnly: true });
 
-		const toggle = page.getByRole("button", { name: "My Projects" });
-		await expect(toggle).toHaveAttribute("aria-pressed", "true");
+		await expect(myProjectsTab(page)).toBeChecked();
 
-		// Member project should be visible
-		await expect(
-			page.locator(`text=${memberProject.title}`).first(),
-		).toBeVisible({ timeout: 10000 });
-
-		// Non-member project should be hidden
-		await expect(
-			page.locator(`text=${nonMemberProject.title}`).first(),
-		).toBeHidden({ timeout: 5000 });
-
-		// Shows "matching filters" indicator
-		await expect(page.locator("text=matching filters")).toBeVisible();
-	});
-
-	test("should persist toggle state across page reload", async ({ page }) => {
-		// Start with toggle pre-set to true
-		await goToProjects(page, { myProjectsOnly: true });
-
-		const toggle = page.getByRole("button", { name: "My Projects" });
-		await expect(toggle).toHaveAttribute("aria-pressed", "true");
-
-		// Verify localStorage
-		const stored = await page.evaluate(
-			(key) => localStorage.getItem(key),
-			LS_KEY,
-		);
-		expect(stored).toBe("true");
-
-		// Reload — only suppress overdue dialog, don't touch toggle key
-		const today = todayISO();
-		await page.addInitScript(
-			({ overdueKey, todayStr }) => {
-				localStorage.setItem(overdueKey, todayStr);
-			},
-			{ overdueKey: OVERDUE_KEY, todayStr: today },
-		);
-
-		await page.reload();
-		await page.waitForLoadState("domcontentloaded");
-
-		const toggleAfter = page.getByRole("button", { name: "My Projects" });
-		await expect(toggleAfter).toHaveAttribute("aria-pressed", "true", {
-			timeout: 15000,
+		await expect(projectCard(page, memberProject.name)).toBeVisible({
+			timeout: 10000,
 		});
+		await expect(projectCard(page, nonMemberProject.name)).toBeHidden();
 
-		// Non-member project should still be hidden
-		await expect(
-			page.locator(`text=${nonMemberProject.title}`).first(),
-		).toBeHidden({ timeout: 5000 });
+		// The count line calls out that a filter is narrowing the list
+		await expect(page.getByText("matching filters")).toBeVisible();
 	});
 
-	test("should unfilter when toggle is unpressed", async ({ page }) => {
-		// Start with toggle pressed
+	test("should persist the filter across page reload", async ({ page }) => {
 		await goToProjects(page, { myProjectsOnly: true });
 
-		const toggle = page.getByRole("button", { name: "My Projects" });
-		await expect(toggle).toHaveAttribute("aria-pressed", "true");
+		await expect(myProjectsTab(page)).toBeChecked();
+		expect(
+			await readStoredValue(page, STORAGE_KEYS.projectsMyOnly),
+		).toBe(true);
 
-		// Non-member project should be hidden
-		await expect(
-			page.locator(`text=${nonMemberProject.title}`).first(),
-		).toBeHidden({ timeout: 5000 });
+		// Reload without reseeding: the app has to restore this itself
+		await page.reload();
+		await page.waitForLoadState("networkidle");
 
-		// Unpress the toggle
-		await toggle.click();
-		await expect(toggle).toHaveAttribute("aria-pressed", "false");
-
-		// Both projects should now be visible
-		await expect(
-			page.locator(`text=${memberProject.title}`).first(),
-		).toBeVisible({ timeout: 5000 });
-		await expect(
-			page.locator(`text=${nonMemberProject.title}`).first(),
-		).toBeVisible({ timeout: 5000 });
-
-		// localStorage should be updated
-		const stored = await page.evaluate(
-			(key) => localStorage.getItem(key),
-			LS_KEY,
-		);
-		expect(stored).toBe("false");
+		await expect(myProjectsTab(page)).toBeChecked({ timeout: 15000 });
+		await expect(projectCard(page, nonMemberProject.name)).toBeHidden();
 	});
 
+	test("should unfilter when All is selected", async ({ page }) => {
+		await goToProjects(page, { myProjectsOnly: true });
+
+		await expect(myProjectsTab(page)).toBeChecked();
+		await expect(projectCard(page, nonMemberProject.name)).toBeHidden();
+
+		await tabButton(page, "All").click();
+		await expect(tabButton(page, "All")).toBeChecked();
+
+		await expect(projectCard(page, memberProject.name)).toBeVisible();
+		await expect(projectCard(page, nonMemberProject.name)).toBeVisible();
+
+		expect(
+			await readStoredValue(page, STORAGE_KEYS.projectsMyOnly),
+		).toBe(false);
+	});
 });

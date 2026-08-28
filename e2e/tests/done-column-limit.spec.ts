@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "../helpers/app";
 import {
 	createTestProject,
 	cleanupTestProjects,
@@ -9,12 +9,6 @@ import { createDoc, deleteDoc, getList, updateDoc } from "../helpers/frappe";
 
 const PROJECT_PREFIX = "E2E Done Column";
 const TASK_PREFIX = "E2E DoneCol Task";
-const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
-
-function todayISO(): string {
-	const d = new Date();
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 function daysFromNow(n: number): string {
 	const d = new Date();
@@ -24,12 +18,6 @@ function daysFromNow(n: number): string {
 
 /** Navigate to project tasks tab, suppressing the overdue dialog. */
 async function goToProjectTasks(page: Page, projectName: string) {
-	await page.addInitScript(
-		({ overdueKey, todayStr }) => {
-			localStorage.setItem(overdueKey, todayStr);
-		},
-		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-	);
 	await page.goto(`/hive/projects/${projectName}?tab=tasks`);
 	await page.waitForLoadState("domcontentloaded");
 	// Wait for kanban columns to appear
@@ -38,12 +26,6 @@ async function goToProjectTasks(page: Page, projectName: string) {
 
 /** Navigate to cross-project tasks page in kanban view, suppressing the overdue dialog. */
 async function goToTasksKanban(page: Page) {
-	await page.addInitScript(
-		({ overdueKey, todayStr }) => {
-			localStorage.setItem(overdueKey, todayStr);
-		},
-		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-	);
 	await page.goto("/hive/tasks?view=kanban");
 	await page.waitForLoadState("domcontentloaded");
 	await expect(page.getByText("To Do").first()).toBeVisible({ timeout: 15000 });
@@ -124,7 +106,9 @@ test.describe("Done Column 7-Day Limit", () => {
 		await goToProjectTasks(page, testProject.name);
 
 		// The recent Done task should be visible
-		await expect(page.getByText(recentDoneTask.title)).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(recentDoneTask.title)).toBeVisible({
+			timeout: 10000,
+		});
 
 		// The To Do task should also be visible in its own column
 		await expect(page.getByText(todoTask.title)).toBeVisible();
@@ -136,7 +120,9 @@ test.describe("Done Column 7-Day Limit", () => {
 		await goToProjectTasks(page, testProject.name);
 
 		// Wait for the kanban to fully render by checking that a known visible task appears
-		await expect(page.getByText(recentDoneTask.title)).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(recentDoneTask.title)).toBeVisible({
+			timeout: 10000,
+		});
 
 		// The old Done task should NOT be visible
 		await expect(page.getByText(oldDoneTask.title)).not.toBeVisible();
@@ -164,9 +150,9 @@ test.describe("Done Column 7-Day Limit", () => {
 
 		await goToProjectTasks(page, emptyProject.name);
 
-		await expect(
-			page.getByText("Nothing done in the last 7 days"),
-		).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText("Nothing done in the last 7 days")).toBeVisible(
+			{ timeout: 10000 },
+		);
 
 		// Cleanup the extra project and task
 		try {
@@ -183,7 +169,9 @@ test.describe("Done Column 7-Day Limit", () => {
 		await goToTasksKanban(page);
 
 		// The recent Done task should be visible
-		await expect(page.getByText(recentDoneTask.title)).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(recentDoneTask.title)).toBeVisible({
+			timeout: 10000,
+		});
 
 		// The old Done task should NOT be visible
 		await expect(page.getByText(oldDoneTask.title)).not.toBeVisible();
@@ -195,6 +183,8 @@ test.describe("Done Column 7-Day Limit", () => {
 		await goToProjectTasks(page, testProject.name);
 
 		// The To Do task should always be visible regardless of any date logic
-		await expect(page.getByText(todoTask.title)).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(todoTask.title)).toBeVisible({
+			timeout: 10000,
+		});
 	});
 });

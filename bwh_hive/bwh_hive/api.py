@@ -2,12 +2,36 @@ import json
 from datetime import timedelta
 
 import frappe
+from frappe import _
 from frappe.utils import getdate, nowdate
+
+from bwh_hive.bwh_hive.permissions import _is_hive_client
+
+ALLOWED_INVITE_ROLES = ("Hive Team", "Hive Client")
+
+
+def _assert_can_invite(role: str) -> None:
+	"""Only a team member may invite, and only into a Hive role.
+
+	Without this, any logged-in user could invite themselves a second account
+	holding `Hive Team`. The no-email fallback below inserts the invitation with
+	`ignore_permissions=True`, so the doctype's own permissions never ran -- and
+	a site with no outgoing Email Account, which is the normal development
+	state, takes that path every time. `role` reaches the User Invitation
+	verbatim, so it is checked against a list rather than trusted.
+	"""
+	if role not in ALLOWED_INVITE_ROLES:
+		frappe.throw(_("Cannot invite a user into the {0} role").format(role), frappe.PermissionError)
+
+	if _is_hive_client():
+		frappe.throw(_("Only team members can invite users"), frappe.PermissionError)
 
 
 @frappe.whitelist(methods=["POST"])
 def invite_member(email: str, role: str = "Hive Team"):
 	"""Create a User Invitation. Email delivery is best-effort."""
+	_assert_can_invite(role)
+
 	email = email.strip()
 	if not email:
 		frappe.throw("Email is required")
@@ -65,7 +89,7 @@ def invite_client_member(email: str, client: str):
 
 @frappe.whitelist()
 def get_my_dashboard():
-	"""Return aggregated personal dashboard data: my tasks, my projects, unread updates."""
+	"""Return aggregated personal dashboard data: my tasks and my unread/recent updates."""
 	user = frappe.session.user
 
 	# My tasks: assigned via Frappe's _assign field
@@ -81,14 +105,23 @@ def get_my_dashboard():
 		limit=50,
 	)
 
-	# Get project titles for the tasks
-	project_ids = list({t.project for t in my_tasks if t.project})
+	# Every project on my dashboard: the ones holding my tasks, plus the ones I
+	# am a member of. Resolving them in one fetch means an update from a project
+	# I have no tasks in still gets its title and its avatar.
+	task_project_ids = {t.project for t in my_tasks if t.project}
+	member_entries = frappe.get_all(
+		"Hive Project Member",
+		filters={"member": user},
+		fields=["parent"],
+	)
+	all_my_project_ids = task_project_ids | {e.parent for e in member_entries}
+
 	project_map = {}
-	if project_ids:
+	if all_my_project_ids:
 		projects = frappe.get_all(
 			"Hive Project",
-			filters={"name": ["in", project_ids]},
-			fields=["name", "title", "status", "project_type", "client"],
+			filters={"name": ["in", list(all_my_project_ids)]},
+			fields=["name", "title", "status", "project_type", "client", "icon", "color", "avatar"],
 		)
 		project_map = {p.name: p for p in projects}
 
@@ -110,24 +143,6 @@ def get_my_dashboard():
 				"project_status": proj.get("status", "") if proj else "",
 				"tasks": tasks,
 			}
-		)
-
-	# My projects (where I'm a member or have tasks)
-	my_project_member_entries = frappe.get_all(
-		"Hive Project Member",
-		filters={"member": user},
-		fields=["parent"],
-	)
-	member_project_ids = {e.parent for e in my_project_member_entries}
-	all_my_project_ids = member_project_ids | set(project_ids)
-
-	my_projects = []
-	if all_my_project_ids:
-		my_projects = frappe.get_all(
-			"Hive Project",
-			filters={"name": ["in", list(all_my_project_ids)], "is_archived": 0},
-			fields=["name", "title", "slug", "status", "project_type", "client", "modified"],
-			order_by="modified desc",
 		)
 
 	# Unread updates count across my projects (exclude drafts)
@@ -157,9 +172,12 @@ def get_my_dashboard():
 		for upd in recent_updates:
 			seen = upd.get("_seen") or "[]"
 			upd["is_unread"] = user not in seen
-			# Get project title
+			# Get the project's title and mark (icon + colour, or a DiceBear avatar)
 			proj = project_map.get(upd.project)
 			upd["project_title"] = proj.get("title", upd.project) if proj else upd.project
+			upd["project_icon"] = proj.get("icon") if proj else None
+			upd["project_color"] = proj.get("color") if proj else None
+			upd["project_avatar"] = proj.get("avatar") if proj else None
 			# Get poster name
 			upd["posted_by_name"] = (
 				frappe.get_cached_value("User", upd.posted_by, "full_name") or upd.posted_by
@@ -167,7 +185,6 @@ def get_my_dashboard():
 
 	return {
 		"tasks_by_project": grouped_tasks,
-		"my_projects": my_projects,
 		"unread_count": unread_count,
 		"recent_updates": recent_updates,
 	}
@@ -518,6 +535,9 @@ def get_team_stats(period: str = "week"):
 	Args:
 		period: "week" (last 7 days) or "month" (last 30 days)
 	"""
+	if _is_hive_client():
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
 	days = 7 if period == "week" else 30
 	cutoff = getdate(nowdate()) - timedelta(days=days)
 	today = nowdate()
@@ -827,7 +847,6 @@ def get_project_activity(project: str, limit: int = 100):
 						"priority",
 						"title",
 						"milestone",
-						"assigned_to",
 						"due_date",
 						"start_date",
 						"completed_on",
@@ -932,86 +951,3 @@ def resolve_project_slug(slug: str):
 	if not name:
 		frappe.throw("Project not found", frappe.DoesNotExistError)
 	return name
-
-
-# --------------------------------------------------------------------------- #
-# Agent surface — thin frontend-facing wrappers (specs/v2 09).
-#
-# The React app can't call doctype methods the way the desk does, so these wrap
-# the whitelisted Hive Task agent methods with a flat (task, ...) signature the
-# frontend calls via useFrappePostCall. Each underlying method re-asserts its
-# own guard (identity + write permission) — these wrappers add no trust boundary.
-# --------------------------------------------------------------------------- #
-@frappe.whitelist(methods=["POST"])
-def agent_approve_spec(task: str, note: str | None = None):
-	"""Approve the agent's spec (wraps Hive Task.approve_spec)."""
-	return frappe.get_doc("Hive Task", task).approve_spec(note=note)
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_request_changes(task: str, comment: str, path: str | None = None, line: str | None = None):
-	"""Request another iteration, sending a single review comment as the §5.3 payload."""
-	body = (comment or "").strip()
-	if not body:
-		frappe.throw("Provide a review comment.")
-	entry: dict = {"author": frappe.session.user, "body": body}
-	if path:
-		entry["path"] = path
-	if line not in (None, ""):
-		entry["line"] = line
-	return frappe.get_doc("Hive Task", task).request_agent_changes([entry])
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_mark_merged(task: str):
-	"""Record that the PR was merged (wraps Hive Task.mark_agent_merged)."""
-	return frappe.get_doc("Hive Task", task).mark_agent_merged()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_retry(task: str):
-	"""Re-provision a clean box for a Failed task (wraps Hive Task.retry_agent)."""
-	return frappe.get_doc("Hive Task", task).retry_agent()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_cancel(task: str):
-	"""Cancel an in-flight agent task (wraps Hive Task.cancel_agent)."""
-	return frappe.get_doc("Hive Task", task).cancel_agent()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_teardown_now(task: str):
-	"""Force-deprovision a Failed box (wraps Hive Task.teardown_agent_now)."""
-	return frappe.get_doc("Hive Task", task).teardown_agent_now()
-
-
-@frappe.whitelist(methods=["POST"])
-def agent_handoff(task: str):
-	"""Start the agent loop from the product by assigning the task to the Agent bot.
-
-	Assigning to the Agent user is what triggers provisioning (Phase 1 _assign hook).
-	Re-asserts write permission — the same gate the desk assign flow enforces.
-	"""
-	from frappe.desk.form.assign_to import add as assign_add
-
-	from bwh_hive.bwh_hive.orchestrator import service
-
-	doc = frappe.get_doc("Hive Task", task)
-	doc.check_permission("write")
-	agent_user = service.get_agent_user()
-	if not agent_user:
-		frappe.throw("No Agent bot user is configured.")
-	assign_add({"doctype": "Hive Task", "name": task, "assign_to": [agent_user]})
-	return {"ok": True, "agent_user": agent_user}
-
-
-@frappe.whitelist()
-def resolved_prompts(project: str | None = None):
-	"""Return the resolved {spec,implement,changes} prompts (project override → global).
-
-	Lets the per-project settings UI show which prompt the box would actually receive.
-	"""
-	from bwh_hive.bwh_hive.agent_api import resolve_prompts
-
-	return resolve_prompts(project)

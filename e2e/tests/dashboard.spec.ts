@@ -1,41 +1,24 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "../helpers/app";
 import {
 	createTestProject,
 	createTestTask,
-	createTestUpdate,
 	cleanupTestProjects,
 	cleanupTestUpdates,
 	HiveProject,
 	HiveTask,
 } from "../helpers/hive";
 import { callMethod, deleteDoc, getList } from "../helpers/frappe";
+import { gotoHive, kpi, kpiValue, projectCard, section } from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E Dashboard Project";
 const TASK_PREFIX = "E2E Dashboard Task";
-const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
 
-function todayISO(): string {
-	const d = new Date();
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/**
- * Navigate to the dashboard with the overdue dialog suppressed.
- */
+/** Open the dashboard and wait for its tabs to be interactive. */
 async function goToDashboard(page: Page) {
-	await page.addInitScript(
-		({ overdueKey, todayStr }) => {
-			localStorage.setItem(overdueKey, todayStr);
-		},
-		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-	);
-	await page.goto("/hive");
-	await page.waitForLoadState("domcontentloaded");
-
-	// Wait for the dashboard heading to confirm the page is interactive
-	await expect(
-		page.getByRole("heading", { name: "Dashboard" }),
-	).toBeVisible({ timeout: 15000 });
+	await gotoHive(page, "/");
+	await expect(page.getByRole("tab", { name: /My work/ })).toBeVisible({
+		timeout: 15000,
+	});
 }
 
 /**
@@ -71,12 +54,10 @@ test.describe("Dashboard", () => {
 		await cleanupTestTasks(request);
 		await cleanupTestProjects(request, PROJECT_PREFIX);
 
-		// Create a test project
 		testProject = await createTestProject(request, {
 			title: `${PROJECT_PREFIX} ${Date.now()}`,
 		});
 
-		// Create tasks assigned to current user (Administrator)
 		assignedTask = await createTestTask(request, {
 			title: `${TASK_PREFIX} Backlog ${Date.now()}`,
 			project: testProject.name,
@@ -91,8 +72,7 @@ test.describe("Dashboard", () => {
 			priority: "High",
 		});
 
-		// Assign tasks to Administrator via Frappe's standard _assign mechanism
-		// (The dashboard API uses _assign to find user's tasks)
+		// The dashboard finds a user's tasks through Frappe's `_assign`.
 		await callMethod(request, "frappe.desk.form.assign_to.add", {
 			doctype: "Hive Task",
 			name: assignedTask.name,
@@ -111,22 +91,15 @@ test.describe("Dashboard", () => {
 		await cleanupTestProjects(request, PROJECT_PREFIX);
 	});
 
-	test("should display dashboard page with three tabs", async ({ page }) => {
+	test("the dashboard has a My work and a Projects tab", async ({ page }) => {
 		await goToDashboard(page);
 
-		// Verify subtitle
-		await expect(
-			page.getByText("Overview of your work, projects, and team."),
-		).toBeVisible();
+		await expect(page.getByRole("tab", { name: /My work/ })).toBeVisible();
+		await expect(page.getByRole("tab", { name: /Projects/ })).toBeVisible();
 
-		// Verify all three tabs are present
-		await expect(
-			page.getByRole("tab", { name: /My Work/ }),
-		).toBeVisible();
-		await expect(
-			page.getByRole("tab", { name: /Projects/ }),
-		).toBeVisible();
-		await expect(page.getByRole("tab", { name: /Team/ })).toBeVisible();
+		// Team moved out to its own page; a tab here would be a second home for
+		// the same information, which is the duplication that removed it.
+		await expect(page.getByRole("tab", { name: /Team/ })).toHaveCount(0);
 	});
 
 	test("should show correct summary cards with task counts", async ({
@@ -134,78 +107,34 @@ test.describe("Dashboard", () => {
 	}) => {
 		await goToDashboard(page);
 
-		// My Work tab should be active by default
-		// The summary cards show: Open tasks, In progress, Unread updates
-		await expect(page.getByText("Open tasks", { exact: true })).toBeVisible({
-			timeout: 10000,
-		});
-		await expect(page.getByText("In progress")).toBeVisible();
-		await expect(page.getByText("Unread updates")).toBeVisible();
+		await expect(kpi(page, "Open tasks")).toBeVisible({ timeout: 10000 });
+		await expect(kpi(page, "In progress")).toBeVisible();
+		await expect(kpi(page, "Unread updates")).toBeVisible();
 
-		// Verify there's at least 1 open task (we created 2)
-		// The "Open tasks" card should have a number ≥ 2
-		const openTasksCard = page
-			.locator('[data-slot="card"]')
-			.filter({ hasText: "Open tasks" });
-		const openCount = openTasksCard.locator("p.text-3xl");
-		await expect(openCount).toBeVisible({ timeout: 10000 });
-		const openCountText = await openCount.textContent();
-		expect(Number(openCountText)).toBeGreaterThanOrEqual(2);
-
-		// The "In progress" card should have at least 1
-		const inProgressCard = page
-			.locator('[data-slot="card"]')
-			.filter({ hasText: "In progress" });
-		const inProgressCount = inProgressCard.locator("p.text-3xl");
-		await expect(inProgressCount).toBeVisible();
-		const inProgressCountText = await inProgressCount.textContent();
-		expect(Number(inProgressCountText)).toBeGreaterThanOrEqual(1);
+		// Two tasks were assigned above, one of them in progress.
+		await expect
+			.poll(() => kpiValue(page, "Open tasks"), { timeout: 10000 })
+			.toBeGreaterThanOrEqual(2);
+		await expect
+			.poll(() => kpiValue(page, "In progress"), { timeout: 10000 })
+			.toBeGreaterThanOrEqual(1);
 	});
 
 	test("should display my tasks grouped by project", async ({ page }) => {
 		await goToDashboard(page);
 
-		// The "My Tasks" section should be visible
-		await expect(page.getByText("My Tasks")).toBeVisible({
+		const myTasks = section(page, "My tasks");
+		await expect(myTasks).toBeVisible({ timeout: 10000 });
+
+		await expect(myTasks.getByText(testProject.title).first()).toBeVisible({
 			timeout: 10000,
 		});
-
-		// Our test project title should appear as a group header
-		await expect(
-			page.getByText(testProject.title).first(),
-		).toBeVisible({ timeout: 10000 });
-
-		// Both assigned tasks should be listed
-		await expect(
-			page.getByText(assignedTask.title).first(),
-		).toBeVisible({ timeout: 10000 });
-		await expect(
-			page.getByText(inProgressTask.title).first(),
-		).toBeVisible({ timeout: 10000 });
-	});
-
-	test("should show my projects section", async ({ page }) => {
-		await goToDashboard(page);
-
-		// My Projects section should be visible
-		await expect(page.getByText("My Projects")).toBeVisible({
+		await expect(myTasks.getByText(assignedTask.title)).toBeVisible({
 			timeout: 10000,
 		});
-
-		// Scope to the My Projects card (the one with "My Projects" heading)
-		const myProjectsCard = page
-			.locator('[data-slot="card"]')
-			.filter({ hasText: "My Projects" });
-
-		// Our test project should appear inside the My Projects card
-		await expect(
-			myProjectsCard.getByText(testProject.title),
-		).toBeVisible({ timeout: 10000 });
-
-		// Project entry should show status badge
-		await expect(
-			myProjectsCard.getByText("Open").first(),
-		).toBeVisible();
+		await expect(myTasks.getByText(inProgressTask.title)).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test("should switch to Projects tab and show project list", async ({
@@ -213,23 +142,12 @@ test.describe("Dashboard", () => {
 	}) => {
 		await goToDashboard(page);
 
-		// Switch to Projects tab
-		const projectsTab = page.getByRole("tab", { name: /Projects/ });
-		await expect(projectsTab).toBeVisible();
-		await projectsTab.click();
+		await page.getByRole("tab", { name: /Projects/ }).click();
 
-		// Our test project should be visible as a project card
-		await expect(
-			page.getByText(testProject.title).first(),
-		).toBeVisible({ timeout: 10000 });
-
-		// Project card should display status badge
-		await expect(
-			page
-				.locator('[data-slot="card"]')
-				.filter({ hasText: testProject.title })
-				.getByText("Open")
-				.first(),
-		).toBeVisible();
+		const card = projectCard(page, testProject.name);
+		await expect(card).toBeVisible({ timeout: 10000 });
+		await expect(card).toContainText(testProject.title);
+		// Exact, or this also matches the "N open" task count in the card footer.
+		await expect(card.getByText("Open", { exact: true })).toBeVisible();
 	});
 });

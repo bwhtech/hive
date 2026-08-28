@@ -16,7 +16,6 @@ import {
 
 const PROJECT_PREFIX = "E2E TeamTab Project";
 const TASK_PREFIX = "E2E TeamTab Task";
-const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
 
 function todayISO(): string {
 	const d = new Date();
@@ -33,17 +32,11 @@ function daysFromNow(n: number): string {
  * Navigate to Dashboard > Team tab with overdue dialog suppressed.
  */
 async function goToTeamTab(page: Page) {
-	await page.addInitScript(
-		({ overdueKey, todayStr }) => {
-			localStorage.setItem(overdueKey, todayStr);
-		},
-		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-	);
 	await page.goto("/hive");
 	await page.waitForLoadState("domcontentloaded");
-	await expect(
-		page.getByRole("heading", { name: "Dashboard" }),
-	).toBeVisible({ timeout: 15000 });
+	await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({
+		timeout: 15000,
+	});
 
 	// Click Team tab
 	const teamTab = page.getByRole("tab", { name: /Team/ });
@@ -173,12 +166,8 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 		).toBeVisible({ timeout: 10000 });
 
 		// Weekly and Monthly toggle buttons
-		await expect(
-			page.getByRole("button", { name: "Weekly" }),
-		).toBeVisible();
-		await expect(
-			page.getByRole("button", { name: "Monthly" }),
-		).toBeVisible();
+		await expect(page.getByRole("button", { name: "Weekly" })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Monthly" })).toBeVisible();
 	});
 
 	test("should switch between weekly and monthly chart periods", async ({
@@ -243,9 +232,9 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 		});
 
 		// Our overdue task title should appear
-		await expect(
-			page.getByText(overdueTask.title).first(),
-		).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(overdueTask.title).first()).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test("should display completed task details under member card", async ({
@@ -254,18 +243,18 @@ test.describe("Dashboard Team Tab & Time Series Chart", () => {
 		await goToTeamTab(page);
 
 		// "Completed" section header should be visible (CSS uppercase transforms visually)
-		await expect(
-			page.getByText(/Completed \(\d+\)/).first(),
-		).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(/Completed \(\d+\)/).first()).toBeVisible({
+			timeout: 10000,
+		});
 
 		// Our completed task title should appear
-		await expect(
-			page.getByText(completedTask.title).first(),
-		).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(completedTask.title).first()).toBeVisible({
+			timeout: 10000,
+		});
 
 		// Project title badge should appear next to completed task
-		await expect(
-			page.getByText(testProject.title).first(),
-		).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText(testProject.title).first()).toBeVisible({
+			timeout: 10000,
+		});
 	});
 });

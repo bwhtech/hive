@@ -10,23 +10,11 @@ import { getList, deleteDoc, callMethod } from "../helpers/frappe";
 
 const TEST_PREFIX = "E2E Assign";
 const PROJECT_PREFIX = "E2E Assign Project";
-const OVERDUE_KEY = "hive-overdue-dialog-last-shown";
-
-function todayISO(): string {
-	const d = new Date();
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 /**
  * Navigate to a project page with the overdue dialog suppressed and wait for the Tasks tab.
  */
 async function goToProjectTasks(page: Page, projectName: string) {
-	await page.addInitScript(
-		({ overdueKey, todayStr }) => {
-			localStorage.setItem(overdueKey, todayStr);
-		},
-		{ overdueKey: OVERDUE_KEY, todayStr: todayISO() },
-	);
 	await page.goto(`/hive/projects/${projectName}`);
 	await page.waitForLoadState("domcontentloaded");
 

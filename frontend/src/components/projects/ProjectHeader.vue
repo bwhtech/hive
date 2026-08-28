@@ -213,11 +213,7 @@
 				icon-left="lucide-plus"
 				label="Add Task"
 				@click="emit('add-task')"
-			>
-				<template v-if="isDesktop" #suffix>
-					<KeyboardShortcut combo="T" />
-				</template>
-			</Button>
+			/>
 		</template>
 	</AppHeader>
 
@@ -263,7 +259,6 @@ import {
 	Combobox,
 	Dialog,
 	Dropdown,
-	KeyboardShortcut,
 	Popover,
 	TextInput,
 	toast,
@@ -276,7 +271,6 @@ import ProjectIconPicker from '@/components/common/ProjectIconPicker.vue'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import ManageLinksDialog from '@/components/projects/ManageLinksDialog.vue'
 import NewClientDialog from '@/components/projects/NewClientDialog.vue'
-import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSession } from '@/composables/useSession'
 import { projectStatusTheme } from '@/lib/status'
 import {
@@ -297,7 +291,6 @@ const emit = defineEmits<{
 	'add-task': []
 }>()
 
-const { isDesktop } = useBreakpoint()
 const { isClient } = useSession()
 const canEdit = computed(() => !isClient.value)
 

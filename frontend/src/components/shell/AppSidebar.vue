@@ -90,7 +90,7 @@ interface MenuItem {
 
 const route = useRoute()
 const { user, isClient, logout } = useSession()
-const { commandPaletteOpen, openSettings } = useOverlays()
+const { commandPaletteOpen, openSettings, shortcutsOpen } = useOverlays()
 const unreadCount = useUnreadCount()
 
 // Projects live in their own section below; the nav block stays at three rows.
@@ -122,6 +122,13 @@ const workspaceMenu = computed<MenuItem[]>(() => {
 			onClick: () => openSettings('profile'),
 		})
 	}
+	// The `?` chord still opens this, but a shortcut you have to already know
+	// is a poor way to advertise the list of shortcuts.
+	items.push({
+		label: 'Keyboard shortcuts',
+		icon: 'lucide-keyboard',
+		onClick: () => (shortcutsOpen.value = true),
+	})
 	items.push({
 		label: 'Raise an issue',
 		icon: 'lucide-bug',

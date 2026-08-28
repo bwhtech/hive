@@ -26,83 +26,88 @@
 
 	<div class="flex min-h-0 flex-1 items-stretch">
 		<component :is="Scroller" v-bind="scrollerProps">
-			<TaskFilters
-				:q="q"
-				:status="statusFilter"
-				:priority="priorityFilter"
-				:project="projectFilter"
-				:assignee="assigneeFilter"
-				:count="filtered.length"
-				:group-by="groupBy"
-				:sort-key="sortKey"
-				:sort-direction="sortDirection"
-				:projects="projects.data ?? []"
-				:members="members"
-				@update:q="setQuery({ q: $event })"
-				@update:status="setQuery({ status: $event })"
-				@update:priority="setQuery({ priority: $event })"
-				@update:project="setQuery({ project: $event })"
-				@update:assignee="setQuery({ assignee: $event })"
-				@update:group-by="groupBy = $event"
-				@update:sort-key="sortKey = $event"
-				@update:sort-direction="sortDirection = $event"
-				@reset="resetFilters"
-			/>
+			<!-- `ScrollArea` puts `viewportClass` on an element above the one
+			     that holds these children, so a `space-y` there never reaches
+			     them. The stack owns its own rhythm. -->
+			<div class="space-y-5">
+				<TaskFilters
+					:q="q"
+					:status="statusFilter"
+					:priority="priorityFilter"
+					:project="projectFilter"
+					:assignee="assigneeFilter"
+					:count="filtered.length"
+					:group-by="groupBy"
+					:sort-key="sortKey"
+					:sort-direction="sortDirection"
+					:projects="projects.data ?? []"
+					:members="members"
+					@update:q="setQuery({ q: $event })"
+					@update:status="setQuery({ status: $event })"
+					@update:priority="setQuery({ priority: $event })"
+					@update:project="setQuery({ project: $event })"
+					@update:assignee="setQuery({ assignee: $event })"
+					@update:group-by="groupBy = $event"
+					@update:sort-key="sortKey = $event"
+					@update:sort-direction="sortDirection = $event"
+					@reset="resetFilters"
+				/>
 
-			<PageSkeleton v-if="tasks.loading && !tasks.data" :rows="6" />
+				<PageSkeleton v-if="tasks.loading && !tasks.data" :rows="6" />
 
-			<EmptyState
-				v-else-if="!filtered.length"
-				icon="lucide-square-check-big"
-				:title="hasFilters ? 'No tasks match your filters' : 'No tasks yet'"
-				:description="
-					hasFilters
-						? 'Try adjusting your search or filters.'
-						: 'Tasks appear here once they are created in a project.'
-				"
-			>
-				<template v-if="!hasFilters && !isClient" #action>
-					<Button
-						variant="solid"
-						theme="gray"
-						icon-left="lucide-plus"
-						label="Add Task"
-						@click="openCreateTask(createTaskContext)"
-					/>
-				</template>
-			</EmptyState>
+				<EmptyState
+					v-else-if="!filtered.length"
+					icon="lucide-square-check-big"
+					:title="hasFilters ? 'No tasks match your filters' : 'No tasks yet'"
+					:description="
+						hasFilters
+							? 'Try adjusting your search or filters.'
+							: 'Tasks appear here once they are created in a project.'
+					"
+				>
+					<template v-if="!hasFilters && !isClient" #action>
+						<Button
+							variant="solid"
+							theme="gray"
+							icon-left="lucide-plus"
+							label="Add Task"
+							@click="openCreateTask(createTaskContext)"
+						/>
+					</template>
+				</EmptyState>
 
-			<TaskBoard
-				v-else-if="viewMode === 'kanban'"
-				:tasks="filtered"
-				:assignees-by-task="assigneesByTask"
-				:list="tasks"
-				:readonly="isClient"
-				@select="openTask"
-				@changed="refreshAssignees"
-			/>
+				<TaskBoard
+					v-else-if="viewMode === 'kanban'"
+					:tasks="filtered"
+					:assignees-by-task="assigneesByTask"
+					:list="tasks"
+					:readonly="isClient"
+					@select="openTask"
+					@changed="refreshAssignees"
+				/>
 
-			<TaskCalendar
-				v-else-if="viewMode === 'calendar'"
-				:tasks="filtered"
-				@select="openTask"
-			/>
+				<TaskCalendar
+					v-else-if="viewMode === 'calendar'"
+					:tasks="filtered"
+					@select="openTask"
+				/>
 
-			<TaskTable
-				v-else
-				:tasks="filtered"
-				:project-titles="projectTitles"
-				:milestone-titles="milestoneTitles"
-				:assignees-by-task="assigneesByTask"
-				:group-by="groupBy"
-				:sort-key="sortKey"
-				:sort-direction="sortDirection"
-				:active-task="activeTaskName"
-				:hide-project="hideProject"
-				:list="tasks"
-				:readonly="isClient"
-				@select="openTask"
-			/>
+				<TaskTable
+					v-else
+					:tasks="filtered"
+					:project-titles="projectTitles"
+					:milestone-titles="milestoneTitles"
+					:assignees-by-task="assigneesByTask"
+					:group-by="groupBy"
+					:sort-key="sortKey"
+					:sort-direction="sortDirection"
+					:active-task="activeTaskName"
+					:hide-project="hideProject"
+					:list="tasks"
+					:readonly="isClient"
+					@select="openTask"
+				/>
+			</div>
 		</component>
 
 		<TaskPanel
@@ -478,8 +483,8 @@ const scrollerProps = computed(() =>
 	isDesktop.value
 		? {
 				class: 'min-h-0 min-w-0 flex-1',
-				viewportClass: 'space-y-4 px-3 py-5 pb-10 sm:px-5',
+				viewportClass: 'px-3 py-5 pb-10 sm:px-5',
 			}
-		: { class: 'min-w-0 flex-1 space-y-4 px-3 py-5 pb-10 sm:px-5' },
+		: { class: 'min-w-0 flex-1 px-3 py-5 pb-10 sm:px-5' },
 )
 </script>

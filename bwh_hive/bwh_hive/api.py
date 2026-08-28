@@ -2,12 +2,36 @@ import json
 from datetime import timedelta
 
 import frappe
+from frappe import _
 from frappe.utils import getdate, nowdate
+
+from bwh_hive.bwh_hive.permissions import _is_hive_client
+
+ALLOWED_INVITE_ROLES = ("Hive Team", "Hive Client")
+
+
+def _assert_can_invite(role: str) -> None:
+	"""Only a team member may invite, and only into a Hive role.
+
+	Without this, any logged-in user could invite themselves a second account
+	holding `Hive Team`. The no-email fallback below inserts the invitation with
+	`ignore_permissions=True`, so the doctype's own permissions never ran -- and
+	a site with no outgoing Email Account, which is the normal development
+	state, takes that path every time. `role` reaches the User Invitation
+	verbatim, so it is checked against a list rather than trusted.
+	"""
+	if role not in ALLOWED_INVITE_ROLES:
+		frappe.throw(_("Cannot invite a user into the {0} role").format(role), frappe.PermissionError)
+
+	if _is_hive_client():
+		frappe.throw(_("Only team members can invite users"), frappe.PermissionError)
 
 
 @frappe.whitelist(methods=["POST"])
 def invite_member(email: str, role: str = "Hive Team"):
 	"""Create a User Invitation. Email delivery is best-effort."""
+	_assert_can_invite(role)
+
 	email = email.strip()
 	if not email:
 		frappe.throw("Email is required")

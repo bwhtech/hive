@@ -37,6 +37,7 @@
 					:name="project.name"
 					:icon="project.icon"
 					:color="project.color"
+					:avatar="project.avatar"
 					size="xs"
 					hide-tooltip
 				/>
@@ -69,7 +70,7 @@ const OPEN_TASK_FILTERS = JSON.stringify({
 	status: ['not in', ['Done', 'Someday']],
 })
 
-type SidebarProject = Pick<HiveProject, 'name' | 'title' | 'slug' | 'icon' | 'color'>
+type SidebarProject = Pick<HiveProject, 'name' | 'title' | 'slug' | 'icon' | 'color' | 'avatar'>
 
 const route = useRoute()
 const { isClient } = useSession()
@@ -77,7 +78,7 @@ const { createProjectOpen } = useOverlays()
 
 const projects = useList<SidebarProject>({
 	doctype: 'Hive Project',
-	fields: ['name', 'title', 'slug', 'icon', 'color'],
+	fields: ['name', 'title', 'slug', 'icon', 'color', 'avatar'],
 	filters: { is_archived: 0 },
 	orderBy: 'modified desc',
 	limit: 50,

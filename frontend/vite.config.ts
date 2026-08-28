@@ -43,6 +43,10 @@ export default defineConfig({
 			workbox: {
 				navigateFallback: null,
 				globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+				// The DiceBear style definitions are code-split so the picker pays
+				// for them and nobody else does. Precaching them puts all 1.2 MB
+				// back on every install and undoes that.
+				globIgnores: ['**/*.min-*.js'],
 				maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
 			},
 		}),

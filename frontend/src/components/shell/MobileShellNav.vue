@@ -3,6 +3,8 @@
 		<MobileNavItem label="Dashboard" icon="lucide-layout-dashboard" to="/" />
 		<MobileNavItem label="Projects" icon="lucide-folder" to="/projects" />
 		<MobileNavItem label="Tasks" icon="lucide-square-check-big" to="/tasks" />
+		<!-- Mobile has no keyboard, so this tab is the only way to the palette. -->
+		<MobileNavItem label="Search" icon="lucide-search" @click="commandPaletteOpen = true" />
 		<MobileNavItem label="You" @click="sheetOpen = true">
 			<Avatar
 				size="sm"
@@ -38,7 +40,7 @@ const ISSUE_URL = 'https://github.com/BuildWithHussain/hive/issues/new'
 
 const router = useRouter()
 const { user, isClient, logout } = useSession()
-const { openSettings } = useOverlays()
+const { commandPaletteOpen, openSettings } = useOverlays()
 const { colorScheme, toggleColorScheme } = useColorScheme()
 
 const sheetOpen = ref(false)

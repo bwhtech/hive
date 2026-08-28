@@ -1,5 +1,10 @@
 <template>
-	<ScrollArea orientation="horizontal" viewport-class="pb-3">
+	<ScrollArea
+		ref="scroller"
+		orientation="horizontal"
+		viewport-class="pb-3"
+		:style="{ maskImage: mask, WebkitMaskImage: mask }"
+	>
 		<div class="flex items-start gap-3">
 			<section
 				v-for="status in TASK_STATUSES"
@@ -44,11 +49,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { Badge, ScrollArea } from 'frappe-ui'
 import TaskBoardCard from '@/components/tasks/TaskBoardCard.vue'
 import { usePinnedTasks } from '@/composables/usePinnedTasks'
+import { useScrollFade } from '@/composables/useScrollFade'
 import { useTaskMutations, type TaskListHandle } from '@/composables/useTaskMutations'
 import { dayjs, DATE_FORMAT } from '@/lib/dates'
 import { TASK_STATUSES, type HiveTask, type HiveTaskAssignee } from '@/types'
@@ -81,6 +87,15 @@ const NO_DATE = '9999-12-31'
 
 const { setStatus } = useTaskMutations(props.list)
 const { pinned } = usePinnedTasks()
+
+/** `ScrollArea` hands out its viewport through a plain getter, so read it once
+ *  the component is mounted rather than expecting a reactive value. */
+const scroller = ref<{ viewportElement: HTMLElement | null } | null>(null)
+const viewport = ref<HTMLElement | null>(null)
+const { mask } = useScrollFade(viewport, 'horizontal')
+onMounted(() => {
+	viewport.value = scroller.value?.viewportElement ?? null
+})
 
 const dragOptions = computed(() => ({
 	group: 'tasks',

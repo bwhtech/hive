@@ -26,13 +26,22 @@
 		<SidebarItem
 			v-for="project in projects.data ?? []"
 			:key="project.name"
-			icon="lucide-folder"
 			:label="project.title"
 			:to="`/projects/${project.slug || project.name}`"
 			:active="isActive(project)"
 			data-testid="sidebar-project"
 			:data-project="project.name"
 		>
+			<template #prefix>
+				<ProjectAvatar
+					:name="project.name"
+					:icon="project.icon"
+					:color="project.color"
+					size="xs"
+					hide-tooltip
+				/>
+			</template>
+
 			<template #suffix>
 				<Badge
 					v-if="openCount(project.name)"
@@ -49,6 +58,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { Badge, Button, SidebarItem, SidebarLabel, useCall, useList } from 'frappe-ui'
+import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
 import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
 import type { HiveProject } from '@/types'
@@ -59,7 +69,7 @@ const OPEN_TASK_FILTERS = JSON.stringify({
 	status: ['not in', ['Done', 'Someday']],
 })
 
-type SidebarProject = Pick<HiveProject, 'name' | 'title' | 'slug'>
+type SidebarProject = Pick<HiveProject, 'name' | 'title' | 'slug' | 'icon' | 'color'>
 
 const route = useRoute()
 const { isClient } = useSession()
@@ -67,7 +77,7 @@ const { createProjectOpen } = useOverlays()
 
 const projects = useList<SidebarProject>({
 	doctype: 'Hive Project',
-	fields: ['name', 'title', 'slug'],
+	fields: ['name', 'title', 'slug', 'icon', 'color'],
 	filters: { is_archived: 0 },
 	orderBy: 'modified desc',
 	limit: 50,

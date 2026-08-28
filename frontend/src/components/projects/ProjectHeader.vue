@@ -44,6 +44,39 @@
 	<!-- Meta line: the three attributes that describe the project, each editable
 	     in place. Everything else lives behind Details. -->
 	<div class="flex flex-wrap items-center gap-2 border-b border-outline-gray-1 px-3 py-2 sm:px-5">
+		<!-- The project's own identity leads the line. For a client it is just
+		     the mark; for the team the same mark is the picker's trigger. -->
+		<ProjectIconPicker
+			v-if="canEdit"
+			:icon="project.icon"
+			:color="project.color"
+			@update:icon="emit('save', { icon: $event })"
+			@update:color="emit('save', { color: $event })"
+		>
+			<button
+				type="button"
+				class="rounded-2 ring-outline-gray-3 hover:ring-2"
+				aria-label="Project icon and color"
+				data-testid="project-icon-trigger"
+			>
+				<ProjectAvatar
+					:name="project.name"
+					:icon="project.icon"
+					:color="project.color"
+					size="lg"
+					hide-tooltip
+				/>
+			</button>
+		</ProjectIconPicker>
+		<ProjectAvatar
+			v-else
+			:name="project.name"
+			:icon="project.icon"
+			:color="project.color"
+			size="lg"
+			hide-tooltip
+		/>
+
 		<Dropdown v-if="canEdit" :options="statusOptions" align="start">
 			<button type="button" class="rounded-full">
 				<Badge
@@ -210,6 +243,8 @@ import {
 	type BreadcrumbsProps,
 	type DropdownOptions,
 } from 'frappe-ui'
+import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
+import ProjectIconPicker from '@/components/common/ProjectIconPicker.vue'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import ManageLinksDialog from '@/components/projects/ManageLinksDialog.vue'
 import NewClientDialog from '@/components/projects/NewClientDialog.vue'

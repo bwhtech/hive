@@ -370,11 +370,9 @@ const activeView = computed(() => (viewId.value ? viewById(viewId.value) : null)
 
 const crumbs = computed<BreadcrumbsProps['items']>(() => {
 	const items: BreadcrumbsProps['items'] = [{ label: 'Tasks', route: { path: '/tasks' } }]
-	if (activeView.value) {
-		items.push({
-			label: `${activeView.value.emoji || '📋'} ${activeView.value.label}`,
-		})
-	}
+	// The label alone: a view's mark is an icon on a tinted square now, and a
+	// crumb takes a string. The sidebar row next to it carries the mark.
+	if (activeView.value) items.push({ label: activeView.value.label })
 	return items
 })
 

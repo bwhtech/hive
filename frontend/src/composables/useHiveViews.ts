@@ -18,7 +18,13 @@ let views: ReturnType<typeof createHiveViews> | null = null
 const FIELDS = [
 	'name',
 	'label',
-	'emoji',
+	// The identity a view draws with — the same fields a project stores.
+	'icon',
+	'color',
+	'avatar',
+	'avatar_style',
+	'avatar_seed',
+	'avatar_options',
 	'view_type',
 	'filters_json',
 	'is_public',

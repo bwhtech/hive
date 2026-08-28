@@ -33,7 +33,7 @@
 			:data-project="project.name"
 		>
 			<template #prefix>
-				<ProjectAvatar
+				<IdentityAvatar
 					:name="project.name"
 					:icon="project.icon"
 					:color="project.color"
@@ -59,7 +59,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { Badge, Button, SidebarItem, SidebarLabel, useCall, useList } from 'frappe-ui'
-import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
+import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
 import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
 import type { HiveProject } from '@/types'

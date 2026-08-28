@@ -9,12 +9,15 @@
 			data-testid="sidebar-view"
 			:data-view="view.name"
 		>
-			<!-- The default icon slot sizes its box but not the glyph, so an
-			     emoji renders at the inherited font size and overflows. -->
 			<template #prefix>
-				<span class="grid size-4 place-items-center text-xs leading-none">
-					{{ view.emoji || '📋' }}
-				</span>
+				<IdentityAvatar
+					:name="view.name"
+					:icon="view.icon"
+					:color="view.color"
+					:avatar="view.avatar"
+					size="xs"
+					hide-tooltip
+				/>
 			</template>
 
 			<template #suffix>
@@ -51,6 +54,7 @@ import {
 	useDoctype,
 	type DropdownOptions,
 } from 'frappe-ui'
+import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
 import ViewEditDialog from '@/components/tasks/ViewEditDialog.vue'
 import { useHiveViews } from '@/composables/useHiveViews'
 import { useSession } from '@/composables/useSession'

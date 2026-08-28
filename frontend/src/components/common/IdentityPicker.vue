@@ -2,13 +2,16 @@
 	<Popover v-model:open="open">
 		<template #trigger>
 			<slot :open="open">
+				<!-- The testid keeps its original `project-` name: the component
+				     serves two doctypes now, but the specs that reach for the
+				     trigger predate the rename and there is one trigger. -->
 				<button
 					type="button"
 					class="rounded-2 ring-outline-gray-3 hover:ring-2"
-					aria-label="Project icon and color"
+					aria-label="Icon and color"
 					data-testid="project-icon-trigger"
 				>
-					<ProjectAvatar
+					<IdentityAvatar
 						:icon="icon"
 						:color="color"
 						:avatar="avatar?.svg"
@@ -43,7 +46,7 @@
 							:aria-pressed="swatch === color"
 							@click="color = swatch"
 						>
-							<ProjectAvatar :icon="icon" :color="swatch" size="lg" hide-tooltip />
+							<IdentityAvatar :icon="icon" :color="swatch" size="lg" hide-tooltip />
 						</button>
 					</div>
 
@@ -65,7 +68,7 @@
 
 				<template v-else>
 					<div class="flex items-center gap-3">
-						<ProjectAvatar
+						<IdentityAvatar
 							:avatar="avatar?.svg"
 							:icon="icon"
 							:color="color"
@@ -128,7 +131,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Button, Popover, Select, TabButtons } from 'frappe-ui'
-import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
+import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
 import {
 	avatarStyleMeta,
 	DEFAULT_PROJECT_AVATAR_STYLE,
@@ -141,13 +144,17 @@ import {
 import { PROJECT_COLORS, PROJECT_ICONS, projectIconClass, type ProjectColor } from '@/lib/project'
 
 /**
- * The whole of a project's identity: a curated lucide grid with colour
+ * The whole of a record's visual identity: a curated lucide grid with colour
  * swatches, or a DiceBear avatar with a shuffle button. Curated on purpose on
  * both sides — a search over all of lucide is a worse choice than twenty-eight
  * names that all read as a project, and the same goes for DiceBear's 61 styles.
  *
+ * One picker for every doctype that has an identity — `Hive Project` and
+ * `Hive View` today. The models below are flat fields rather than a document,
+ * so a caller only has to store the six fields under the same names.
+ *
  * Generation runs in the browser through `lib/dicebear`, so shuffle is instant
- * and nothing about a project's avatar reaches a third-party server.
+ * and nothing about a record's avatar reaches a third-party server.
  */
 const icon = defineModel<string>('icon', { default: '' })
 const color = defineModel<ProjectColor | ''>('color', { default: '' })
@@ -156,7 +163,7 @@ const color = defineModel<ProjectColor | ''>('color', { default: '' })
  * The three DiceBear fields travel as one object rather than three models: they
  * are only ever written together, and a half-applied avatar — an SVG with no
  * seed — is not a state the picker should be able to produce. `null` means the
- * project uses its icon.
+ * record uses its icon.
  */
 const avatar = defineModel<ProjectAvatarValue | null>('avatar', { default: null })
 
@@ -185,8 +192,11 @@ const STYLE_OPTIONS = PROJECT_AVATAR_STYLES.map((style) => ({
 }))
 
 const mode = ref<string | number>(avatar.value ? 'avatar' : 'icon')
-const styleId = ref<string>(avatar.value?.style ?? DEFAULT_PROJECT_AVATAR_STYLE)
-const seed = ref<string>(avatar.value?.seed ?? randomAvatarSeed())
+// `||`, not `??`: a row can carry an SVG with an empty style or seed — written
+// by hand or by a REST client — and an empty style id loads nothing, so a
+// shuffle would fail on a record that looks fine on screen.
+const styleId = ref<string>(avatar.value?.style || DEFAULT_PROJECT_AVATAR_STYLE)
+const seed = ref<string>(avatar.value?.seed || randomAvatarSeed())
 const chosen = ref<Record<string, string>>({ ...(avatar.value?.options ?? {}) })
 const rendering = ref(false)
 
@@ -294,7 +304,7 @@ watch(styleId, (id) => {
  * The tab is the choice. Landing on "Avatar" with nothing generated yet gives
  * you one straight away — an empty panel with a shuffle button would be asking
  * the user to press a button to see what the tab is for. Going back to "Icon"
- * clears the field, because `ProjectAvatar` prefers an avatar whenever one is
+ * clears the field, because `IdentityAvatar` prefers an avatar whenever one is
  * set; the last one is kept in memory so flipping between tabs is free.
  */
 let lastAvatar: ProjectAvatarValue | null = avatar.value
@@ -314,7 +324,7 @@ watch(avatar, (value) => {
 	if (value) lastAvatar = value
 })
 
-// A project that already has an avatar opens straight onto the avatar panel,
+// A record that already has an avatar opens straight onto the avatar panel,
 // which the `mode` watcher never sees. `loadStyle` caches, so re-opening the
 // popover costs nothing.
 watch(open, (isOpen) => {

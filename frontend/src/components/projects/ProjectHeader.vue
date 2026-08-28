@@ -4,7 +4,7 @@
 			<!-- The sidebar already says which project this is, so the header drops
 			     the breadcrumb trail and leads with the project's own mark. For the
 			     team the mark is the icon picker's trigger; a client just sees it. -->
-			<ProjectIconPicker
+			<IdentityPicker
 				v-if="canEdit"
 				:icon="project.icon"
 				:color="project.color"
@@ -17,7 +17,7 @@
 					aria-label="Project icon and color"
 					data-testid="project-icon-trigger"
 				>
-					<ProjectAvatar
+					<IdentityAvatar
 						:name="project.name"
 						:icon="project.icon"
 						:color="project.color"
@@ -25,8 +25,8 @@
 						hide-tooltip
 					/>
 				</button>
-			</ProjectIconPicker>
-			<ProjectAvatar
+			</IdentityPicker>
+			<IdentityAvatar
 				v-else
 				class="shrink-0"
 				:name="project.name"
@@ -266,8 +266,8 @@ import {
 	useList,
 	type DropdownOptions,
 } from 'frappe-ui'
-import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
-import ProjectIconPicker from '@/components/common/ProjectIconPicker.vue'
+import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
+import IdentityPicker from '@/components/common/IdentityPicker.vue'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import ManageLinksDialog from '@/components/projects/ManageLinksDialog.vue'
 import NewClientDialog from '@/components/projects/NewClientDialog.vue'

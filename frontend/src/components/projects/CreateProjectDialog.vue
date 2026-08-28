@@ -4,7 +4,7 @@
 			<form class="space-y-4" @submit.prevent="submit">
 				<!-- The project's mark first, the way it will read everywhere else. -->
 				<div class="flex items-end gap-2">
-					<ProjectIconPicker
+					<IdentityPicker
 						v-model:icon="icon"
 						v-model:color="color"
 						v-model:avatar="avatar"
@@ -80,10 +80,10 @@
 import { ref, watch } from 'vue'
 import { Button, Dialog, ErrorMessage, Select, TextInput, toast, useNewDoc } from 'frappe-ui'
 import LinkPicker from '@/components/common/LinkPicker.vue'
-import ProjectIconPicker from '@/components/common/ProjectIconPicker.vue'
+import IdentityPicker from '@/components/common/IdentityPicker.vue'
 import NewClientDialog from '@/components/projects/NewClientDialog.vue'
 import type { ProjectAvatarValue } from '@/lib/dicebear'
-import type { ProjectColor } from '@/lib/project'
+import { identityPatch, type ProjectColor } from '@/lib/project'
 import type { HiveClient, HiveProject } from '@/types'
 
 const props = defineProps<{ open: boolean }>()
@@ -145,20 +145,10 @@ async function submit() {
 			title: projectTitle,
 			status: 'Open',
 			is_private: visibility.value === 'Private' ? 1 : 0,
-			// Left unset when untouched, so the project keeps the derived
-			// colour and the default folder rather than a frozen guess.
-			...(icon.value ? { icon: icon.value } : {}),
-			...(color.value ? { color: color.value } : {}),
-			// The SVG is what gets drawn; the style, seed and options are what
-			// let the avatar be rolled again, or rebuilt, later.
-			...(avatar.value
-				? {
-						avatar: avatar.value.svg,
-						avatar_style: avatar.value.style,
-						avatar_seed: avatar.value.seed,
-						avatar_options: JSON.stringify(avatar.value.options),
-					}
-				: {}),
+			// Whatever the picker was left on. An untouched field goes in
+			// empty, which is what makes the project keep the derived colour
+			// and the default folder rather than a frozen guess.
+			...identityPatch(icon.value, color.value, avatar.value),
 			...(projectType.value ? { project_type: projectType.value } : {}),
 			...(client.value ? { client: client.value } : {}),
 		})

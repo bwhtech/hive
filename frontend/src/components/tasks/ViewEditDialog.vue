@@ -9,18 +9,11 @@
 		<template #default>
 			<div class="space-y-4">
 				<div class="flex items-end gap-3">
-					<div>
-						<FormLabel label="Emoji" />
-						<EmojiPicker v-model="emoji">
-							<button
-								type="button"
-								class="mt-1.5 grid h-8 w-14 place-items-center rounded-4 border border-outline-gray-2 bg-surface-base text-lg hover:bg-surface-gray-2"
-								aria-label="Pick an emoji for this view"
-							>
-								{{ emoji || '📋' }}
-							</button>
-						</EmojiPicker>
-					</div>
+					<IdentityPicker
+						v-model:icon="icon"
+						v-model:color="color"
+						v-model:avatar="avatar"
+					/>
 					<FormControl
 						v-model="label"
 						class="flex-1"
@@ -46,15 +39,19 @@ import {
 	Dialog,
 	ErrorMessage,
 	FormControl,
-	FormLabel,
 	toast,
 	useDoctype,
 	type DialogAction,
 } from 'frappe-ui'
-import EmojiPicker from '@/components/common/EmojiPicker.vue'
+import IdentityPicker from '@/components/common/IdentityPicker.vue'
+import type { ProjectAvatarValue } from '@/lib/dicebear'
+import { identityPatch, storedAvatarValue, type ProjectColor } from '@/lib/project'
 import type { HiveView } from '@/types'
 
-/** Renames a saved view. Its filters are updated from the tasks page instead. */
+/**
+ * Renames a saved view and re-marks it. Its filters are updated from the tasks
+ * page instead.
+ */
 const props = defineProps<{ open: boolean; view: HiveView | null }>()
 
 const emit = defineEmits<{ 'update:open': [value: boolean]; saved: [] }>()
@@ -62,7 +59,9 @@ const emit = defineEmits<{ 'update:open': [value: boolean]; saved: [] }>()
 const views = useDoctype<HiveView>('Hive View')
 
 const label = ref('')
-const emoji = ref('')
+const icon = ref('')
+const color = ref<ProjectColor | ''>('')
+const avatar = ref<ProjectAvatarValue | null>(null)
 const isPublic = ref(false)
 
 watch(
@@ -70,7 +69,12 @@ watch(
 	([open, view]) => {
 		if (!open || !view) return
 		label.value = view.label
-		emoji.value = view.emoji || ''
+		icon.value = view.icon || ''
+		color.value = view.color || ''
+		// A view saved before the identity fields existed has none of them, and
+		// this resolves to `null` — the picker opens on the icon tab with the
+		// same fallback mark the sidebar is already drawing.
+		avatar.value = storedAvatarValue(view)
 		isPublic.value = view.is_public === 1
 	},
 	{ immediate: true },
@@ -94,7 +98,9 @@ async function save() {
 		await views.setValue.submit({
 			name: view.name,
 			label: trimmed,
-			emoji: emoji.value || '',
+			// Every identity field goes back, empties included: dropping an
+			// avatar for an icon has to clear the four avatar columns.
+			...identityPatch(icon.value, color.value, avatar.value),
 			is_public: isPublic.value ? 1 : 0,
 		})
 		toast.success('View updated')

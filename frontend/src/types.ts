@@ -200,7 +200,17 @@ export interface HiveTaskComment {
 export interface HiveView {
 	name: string
 	label: string
-	emoji: string
+	/**
+	 * The same six identity fields a project carries, under the same names, so
+	 * `IdentityPicker` and `IdentityAvatar` serve both. A view saved before
+	 * they existed has all six empty and falls back exactly as a project does.
+	 */
+	icon: string
+	color: ProjectColor | ''
+	avatar: string
+	avatar_style: string
+	avatar_seed: string
+	avatar_options: string
 	view_type: 'list' | 'kanban' | 'calendar'
 	filters_json: string
 	is_public: Bool

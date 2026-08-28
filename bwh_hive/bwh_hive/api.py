@@ -65,7 +65,7 @@ def invite_client_member(email: str, client: str):
 
 @frappe.whitelist()
 def get_my_dashboard():
-	"""Return aggregated personal dashboard data: my tasks, my projects, unread updates."""
+	"""Return aggregated personal dashboard data: my tasks and my unread/recent updates."""
 	user = frappe.session.user
 
 	# My tasks: assigned via Frappe's _assign field
@@ -81,14 +81,23 @@ def get_my_dashboard():
 		limit=50,
 	)
 
-	# Get project titles for the tasks
-	project_ids = list({t.project for t in my_tasks if t.project})
+	# Every project on my dashboard: the ones holding my tasks, plus the ones I
+	# am a member of. Resolving them in one fetch means an update from a project
+	# I have no tasks in still gets its title and its avatar.
+	task_project_ids = {t.project for t in my_tasks if t.project}
+	member_entries = frappe.get_all(
+		"Hive Project Member",
+		filters={"member": user},
+		fields=["parent"],
+	)
+	all_my_project_ids = task_project_ids | {e.parent for e in member_entries}
+
 	project_map = {}
-	if project_ids:
+	if all_my_project_ids:
 		projects = frappe.get_all(
 			"Hive Project",
-			filters={"name": ["in", project_ids]},
-			fields=["name", "title", "status", "project_type", "client"],
+			filters={"name": ["in", list(all_my_project_ids)]},
+			fields=["name", "title", "status", "project_type", "client", "icon", "color"],
 		)
 		project_map = {p.name: p for p in projects}
 
@@ -110,24 +119,6 @@ def get_my_dashboard():
 				"project_status": proj.get("status", "") if proj else "",
 				"tasks": tasks,
 			}
-		)
-
-	# My projects (where I'm a member or have tasks)
-	my_project_member_entries = frappe.get_all(
-		"Hive Project Member",
-		filters={"member": user},
-		fields=["parent"],
-	)
-	member_project_ids = {e.parent for e in my_project_member_entries}
-	all_my_project_ids = member_project_ids | set(project_ids)
-
-	my_projects = []
-	if all_my_project_ids:
-		my_projects = frappe.get_all(
-			"Hive Project",
-			filters={"name": ["in", list(all_my_project_ids)], "is_archived": 0},
-			fields=["name", "title", "slug", "status", "project_type", "client", "modified"],
-			order_by="modified desc",
 		)
 
 	# Unread updates count across my projects (exclude drafts)
@@ -157,9 +148,11 @@ def get_my_dashboard():
 		for upd in recent_updates:
 			seen = upd.get("_seen") or "[]"
 			upd["is_unread"] = user not in seen
-			# Get project title
+			# Get the project's title and avatar (icon + colour)
 			proj = project_map.get(upd.project)
 			upd["project_title"] = proj.get("title", upd.project) if proj else upd.project
+			upd["project_icon"] = proj.get("icon") if proj else None
+			upd["project_color"] = proj.get("color") if proj else None
 			# Get poster name
 			upd["posted_by_name"] = (
 				frappe.get_cached_value("User", upd.posted_by, "full_name") or upd.posted_by
@@ -167,7 +160,6 @@ def get_my_dashboard():
 
 	return {
 		"tasks_by_project": grouped_tasks,
-		"my_projects": my_projects,
 		"unread_count": unread_count,
 		"recent_updates": recent_updates,
 	}

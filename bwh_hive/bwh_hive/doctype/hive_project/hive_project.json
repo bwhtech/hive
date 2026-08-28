@@ -10,6 +10,8 @@
  "engine": "InnoDB",
  "field_order": [
   "title",
+  "icon",
+  "color",
   "slug",
   "status",
   "is_private",
@@ -43,6 +45,19 @@
    "in_standard_filter": 1,
    "label": "Title",
    "reqd": 1
+  },
+  {
+   "description": "Lucide icon name shown on the project avatar (e.g. rocket). Blank falls back to a folder.",
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "label": "Icon"
+  },
+  {
+   "description": "Avatar tint. Blank derives a stable color from the project id.",
+   "fieldname": "color",
+   "fieldtype": "Select",
+   "label": "Color",
+   "options": "\ngray\nblue\ngreen\namber\nred\nviolet"
   },
   {
    "fieldname": "slug",
@@ -217,7 +232,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-21 11:21:25.164031",
+ "modified": "2026-08-28 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "BWH Hive",
  "name": "Hive Project",

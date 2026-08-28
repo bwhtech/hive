@@ -2,13 +2,18 @@
 	<Dialog :open="open" title="New Project" @update:open="emit('update:open', $event)">
 		<template #default="{ close }">
 			<form class="space-y-4" @submit.prevent="submit">
-				<TextInput
-					v-model="title"
-					label="Title"
-					placeholder="Project name"
-					required
-					autofocus
-				/>
+				<!-- Icon first, the way the project will read everywhere else. -->
+				<div class="flex items-end gap-2">
+					<ProjectIconPicker v-model:icon="icon" v-model:color="color" />
+					<TextInput
+						v-model="title"
+						class="min-w-0 flex-1"
+						label="Title"
+						placeholder="Project name"
+						required
+						autofocus
+					/>
+				</div>
 
 				<Select
 					v-model="visibility"
@@ -71,7 +76,9 @@
 import { ref, watch } from 'vue'
 import { Button, Dialog, ErrorMessage, Select, TextInput, toast, useNewDoc } from 'frappe-ui'
 import LinkPicker from '@/components/common/LinkPicker.vue'
+import ProjectIconPicker from '@/components/common/ProjectIconPicker.vue'
 import NewClientDialog from '@/components/projects/NewClientDialog.vue'
+import type { ProjectColor } from '@/lib/project'
 import type { HiveClient, HiveProject } from '@/types'
 
 const props = defineProps<{ open: boolean }>()
@@ -88,6 +95,8 @@ const VISIBILITY_OPTIONS = [
 ]
 
 const title = ref('')
+const icon = ref('')
+const color = ref<ProjectColor | ''>('')
 const visibility = ref('Public')
 const projectType = ref<string | null>(null)
 const client = ref<string | null>(null)
@@ -104,6 +113,8 @@ watch(
 	(open) => {
 		if (open) return
 		title.value = ''
+		icon.value = ''
+		color.value = ''
 		visibility.value = 'Public'
 		projectType.value = null
 		client.value = null
@@ -127,6 +138,10 @@ async function submit() {
 			title: projectTitle,
 			status: 'Open',
 			is_private: visibility.value === 'Private' ? 1 : 0,
+			// Left unset when untouched, so the project keeps the derived
+			// colour and the default folder rather than a frozen guess.
+			...(icon.value ? { icon: icon.value } : {}),
+			...(color.value ? { color: color.value } : {}),
 			...(projectType.value ? { project_type: projectType.value } : {}),
 			...(client.value ? { client: client.value } : {}),
 		})

@@ -155,6 +155,8 @@ const projects = useList<HiveProject>({
 		'title',
 		'slug',
 		'status',
+		'icon',
+		'color',
 		'project_type',
 		'client',
 		'description',

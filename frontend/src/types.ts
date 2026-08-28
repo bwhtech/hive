@@ -1,3 +1,5 @@
+import type { ProjectColor } from '@/lib/project'
+
 /**
  * DocType shapes as the frontend consumes them. Field names mirror the Frappe
  * DocType JSONs; agent-lifecycle fields are deliberately absent (see
@@ -57,6 +59,10 @@ export interface HiveProject {
 	title: string
 	slug: string
 	status: ProjectStatus
+	/** Lucide icon name for the project avatar; empty means the default folder. */
+	icon: string
+	/** One of `PROJECT_COLORS`; empty derives a colour from `name`. */
+	color: ProjectColor | ''
 	project_type: string
 	client: string
 	description: string

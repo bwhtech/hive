@@ -107,22 +107,3 @@ class IntegrationTestHiveProject(IntegrationTestCase):
 		visible_names = {p.name for p in visible}
 		self.assertNotIn(self.project.name, visible_names)
 		self.assertIn(project2.name, visible_names)
-
-	def test_archived_project_excluded_from_dashboard(self):
-		"""Archived project should not appear in get_my_dashboard results."""
-		from bwh_hive.bwh_hive.api import get_my_dashboard
-
-		# Add current user as project member so it shows in dashboard
-		self.project.append("members", {"member": frappe.session.user})
-		self.project.save(ignore_permissions=True)
-
-		# Verify it shows before archiving
-		result = get_my_dashboard()
-		project_names = {p.name for p in result["my_projects"]}
-		self.assertIn(self.project.name, project_names)
-
-		# Archive and verify it's hidden
-		frappe.db.set_value("Hive Project", self.project.name, "is_archived", 1)
-		result = get_my_dashboard()
-		project_names = {p.name for p in result["my_projects"]}
-		self.assertNotIn(self.project.name, project_names)

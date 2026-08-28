@@ -6,6 +6,14 @@
 		class="flex flex-col gap-2 rounded-4 border border-outline-gray-1 bg-surface-base p-4 transition-colors hover:bg-surface-gray-1"
 	>
 		<div class="flex min-w-0 items-start gap-2">
+			<ProjectAvatar
+				:name="project.name"
+				:title="project.title"
+				:icon="project.icon"
+				:color="project.color"
+				size="lg"
+				hide-tooltip
+			/>
 			<span class="min-w-0 flex-1 truncate text-base-semibold text-ink-gray-8">
 				{{ project.title }}
 			</span>
@@ -30,20 +38,23 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Badge, Tooltip } from 'frappe-ui'
+import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
 import { projectStatusTheme } from '@/lib/status'
 import { stripHtml } from '@/lib/text'
 import type { Bool, ProjectStatus } from '@/types'
 
 /**
- * The fields a card needs. A `useList` row on the projects page carries all of
- * them; `get_my_dashboard` returns only the first five, so the rest are
- * optional and their lines simply do not render.
+ * The fields a card needs. A `useList` row carries all of them; anything
+ * optional simply does not render its line. `icon` and `color` are optional
+ * twice over — a project may also have neither, and `ProjectAvatar` falls back.
  */
 export interface ProjectCardProject {
 	name: string
 	title: string
 	slug: string
 	status: ProjectStatus
+	icon?: string
+	color?: string
 	project_type?: string
 	client?: string
 	description?: string

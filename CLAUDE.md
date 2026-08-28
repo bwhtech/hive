@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Hive (Project Management Solution) is a Frappe application with a React frontend. It follows a monorepo structure: Python backend in `bwh_hive/` and React+TypeScript frontend in `frontend/`.
+Hive (Project Management Solution) is a Frappe application with a Vue 3 frontend. It follows a monorepo structure: Python backend in `bwh_hive/` and Vue 3 + TypeScript frontend in `frontend/`, built on the `frappe-ui` component library.
 
 ## Testing
 
@@ -14,12 +14,16 @@ After building a frontend feature, test using the agent-browser, the site name i
 
 ### Frontend Development
 ```bash
-yarn dev              # Start Vite dev server on localhost:8080
-yarn build            # Build React app to bwh_hive/public/frontend/ and copy HTML entry
-cd frontend && yarn lint   # Run ESLint on frontend code
+yarn dev                        # Vite dev server on localhost:8080, proxies API/assets to bench on 8000
+yarn build                      # Build to bwh_hive/public/frontend/ and write bwh_hive/www/hive.html
+cd frontend && yarn lint        # ESLint + prettier --check on src
+cd frontend && yarn format      # Rewrite src with prettier
+cd frontend && yarn typecheck   # vue-tsc --noEmit
 ```
 
-IMPORTANT: ALWAYS INSTALL USE shadcn components if available, don't make your own custom components if shadcn components are available.
+IMPORTANT: ALWAYS use `frappe-ui` components when one exists. Do not hand-roll a primitive that frappe-ui already ships. Read the bundled `frappe-ui` skill (`COMPONENTS.md`, `DESIGN.md`, `TOKENS.md`) before building UI.
+
+Use frappe-ui design tokens for color — `ink-gray-*`, `surface-gray-*`, `outline-gray-*`. Raw Tailwind gray utilities (`text-gray-*`, `bg-gray-*`, `border-gray-*`) must not appear in `frontend/src`.
 
 ### Backend / Frappe
 
@@ -37,13 +41,23 @@ bench --site <site> migrate                    # Run database migrations, doctyp
 pre-commit run --all-files    # Run all pre-commit hooks (ruff, prettier, eslint)
 ```
 
-## Important: Frappe React SDK
+Prettier is pinned to `3.3.3` in both `frontend/package.json` and the pre-commit hook's `additional_dependencies`. Both must agree or every commit reformats the last one.
 
-Before using any frappe-react-sdk hook (`useFrappeGetDocList`, `useFrappeGetDoc`, `useFrappePostCall`, `useFrappeAuth`, etc.), you **must** read the Frappe React SDK README first:
-https://github.com/nikkothari22/frappe-react-sdk
+## Important: frappe-ui data layer
 
-Do not guess hook signatures or parameters — refer to the README for the correct API.
+The frontend talks to Frappe through the `frappe-ui` data layer, not a REST client:
 
-## MISC NOTES
+- `useList` — list queries (doctype, fields, filters, orderBy, pageLength)
+- `useDoc` — a single document, with `setValue` for updates
+- `useCall` — whitelisted method calls
 
-Use vercel-react-best-practices and vercel-composition-patterns skills when working on the frontend.
+Read the `frappe-ui` skill's docs for the correct signatures. Do not guess parameters, and do not add `frappe-react-sdk` or any other data-fetching dependency.
+
+## E2E tests
+
+```bash
+yarn test:e2e         # Playwright suite against pms.localhost:8000
+yarn test:e2e:ui      # Playwright UI mode
+```
+
+Specs live in `e2e/tests/` and go through `e2e/helpers/app.ts` (storage seeding, overdue-dialog suppression) and `e2e/helpers/ui.ts` (frappe-ui locators).

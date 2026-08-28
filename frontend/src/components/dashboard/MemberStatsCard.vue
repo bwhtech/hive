@@ -39,7 +39,11 @@
 			No overdue or completed tasks in this period.
 		</p>
 
-		<List v-else>
+		<!-- `list-row-px-2` feeds the one hook the group header and the rows
+		     both read, so the section labels line up with the titles under them.
+		     No dividers: at five rows in a bordered card the group labels already
+		     do the separating, and a rule under every line reads as noise. -->
+		<List v-else class="list-row-px-2" divider="none" :row-height="32">
 			<ListGroup v-if="overdue.length" :label="`Overdue (${overdue.length})`">
 				<ListRow
 					v-for="task in overdue.slice(0, TOP_N)"
@@ -47,13 +51,17 @@
 					:value="task.name"
 					:to="taskRoute(task)"
 				>
+					<!-- A one-letter Badge here read as an avatar, which is what the
+					     leading cell of a feed row normally holds. Priority is a signal
+					     glyph everywhere else in the app; use the same one. -->
 					<ListCell>
-						<Badge
-							:theme="priorityTheme(task.priority)"
-							variant="subtle"
-							size="sm"
-							:label="initial(task.priority)"
-						/>
+						<Tooltip :text="task.priority ?? 'No priority'">
+							<span
+								class="size-4 shrink-0"
+								:class="[priorityIcon(task.priority), priorityColor(task.priority)]"
+								:aria-label="`Priority: ${task.priority ?? 'none'}`"
+							/>
+						</Tooltip>
 					</ListCell>
 					<ListCell>
 						<span class="truncate text-base text-ink-gray-8">{{ task.title }}</span>
@@ -64,7 +72,7 @@
 						</span>
 					</ListCell>
 				</ListRow>
-				<p v-if="overdue.length > TOP_N" class="px-3 py-1.5 text-sm text-ink-gray-5">
+				<p v-if="overdue.length > TOP_N" class="px-2 py-1.5 text-sm text-ink-gray-5">
 					+{{ overdue.length - TOP_N }} more
 				</p>
 			</ListGroup>
@@ -93,7 +101,7 @@
 						/>
 					</ListCell>
 				</ListRow>
-				<p v-if="completed.length > TOP_N" class="px-3 py-1.5 text-sm text-ink-gray-5">
+				<p v-if="completed.length > TOP_N" class="px-2 py-1.5 text-sm text-ink-gray-5">
 					+{{ completed.length - TOP_N }} more
 				</p>
 			</ListGroup>
@@ -104,11 +112,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { Badge } from 'frappe-ui'
+import { Badge, Tooltip } from 'frappe-ui'
 import { List, ListCell, ListGroup, ListRow } from 'frappe-ui/list'
 import MemberAvatar from '@/components/common/MemberAvatar.vue'
 import { formatDate } from '@/lib/dates'
-import { priorityTheme } from '@/lib/status'
+import { priorityColor, priorityIcon } from '@/lib/status'
 import type { TaskPriority, TaskStatus } from '@/types'
 
 /** A task as `get_team_stats` returns it, enriched with its project title. */
@@ -146,9 +154,5 @@ function taskRoute(task: TeamStatsTask): RouteLocationRaw {
 		path: `/projects/${task.project_slug || task.project}`,
 		query: { tab: 'tasks', task: task.name },
 	}
-}
-
-function initial(priority: TaskPriority | null | undefined): string {
-	return priority ? priority.charAt(0) : '—'
 }
 </script>

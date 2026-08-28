@@ -44,9 +44,9 @@
 				<!-- `v-text` rather than a mustache: the width has to come from the
 				     draft alone, with no whitespace the template introduces. -->
 				<span
-					v-text="titleDraft || ' '"
 					class="invisible block whitespace-pre px-1 text-lg font-semibold"
 					aria-hidden="true"
+					v-text="titleDraft || ' '"
 				/>
 				<input
 					ref="titleInput"

@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
 	projectsStatusFilter: 'hive_projects_status_filter',
 	projectsScopeFilter: 'hive_projects_scope_filter',
 	projectsMyOnly: 'hive_projects_my_only',
+	soundEnabled: 'hive-sound-enabled',
+	soundVolume: 'hive-sound-volume',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

@@ -276,6 +276,13 @@ export async function typeInEditor(
 /* Sidebar                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/** A pinned task in the sidebar. Pass a docname to pick one out. */
+export function sidebarPinned(page: Page, name?: string): Locator {
+	return name
+		? page.locator(`[data-testid="sidebar-pinned"][data-task="${name}"]`)
+		: page.locator('[data-testid="sidebar-pinned"]');
+}
+
 /** A saved view in the sidebar, by label. */
 export function sidebarView(page: Page, label: string): Locator {
 	return page.locator('[data-testid="sidebar-view"]').filter({ hasText: label });

@@ -6,6 +6,8 @@
 			icon="lucide-pin"
 			:label="task.title"
 			:to="{ path: '/tasks', query: { task: task.name } }"
+			data-testid="sidebar-pinned"
+			:data-task="task.name"
 		/>
 	</SidebarSection>
 </template>

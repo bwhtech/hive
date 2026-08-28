@@ -26,5 +26,7 @@ def get_boot():
 			"site_name": frappe.local.site,
 			"read_only_mode": frappe.flags.read_only,
 			"system_timezone": get_system_timezone(),
+			# The app switcher offers Desk only to those who can actually open it.
+			"is_system_manager": "System Manager" in frappe.get_roles(),
 		}
 	)

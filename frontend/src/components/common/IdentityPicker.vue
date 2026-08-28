@@ -108,16 +108,21 @@
 						@update:model-value="pickVariant(aspect.key, String($event))"
 					/>
 
-					<!-- CC BY 4.0 obliges us to name the artist and the license
-					     wherever the artwork ships, and the picker is the only
-					     place a user meets the styles. Every style is credited,
-					     not only the ones that demand it. -->
+					<!-- No style shipped today obliges us to credit it, but a
+					     CC BY 4.0 one would, and the picker is the only place a
+					     user meets the styles. Credit every style, so adding an
+					     attribution-bound one needs no new markup. The "remixed
+					     by DiceBear" clause is dropped when DiceBear is also the
+					     artist, which it is for all the abstract sets. -->
 					<p class="text-p-xs text-ink-gray-5">
 						{{ styleMeta.label }} by
 						<a v-bind="CREDIT_LINK" :href="styleMeta.artistUrl">{{
 							styleMeta.artist
 						}}</a>
-						· remixed by DiceBear ·
+						<template v-if="styleMeta.artist !== 'DiceBear'">
+							· remixed by DiceBear</template
+						>
+						·
 						<a v-bind="CREDIT_LINK" :href="styleMeta.licenseUrl">{{
 							styleMeta.license
 						}}</a>

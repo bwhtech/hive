@@ -52,9 +52,13 @@
 			</div>
 		</template>
 
+		<!-- Overriding `#actions` replaces the wrapper frappe-ui puts around its
+		     own action buttons, so the row has to right-align itself. -->
 		<template #actions>
-			<Button label="Got it" @click="dismiss" />
-			<Button variant="solid" theme="gray" label="View all tasks" @click="viewAll" />
+			<div class="flex justify-end gap-2">
+				<Button label="Got it" @click="dismiss" />
+				<Button variant="solid" theme="gray" label="View all tasks" @click="viewAll" />
+			</div>
 		</template>
 	</Dialog>
 </template>

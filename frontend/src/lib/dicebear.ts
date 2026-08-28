@@ -42,192 +42,97 @@ export interface ProjectAvatarStyleMeta {
 	artistUrl: string
 	/**
 	 * Whether the license obliges us to name the artist wherever the art is
-	 * shipped. CC BY 4.0 does; CC0 and the two artists' own terms do not.
-	 * `ProjectIconPicker` credits every style regardless — this flag only
-	 * decides which ones it is not allowed to stop crediting.
+	 * shipped. Every style shipped today is CC0, so none do — the flag stays
+	 * because the next style added may be CC BY 4.0, which does, and the
+	 * picker credits every style regardless.
 	 */
 	attributionRequired: boolean
 	/**
-	 * The handful of components worth a control, at most two per style. Each
-	 * one is always drawn (probability 100), so picking a variant always shows
-	 * up — a control over an occasional component would look broken.
+	 * The components worth a control, at most two per style. Each one is always
+	 * drawn, so picking a variant always shows up — a control over an occasional
+	 * component would look broken. Abstract styles carry fewer knobs than the
+	 * character sets did, and some offer only one, hence a list and not a pair.
 	 */
-	aspects: readonly [ProjectAvatarAspect, ProjectAvatarAspect]
+	aspects: readonly ProjectAvatarAspect[]
 }
 
 /**
- * The shipped styles. Every one of these permits commercial use: DiceBear
- * groups its artwork as CC0 1.0, CC BY 4.0, MIT, or the artist's own
- * "free for personal and commercial use" terms, and none of the four excludes
- * it. Styles are still listed one by one rather than pulled wholesale from
- * `@dicebear/styles`, because that package ships 61 styles under licenses we
- * have not read and adding one has to stay a deliberate act.
+ * The shipped styles: abstract marks only — glass, blobs, waves, disco, loops.
+ * A project is a thing, not a person, so a generated face reads as an owner
+ * rather than as the project's own identity, and a wall of cartoon heads in the
+ * sidebar says nothing about the work. DiceBear's character sets are therefore
+ * deliberately not offered.
  *
- * The credits below are copied from each definition's own `meta` block, so
- * they are the artist's wording and not a paraphrase.
+ * All five are CC0 1.0 and authored by DiceBear itself, so none carries an
+ * attribution duty; the picker credits them anyway. Styles are listed one by
+ * one rather than pulled wholesale from `@dicebear/styles`, because that
+ * package ships 61 of them under licenses we have not read, and adding one has
+ * to stay a deliberate act.
+ *
+ * The credits below are copied from each definition's own `meta` block.
  */
 export const PROJECT_AVATAR_STYLES = [
 	{
-		id: 'notionists',
-		label: 'Notionists',
+		id: 'glass',
+		label: 'Glass',
 		license: 'CC0 1.0',
 		licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-		artist: 'Zoish',
-		artistUrl: 'https://bio.link/heyzoish',
+		artist: 'DiceBear',
+		artistUrl: 'https://www.dicebear.com',
 		attributionRequired: false,
-		aspects: [
-			{ key: 'hair', label: 'Hair' },
-			{ key: 'mouth', label: 'Mouth' },
-		],
+		aspects: [{ key: 'shape', label: 'Shape' }],
 	},
 	{
-		id: 'open-peeps',
-		label: 'Open Peeps',
+		id: 'blobs',
+		label: 'Blobs',
 		license: 'CC0 1.0',
 		licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-		artist: 'Pablo Stanley',
-		artistUrl: 'https://www.openpeeps.com/',
+		artist: 'DiceBear',
+		artistUrl: 'https://www.dicebear.com',
 		attributionRequired: false,
 		aspects: [
-			{ key: 'head', label: 'Hair' },
-			{ key: 'expression', label: 'Expression' },
+			{ key: 'blob', label: 'Blob' },
+			{ key: 'body', label: 'Body' },
 		],
 	},
 	{
-		id: 'lorelei-neutral',
-		label: 'Lorelei Neutral',
+		id: 'waves',
+		label: 'Waves',
 		license: 'CC0 1.0',
 		licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-		artist: 'Lisa Wischofsky',
-		artistUrl: 'https://www.instagram.com/lischi_art/',
+		artist: 'DiceBear',
+		artistUrl: 'https://www.dicebear.com',
 		attributionRequired: false,
 		aspects: [
-			{ key: 'eyes', label: 'Eyes' },
-			{ key: 'mouth', label: 'Mouth' },
+			{ key: 'body', label: 'Body' },
+			{ key: 'layer', label: 'Layer' },
 		],
 	},
 	{
-		id: 'bottts',
-		label: 'Bottts',
-		license: 'Free for personal and commercial use',
-		licenseUrl: 'https://bottts.com/',
-		artist: 'Pablo Stanley',
-		artistUrl: 'https://bottts.com/',
+		id: 'disco',
+		label: 'Disco',
+		license: 'CC0 1.0',
+		licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+		artist: 'DiceBear',
+		artistUrl: 'https://www.dicebear.com',
 		attributionRequired: false,
-		aspects: [
-			{ key: 'head', label: 'Head' },
-			{ key: 'eyes', label: 'Eyes' },
-		],
+		aspects: [{ key: 'shape', label: 'Shape' }],
 	},
 	{
-		id: 'avataaars',
-		label: 'Avataaars',
-		license: 'Free for personal and commercial use',
-		licenseUrl: 'https://avataaars.com/',
-		artist: 'Pablo Stanley',
-		artistUrl: 'https://avataaars.com/',
+		id: 'loops',
+		label: 'Loops',
+		license: 'CC0 1.0',
+		licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+		artist: 'DiceBear',
+		artistUrl: 'https://www.dicebear.com',
 		attributionRequired: false,
-		aspects: [
-			{ key: 'top', label: 'Hair' },
-			{ key: 'clothes', label: 'Clothes' },
-		],
-	},
-	{
-		id: 'adventurer-neutral',
-		label: 'Adventurer Neutral',
-		license: 'CC BY 4.0',
-		licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
-		artist: 'Lisa Wischofsky',
-		artistUrl: 'https://www.instagram.com/lischi_art/',
-		attributionRequired: true,
-		aspects: [
-			{ key: 'eyes', label: 'Eyes' },
-			{ key: 'mouth', label: 'Mouth' },
-		],
-	},
-	{
-		id: 'croodles',
-		label: 'Croodles',
-		license: 'CC BY 4.0',
-		licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
-		artist: 'vijay verma',
-		artistUrl: 'https://vjy.me/',
-		attributionRequired: true,
-		aspects: [
-			{ key: 'top', label: 'Hair' },
-			{ key: 'mouth', label: 'Mouth' },
-		],
-	},
-	{
-		id: 'dylan',
-		label: 'Dylan',
-		license: 'CC BY 4.0',
-		licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
-		artist: 'Natalia Spivak',
-		artistUrl: 'https://nataspvk.tilda.ws/',
-		attributionRequired: true,
-		aspects: [
-			{ key: 'hair', label: 'Hair' },
-			{ key: 'mood', label: 'Mood' },
-		],
-	},
-	{
-		id: 'fun-emoji',
-		label: 'Fun Emoji',
-		license: 'CC BY 4.0',
-		licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
-		artist: 'Davis Uche',
-		artistUrl: 'https://www.instagram.com/davedirect3/',
-		attributionRequired: true,
-		aspects: [
-			{ key: 'eyes', label: 'Eyes' },
-			{ key: 'mouth', label: 'Mouth' },
-		],
-	},
-	{
-		id: 'miniavs',
-		label: 'Miniavs',
-		license: 'CC BY 4.0',
-		licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
-		artist: 'Webpixels',
-		artistUrl: 'https://webpixels.io/',
-		attributionRequired: true,
-		aspects: [
-			{ key: 'hair', label: 'Hair' },
-			{ key: 'mouth', label: 'Mouth' },
-		],
-	},
-	{
-		id: 'personas',
-		label: 'Personas',
-		license: 'CC BY 4.0',
-		licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
-		artist: 'Draftbit',
-		artistUrl: 'https://draftbit.com/',
-		attributionRequired: true,
-		aspects: [
-			{ key: 'hair', label: 'Hair' },
-			{ key: 'clothes', label: 'Clothes' },
-		],
-	},
-	{
-		id: 'toon-head',
-		label: 'Toon Head',
-		license: 'CC BY 4.0',
-		licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
-		artist: 'Johan Melin',
-		artistUrl: 'https://www.johanmelin.com',
-		attributionRequired: true,
-		aspects: [
-			{ key: 'hair', label: 'Hair' },
-			{ key: 'mouth', label: 'Mouth' },
-		],
+		aspects: [{ key: 'pattern', label: 'Pattern' }],
 	},
 ] as const satisfies readonly ProjectAvatarStyleMeta[]
 
 export type ProjectAvatarStyleId = (typeof PROJECT_AVATAR_STYLES)[number]['id']
 
-export const DEFAULT_PROJECT_AVATAR_STYLE: ProjectAvatarStyleId = 'notionists'
+export const DEFAULT_PROJECT_AVATAR_STYLE: ProjectAvatarStyleId = 'glass'
 
 /**
  * Everything needed to both draw a project's avatar and roll it again later.
@@ -246,21 +151,14 @@ export interface ProjectAvatarValue {
 /**
  * One `import()` per style, spelled out. A template literal would work in Vite
  * for a relative path but not for a bare package specifier, and listing them
- * is what lets Rollup emit twelve chunks instead of one 1.2 MB blob.
+ * is what lets Rollup emit one chunk per style instead of a single blob.
  */
 const STYLE_LOADERS: Record<string, () => Promise<{ default: unknown }>> = {
-	'adventurer-neutral': () => import('@dicebear/styles/adventurer-neutral.json'),
-	avataaars: () => import('@dicebear/styles/avataaars.json'),
-	bottts: () => import('@dicebear/styles/bottts.json'),
-	croodles: () => import('@dicebear/styles/croodles.json'),
-	dylan: () => import('@dicebear/styles/dylan.json'),
-	'fun-emoji': () => import('@dicebear/styles/fun-emoji.json'),
-	'lorelei-neutral': () => import('@dicebear/styles/lorelei-neutral.json'),
-	miniavs: () => import('@dicebear/styles/miniavs.json'),
-	notionists: () => import('@dicebear/styles/notionists.json'),
-	'open-peeps': () => import('@dicebear/styles/open-peeps.json'),
-	personas: () => import('@dicebear/styles/personas.json'),
-	'toon-head': () => import('@dicebear/styles/toon-head.json'),
+	blobs: () => import('@dicebear/styles/blobs.json'),
+	disco: () => import('@dicebear/styles/disco.json'),
+	glass: () => import('@dicebear/styles/glass.json'),
+	loops: () => import('@dicebear/styles/loops.json'),
+	waves: () => import('@dicebear/styles/waves.json'),
 }
 
 /**

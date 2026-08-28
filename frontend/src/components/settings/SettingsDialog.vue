@@ -34,6 +34,7 @@ import {
 	SettingsPanel,
 	SettingsSidebar,
 } from 'frappe-ui'
+import AppearancePanel from '@/components/settings/AppearancePanel.vue'
 import ClientsPanel from '@/components/settings/ClientsPanel.vue'
 import GeneralPanel from '@/components/settings/GeneralPanel.vue'
 import GitHubPanel from '@/components/settings/GitHubPanel.vue'
@@ -57,6 +58,13 @@ const PANELS: PanelDef[] = [
 		label: 'Profile',
 		icon: 'lucide-circle-user',
 		component: markRaw(ProfilePanel),
+		teamOnly: false,
+	},
+	{
+		value: 'appearance',
+		label: 'Appearance',
+		icon: 'lucide-palette',
+		component: markRaw(AppearancePanel),
 		teamOnly: false,
 	},
 	{

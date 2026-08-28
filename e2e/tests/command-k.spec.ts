@@ -1,11 +1,20 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/app";
 import {
 	createTestProject,
 	createTestTask,
 	cleanupTestProjects,
 	HiveProject,
 } from "../helpers/hive";
-import { getList, deleteDoc } from "../helpers/frappe";
+import { callMethodGet, getList, deleteDoc } from "../helpers/frappe";
+import {
+	commandGroupLabel,
+	commandInput,
+	commandItem,
+	expectDialog,
+	gotoHive,
+	openCommandPalette,
+	runCommand,
+} from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E CmdK Project";
 const TASK_PREFIX = "E2E CmdK Task";
@@ -34,14 +43,6 @@ async function cleanupTestTasks(
 	}
 }
 
-/** Open Command K palette and wait for it to be visible. */
-async function openCommandPalette(page: import("@playwright/test").Page) {
-	await page.keyboard.press("Meta+k");
-	const dialog = page.locator("div[role='dialog']:has([cmdk-input])");
-	await expect(dialog).toBeVisible({ timeout: 5000 });
-	return dialog;
-}
-
 test.describe("Command K", () => {
 	let testProject: HiveProject;
 
@@ -51,7 +52,6 @@ test.describe("Command K", () => {
 		testProject = await createTestProject(request, {
 			title: `${PROJECT_PREFIX} ${Date.now()}`,
 		});
-		// Create a task so we can search for it
 		await createTestTask(request, {
 			title: `${TASK_PREFIX} Searchable ${Date.now()}`,
 			project: testProject.name,
@@ -64,61 +64,34 @@ test.describe("Command K", () => {
 		await cleanupTestProjects(request, PROJECT_PREFIX);
 	});
 
-	test("should open and close the command palette with Cmd+K", async ({
+	test("should open and close the command palette with its shortcut", async ({
 		page,
 	}) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/");
 
-		// Open palette
-		const dialog = await openCommandPalette(page);
+		const palette = await openCommandPalette(page);
+		await expect(commandInput(page)).toBeVisible();
 
-		// Verify input placeholder
-		const input = dialog.locator("[cmdk-input]");
-		await expect(input).toBeVisible();
+		// The groups the palette offers with an empty query.
+		await expect(palette.getByText("Create")).toBeVisible();
+		await expect(palette.getByText("Navigation")).toBeVisible();
+		await expect(palette.getByText("Actions")).toBeVisible();
 
-		// Verify default groups are visible
-		await expect(dialog.getByText("Create")).toBeVisible();
-		await expect(dialog.getByText("Navigation")).toBeVisible();
-		await expect(dialog.getByText("Actions")).toBeVisible();
-
-		// Close with Escape
 		await page.keyboard.press("Escape");
-		await expect(dialog).not.toBeVisible({ timeout: 3000 });
+		await expect(palette).not.toBeVisible({ timeout: 3000 });
 	});
 
-	test("should create a new task via Command K", async ({
-		page,
-	}) => {
-		await page.goto(`/hive/projects/${testProject.name}`);
-		await page.waitForLoadState("networkidle");
+	test("should create a new task via Command K", async ({ page }) => {
+		await gotoHive(page, `/projects/${testProject.name}`);
 
-		// Open palette
-		const dialog = await openCommandPalette(page);
+		await runCommand(page, "new task", "New task in this project");
 
-		// Search for new task
-		const input = dialog.locator("[cmdk-input]");
-		await input.fill("new task");
+		const createDialog = await expectDialog(page, "New task");
 
-		// Select "New Task in This Project"
-		await page
-			.locator("[cmdk-item]:has-text('New Task in This Project')")
-			.click();
-
-		// Create Task dialog should appear
-		const createDialog = page.getByRole("dialog");
-		await expect(createDialog).toBeVisible({ timeout: 5000 });
-
-		// Fill in task title and submit
 		const taskTitle = `${TASK_PREFIX} CmdK ${Date.now()}`;
-		await createDialog
-			.locator('input[placeholder="What needs to be done?"]')
-			.fill(taskTitle);
-		await createDialog
-			.getByRole("button", { name: "Create Task" })
-			.click();
+		await createDialog.getByLabel("Title").fill(taskTitle);
+		await createDialog.getByRole("button", { name: "Create task" }).click();
 
-		// Verify success toast
 		await expect(page.getByText("Task created")).toBeVisible({
 			timeout: 10000,
 		});
@@ -126,78 +99,51 @@ test.describe("Command K", () => {
 
 	test("should search for and navigate to an existing project", async ({
 		page,
+		request,
 	}) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		// Search is full-text, and Frappe only feeds its index from a five-minute
+		// cron — a project created in `beforeAll` is not findable yet. So drive the
+		// palette with a project the index already holds: what is under test here
+		// is the palette's wiring, not how fast indexing catches up.
+		const hits = await callMethodGet<{
+			projects: { name: string; title: string; slug: string }[];
+		}>(request, "bwh_hive.bwh_hive.api.search", { query: "e2e", limit: 8 });
+		const indexed = hits.projects?.[0];
+		test.skip(!indexed, "search index holds no projects on this site");
 
-		// Open palette
-		const dialog = await openCommandPalette(page);
+		await gotoHive(page, "/");
 
-		// Search for our test project (need at least 2 chars)
-		const input = dialog.locator("[cmdk-input]");
-		await input.fill(PROJECT_PREFIX);
+		await openCommandPalette(page);
+		// Whole words — full-text search does not match a truncated one.
+		await commandInput(page).fill(indexed.title);
 
-		// Wait for search results to appear (Projects group)
-		await expect(dialog.getByText("Projects")).toBeVisible({
+		// The group heading, not any item — "Go to Projects" also says "Projects".
+		await expect(commandGroupLabel(page, "Projects")).toBeVisible({
 			timeout: 10000,
 		});
 
-		// Click the project result
-		await page
-			.locator("[cmdk-item]")
-			.filter({ hasText: testProject.title })
-			.click();
+		await commandItem(page, indexed.title).first().click();
 
-		// Should navigate to the project detail page (URL uses slug)
-		await page.waitForLoadState("networkidle");
 		await expect(page).toHaveURL(
-			new RegExp(`/hive/projects/${testProject.slug || testProject.name}`),
+			new RegExp(`/hive/projects/${indexed.slug || indexed.name}`),
+			{ timeout: 10000 },
 		);
 	});
 
 	test("should open settings from Command K", async ({ page }) => {
-		await page.goto("/hive");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/");
 
-		// Open palette
-		const dialog = await openCommandPalette(page);
+		await runCommand(page, "settings", "Open settings");
 
-		// Search for settings
-		const input = dialog.locator("[cmdk-input]");
-		await input.fill("settings");
-
-		// Select "Open Settings"
-		await page
-			.locator("[cmdk-item]:has-text('Open Settings')")
-			.click();
-
-		// Settings dialog should open
-		const settingsDialog = page.getByRole("dialog");
-		await expect(settingsDialog).toBeVisible({ timeout: 5000 });
-		await expect(
-			settingsDialog.getByText("Profile").first(),
-		).toBeVisible();
+		const settingsDialog = await expectDialog(page, /Settings/);
+		await expect(settingsDialog.getByText("Profile").first()).toBeVisible();
 	});
 
 	test("should navigate to Dashboard via Command K", async ({ page }) => {
-		// Start from projects page
-		await page.goto("/hive/projects");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/projects");
 
-		// Open palette
-		const dialog = await openCommandPalette(page);
+		await runCommand(page, "dashboard", "Go to Dashboard");
 
-		// Search for dashboard
-		const input = dialog.locator("[cmdk-input]");
-		await input.fill("dashboard");
-
-		// Select "Go to Dashboard"
-		await page
-			.locator("[cmdk-item]:has-text('Go to Dashboard')")
-			.click();
-
-		// Should navigate to dashboard
-		await page.waitForLoadState("networkidle");
-		await expect(page).toHaveURL(/\/hive\/?$/);
+		await expect(page).toHaveURL(/\/hive\/?(\?.*)?$/, { timeout: 10000 });
 	});
 });

@@ -200,6 +200,37 @@ export async function callMethod<T = unknown>(
 }
 
 /**
+ * Call a Frappe whitelisted method over GET.
+ *
+ * Methods whitelisted with `methods=["GET"]` reject a POST with a bare
+ * "Not permitted", so read-only endpoints have to come through here.
+ */
+export async function callMethodGet<T = unknown>(
+	request: APIRequestContext,
+	method: string,
+	params: Record<string, unknown> = {},
+): Promise<T> {
+	const query = new URLSearchParams();
+	for (const [key, value] of Object.entries(params)) {
+		if (value === undefined || value === null) continue;
+		query.set(key, typeof value === "string" ? value : JSON.stringify(value));
+	}
+
+	const response = await request.get(
+		`${API_BASE}/api/method/${method}?${query.toString()}`,
+		{ headers: apiHeaders() },
+	);
+
+	if (!response.ok()) {
+		const error = await response.text();
+		throw new Error(`Failed to call ${method}: ${error}`);
+	}
+
+	const result: FrappeResponse<T> = await response.json();
+	return result.message as T;
+}
+
+/**
  * Get a list of documents via Frappe REST API.
  */
 export async function getList<T = Record<string, unknown>>(

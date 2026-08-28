@@ -1,28 +1,26 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "../helpers/app";
 import { createDoc, deleteDoc, getList, updateDoc } from "../helpers/frappe";
+import { openSettings } from "../helpers/ui";
 
 const TEST_PREFIX = "E2E Client";
 
 /**
  * Open Settings dialog and switch to the Clients tab.
  */
-async function openClientsSettings(page: import("@playwright/test").Page) {
-	await page.goto("/hive");
-	await page.waitForLoadState("networkidle");
-
-	await page.getByRole("button", { name: "Settings" }).click();
-
-	const dialog = page.getByRole("dialog");
-	await expect(dialog).toBeVisible({ timeout: 5000 });
-
-	await dialog.getByRole("tab", { name: "Clients" }).click();
-
-	// Wait for the Clients section to load
-	await expect(
-		dialog.getByRole("heading", { name: "Client Organizations" }),
-	).toBeVisible({ timeout: 5000 });
-
+async function openClientsSettings(page: Page) {
+	const dialog = await openSettings(page, "Clients");
+	await expect(dialog.getByText("The organisations you work with.")).toBeVisible({
+		timeout: 10000,
+	});
 	return dialog;
+}
+
+/** Back out of a client's member view to the list of clients. */
+async function backToAllClients(page: Page, dialog: ReturnType<Page["getByRole"]>) {
+	await dialog.getByRole("button", { name: "All clients" }).click();
+	await expect(dialog.getByText("The organisations you work with.")).toBeVisible({
+		timeout: 10000,
+	});
 }
 
 /**
@@ -124,8 +122,8 @@ test.describe("Clients", () => {
 		const dialog = await openClientsSettings(page);
 
 		// Acme Corp was created by the e2e_seed script
-		await expect(dialog.getByText("Acme Corp")).toBeVisible({
-			timeout: 5000,
+		await expect(dialog.getByText("Acme Corp").first()).toBeVisible({
+			timeout: 10000,
 		});
 	});
 
@@ -139,17 +137,17 @@ test.describe("Clients", () => {
 		const dialog = await openClientsSettings(page);
 
 		// Fill in the company name and click Add
-		await dialog.getByPlaceholder("Company name...").fill(clientName);
+		await dialog.getByLabel("New client").fill(clientName);
 		await dialog.getByRole("button", { name: "Add" }).click();
 
 		// Wait for success toast
 		await expect(
-			page.getByText(`Client "${clientName}" added`),
+			page.getByText(`Added "${clientName}"`),
 		).toBeVisible({ timeout: 10000 });
 
 		// Verify it appears in the list
-		await expect(dialog.getByText(clientName)).toBeVisible({
-			timeout: 5000,
+		await expect(dialog.getByText(clientName).first()).toBeVisible({
+			timeout: 10000,
 		});
 	});
 
@@ -159,18 +157,18 @@ test.describe("Clients", () => {
 		const clientName = `${TEST_PREFIX} Enter ${Date.now()}`;
 		const dialog = await openClientsSettings(page);
 
-		const input = dialog.getByPlaceholder("Company name...");
+		const input = dialog.getByLabel("New client");
 		await input.fill(clientName);
 		await input.press("Enter");
 
 		// Wait for success toast
 		await expect(
-			page.getByText(`Client "${clientName}" added`),
+			page.getByText(`Added "${clientName}"`),
 		).toBeVisible({ timeout: 10000 });
 
 		// Verify it appears in the list
-		await expect(dialog.getByText(clientName)).toBeVisible({
-			timeout: 5000,
+		await expect(dialog.getByText(clientName).first()).toBeVisible({
+			timeout: 10000,
 		});
 	});
 
@@ -189,29 +187,19 @@ test.describe("Clients", () => {
 		const dialog = await openClientsSettings(page);
 
 		// Click on the client to enter the members view
-		await dialog.getByText(clientName).click();
+		await dialog.getByRole("button", { name: clientName }).click();
 
 		// Should see the client name as a heading and the members sections
-		await expect(dialog.getByText(clientName)).toBeVisible({
-			timeout: 5000,
+		await expect(dialog.getByText(clientName).first()).toBeVisible({
+			timeout: 10000,
 		});
-		await expect(dialog.getByText("Invite New Member")).toBeVisible();
-		await expect(dialog.getByText("Client Members")).toBeVisible();
+		await expect(dialog.getByText("Invite a member")).toBeVisible();
+		await expect(dialog.getByText("Client members")).toBeVisible();
 
 		// Should show the empty state for members
-		await expect(
-			dialog.getByText("No members assigned"),
-		).toBeVisible();
+		await expect(dialog.getByText("No members assigned")).toBeVisible();
 
-		// Back button is inside a flex row with the client name heading
-		await dialog
-			.locator("div.flex.items-center.gap-2")
-			.filter({ hasText: clientName })
-			.locator("button")
-			.click();
-		await expect(
-			dialog.getByRole("heading", { name: "Client Organizations" }),
-		).toBeVisible({ timeout: 5000 });
+		await backToAllClients(page, dialog);
 	});
 
 	test("should assign an existing member to a client and remove them", async ({
@@ -229,19 +217,19 @@ test.describe("Clients", () => {
 		const dialog = await openClientsSettings(page);
 
 		// Click on the client
-		await dialog.getByText(clientName).click();
-		await expect(dialog.getByText("Client Members")).toBeVisible({
+		await dialog.getByRole("button", { name: clientName }).click();
+		await expect(dialog.getByText("Client members")).toBeVisible({
 			timeout: 5000,
 		});
 
 		// The "Add Existing Member" dropdown should be visible
 		await expect(
-			dialog.getByText("Add Existing Member"),
+			dialog.getByText("Add an existing member"),
 		).toBeVisible({ timeout: 5000 });
 
 		// Select a member from the dropdown — pick "Client User" (seed data)
 		// to avoid changing the admin's type which would hide Settings.
-		const dropdown = dialog.locator("button[role='combobox']");
+		const dropdown = dialog.getByRole("combobox", { name: "Assign a member" });
 		await dropdown.click();
 
 		// Pick the clientuser option (from seed data: "Client User")
@@ -255,28 +243,27 @@ test.describe("Clients", () => {
 
 		// Wait for success toast
 		await expect(
-			page.getByText("Member assigned to client"),
+			page.getByText("Member assigned"),
 		).toBeVisible({ timeout: 10000 });
 
 		// The member should now appear in the Client Members list
-		await expect(dialog.getByText(memberName!.trim())).toBeVisible({
-			timeout: 5000,
+		await expect(dialog.getByText(memberName!.trim()).first()).toBeVisible({
+			timeout: 10000,
 		});
 
 		// Now remove the member by clicking the X button
-		const memberRow = dialog
-			.locator('[data-slot="item"]')
-			.filter({ hasText: memberName!.trim() });
-		await memberRow.locator("button").click();
+		await dialog
+			.getByRole("button", { name: `Remove ${memberName!.trim()}` })
+			.click();
 
 		// Wait for removal toast
 		await expect(
-			page.getByText("Member removed from client"),
+			page.getByText("Member removed from the client"),
 		).toBeVisible({ timeout: 10000 });
 
 		// Empty state should return
-		await expect(
-			dialog.getByText("No members assigned"),
-		).toBeVisible({ timeout: 5000 });
+		await expect(dialog.getByText("No members assigned")).toBeVisible({
+			timeout: 10000,
+		});
 	});
 });

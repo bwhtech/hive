@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/app";
 import {
 	createTestProject,
 	deleteTestProject,
@@ -6,6 +6,12 @@ import {
 	HiveProject,
 } from "../helpers/hive";
 import { docExists } from "../helpers/frappe";
+import {
+	expectDialog,
+	gotoHive,
+	projectCard,
+	runCommand,
+} from "../helpers/ui";
 
 test.describe("Projects", () => {
 	let testProject: HiveProject;
@@ -15,44 +21,30 @@ test.describe("Projects", () => {
 	});
 
 	test("should display the projects page", async ({ page }) => {
-		await page.goto("/hive/projects");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/projects");
 
 		await expect(page).toHaveURL(/\/hive\/projects/);
+		await expect(
+			page.getByRole("button", { name: "New Project" }),
+		).toBeVisible();
 	});
 
 	test("should create a new project via command palette", async ({ page }) => {
-		await page.goto("/hive/projects");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/projects");
 
-		// Open command palette with Cmd+K
-		await page.keyboard.press("Meta+k");
-		const dialog = page.locator("div[role='dialog']:has([cmdk-input])");
-		await expect(dialog).toBeVisible({ timeout: 5000 });
+		await runCommand(page, "new project", "New project");
 
-		// Search for and select "New Project"
-		const input = page.locator("[cmdk-input]");
-		await input.fill("new project");
-		await page.locator("[cmdk-item]:has-text('New Project')").click();
-
-		// Fill in the project title in the dialog
+		const dialog = await expectDialog(page, "New Project");
 		const projectTitle = `E2E Test Project ${Date.now()}`;
-		const titleInput = page.locator('input[placeholder="Project name"]');
-		await expect(titleInput).toBeVisible({ timeout: 5000 });
-		await titleInput.fill(projectTitle);
+		await dialog.getByLabel("Title").fill(projectTitle);
+		await dialog.getByRole("button", { name: "Create Project" }).click();
 
-		// Submit the form
-		const submitBtn = page.locator(
-			'button:has-text("Create Project"), button:has-text("Create")',
-		);
-		await submitBtn.first().click();
+		await expect(dialog).not.toBeVisible({ timeout: 10000 });
 
-		// Verify project was created by checking it appears in the list
-		await page.goto("/hive/projects");
-		await page.waitForLoadState("networkidle");
-		await expect(
-			page.locator(`text=${projectTitle}`).first(),
-		).toBeVisible({ timeout: 10000 });
+		await gotoHive(page, "/projects");
+		await expect(page.getByText(projectTitle).first()).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test("should create a project via API and see it in the list", async ({
@@ -63,34 +55,31 @@ test.describe("Projects", () => {
 			title: `E2E Test Project API ${Date.now()}`,
 		});
 
-		await page.goto("/hive/projects");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/projects");
 
-		// The API-created project should appear in the list
-		await expect(
-			page.locator(`text=${testProject.title}`).first(),
-		).toBeVisible({ timeout: 10000 });
+		await expect(projectCard(page, testProject.name)).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
-	test("should navigate to project detail page", async ({
-		page,
-		request,
-	}) => {
+	test("should navigate to project detail page", async ({ page, request }) => {
 		if (!testProject) {
 			testProject = await createTestProject(request, {
 				title: `E2E Test Project Nav ${Date.now()}`,
 			});
 		}
 
-		await page.goto("/hive/projects");
-		await page.waitForLoadState("networkidle");
+		await gotoHive(page, "/projects");
 
-		// Click on the project
-		await page.locator(`text=${testProject.title}`).first().click();
+		await projectCard(page, testProject.name).click();
 
-		// Should navigate to the project detail page
-		await page.waitForLoadState("networkidle");
-		await expect(page).toHaveURL(/\/hive\/projects\//);
+		await expect(page).toHaveURL(
+			new RegExp(`/hive/projects/${testProject.slug || testProject.name}`),
+			{ timeout: 10000 },
+		);
+		await expect(page.getByText(testProject.title).first()).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test("should delete a project via API", async ({ request }) => {
@@ -98,15 +87,9 @@ test.describe("Projects", () => {
 			title: `E2E Test Project Delete ${Date.now()}`,
 		});
 
-		// Delete and verify
 		await deleteTestProject(request, tempProject.name);
 
-		// Verify it's gone
-		const exists = await docExists(
-			request,
-			"Hive Project",
-			tempProject.name,
-		);
+		const exists = await docExists(request, "Hive Project", tempProject.name);
 		expect(exists).toBe(false);
 	});
 });

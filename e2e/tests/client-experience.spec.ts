@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../helpers/app";
 import { cleanupTestFeatureRequests, listFeatureRequests } from "../helpers/hive";
 
 const FR_TEST_PREFIX = "E2E Client FR";

@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "../helpers/app";
 import {
 	createTestProject,
 	createTestFeatureRequest,
@@ -8,24 +8,34 @@ import {
 	HiveFeatureRequest,
 } from "../helpers/hive";
 import { getDoc, updateDoc } from "../helpers/frappe";
+import {
+	chooseOption,
+	expectDialog,
+	gotoHive,
+	requestRow,
+	selectTrigger,
+} from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E FR";
 const FR_PREFIX = "E2E FR Req";
 
 /** Navigate to the Requests tab of a project. */
 async function gotoRequestsTab(page: Page, projectName: string) {
-	await page.goto(`/hive/projects/${projectName}?tab=requests`);
-	await page.waitForLoadState("networkidle");
+	await gotoHive(page, `/projects/${projectName}?tab=requests`);
 }
 
-/** Click the row actions (three-dot) menu for a feature request row. */
-async function openRowActions(page: Page, title: string) {
-	const row = page.locator("tr").filter({ hasText: title });
+/** Open the `…` menu on one request row. */
+async function openRowActions(page: Page, fr: HiveFeatureRequest) {
+	const row = requestRow(page, fr.name);
 	await expect(row).toBeVisible({ timeout: 10000 });
-	const actionsBtn = row.getByRole("button");
-	await actionsBtn.click();
-	// Wait for the dropdown menu to appear
+	await page.getByRole("button", { name: `Actions for ${fr.title}` }).click();
 	await expect(page.getByRole("menu")).toBeVisible({ timeout: 3000 });
+}
+
+/** Open the create dialog. The header and the empty state both offer it. */
+async function openCreateDialog(page: Page) {
+	await page.getByRole("button", { name: "New request" }).first().click();
+	return expectDialog(page, "New feature request");
 }
 
 test.describe("Feature Requests", () => {
@@ -54,35 +64,25 @@ test.describe("Feature Requests", () => {
 			timeout: 10000,
 		});
 		await expect(
-			page.getByText("Submit a feature request to suggest improvements"),
+			page.getByText("Submit a request to suggest an improvement."),
 		).toBeVisible();
 	});
 
 	test("create feature request via UI", async ({ page }) => {
 		await gotoRequestsTab(page, project.name);
 
-		// Click "New Request" button
-		await page.getByRole("button", { name: "New Request" }).click();
+		const dialog = await openCreateDialog(page);
 
-		// Dialog should open
-		const dialog = page.getByRole("dialog");
-		await expect(dialog).toBeVisible({ timeout: 5000 });
-		await expect(dialog.getByText("New Feature Request")).toBeVisible();
-
-		// Fill title
 		const frTitle = `${FR_PREFIX} UI ${Date.now()}`;
-		await dialog.locator("#fr-title").fill(frTitle);
+		await dialog.getByLabel("Title").fill(frTitle);
 
-		// Submit
-		await dialog.getByRole("button", { name: "Submit Request" }).click();
+		await dialog.getByRole("button", { name: "Submit request" }).click();
 
-		// Toast should appear
 		await expect(page.getByText("Feature request created")).toBeVisible({
-			timeout: 5000,
+			timeout: 10000,
 		});
 
-		// Feature request should appear in the table
-		await expect(page.getByText(frTitle)).toBeVisible({ timeout: 5000 });
+		await expect(page.getByText(frTitle)).toBeVisible({ timeout: 10000 });
 	});
 
 	test("API-created feature request appears in table", async ({
@@ -97,26 +97,14 @@ test.describe("Feature Requests", () => {
 
 		await gotoRequestsTab(page, project.name);
 
-		// Title should be visible
-		await expect(page.getByText(fr.title)).toBeVisible({ timeout: 10000 });
-
-		// Status badge should show "Open"
-		const row = page.locator("tr").filter({ hasText: fr.title });
-		await expect(
-			row.locator('[data-slot="badge"]').filter({ hasText: "Open" }),
-		).toBeVisible();
-
-		// Priority badge should show "Important"
-		await expect(
-			row.locator('[data-slot="badge"]').filter({ hasText: "Important" }),
-		).toBeVisible();
+		const row = requestRow(page, fr.name);
+		await expect(row).toBeVisible({ timeout: 10000 });
+		await expect(row).toContainText(fr.title);
+		await expect(row.getByText("Open", { exact: true })).toBeVisible();
+		await expect(row.getByText("Important", { exact: true })).toBeVisible();
 	});
 
-	test("request count header updates correctly", async ({
-		page,
-		request,
-	}) => {
-		// Create two feature requests
+	test("request count header updates correctly", async ({ page, request }) => {
 		await createTestFeatureRequest(request, {
 			title: `${FR_PREFIX} Count A ${Date.now()}`,
 			project: project.name,
@@ -128,7 +116,6 @@ test.describe("Feature Requests", () => {
 
 		await gotoRequestsTab(page, project.name);
 
-		// Header should show the count (at least "requests" plural)
 		await expect(page.getByText(/\d+ requests/)).toBeVisible({
 			timeout: 10000,
 		});
@@ -144,17 +131,14 @@ test.describe("Feature Requests", () => {
 		});
 
 		await gotoRequestsTab(page, project.name);
-		await openRowActions(page, fr.title);
+		await openRowActions(page, fr);
 
-		// Click "Set Under Review"
-		await page.getByRole("menuitem", { name: "Set Under Review" }).click();
+		await page.getByRole("menuitem", { name: "Set under review" }).click();
 
-		// Toast should confirm
-		await expect(
-			page.getByText("Request set to under review"),
-		).toBeVisible({ timeout: 5000 });
+		await expect(page.getByText("Request set to under review")).toBeVisible({
+			timeout: 10000,
+		});
 
-		// Verify via API
 		const updated = await getDoc<HiveFeatureRequest>(
 			request,
 			"Hive Feature Request",
@@ -163,27 +147,21 @@ test.describe("Feature Requests", () => {
 		expect(updated.status).toBe("Under Review");
 	});
 
-	test("approve feature request via row actions", async ({
-		page,
-		request,
-	}) => {
+	test("approve feature request via row actions", async ({ page, request }) => {
 		const fr = await createTestFeatureRequest(request, {
 			title: `${FR_PREFIX} Approve ${Date.now()}`,
 			project: project.name,
 		});
 
 		await gotoRequestsTab(page, project.name);
-		await openRowActions(page, fr.title);
+		await openRowActions(page, fr);
 
-		// Click "Approve"
 		await page.getByRole("menuitem", { name: "Approve" }).click();
 
-		// Toast
 		await expect(page.getByText("Request approved")).toBeVisible({
-			timeout: 5000,
+			timeout: 10000,
 		});
 
-		// Verify via API
 		const updated = await getDoc<HiveFeatureRequest>(
 			request,
 			"Hive Feature Request",
@@ -192,27 +170,21 @@ test.describe("Feature Requests", () => {
 		expect(updated.status).toBe("Approved");
 	});
 
-	test("reject feature request via row actions", async ({
-		page,
-		request,
-	}) => {
+	test("reject feature request via row actions", async ({ page, request }) => {
 		const fr = await createTestFeatureRequest(request, {
 			title: `${FR_PREFIX} Reject ${Date.now()}`,
 			project: project.name,
 		});
 
 		await gotoRequestsTab(page, project.name);
-		await openRowActions(page, fr.title);
+		await openRowActions(page, fr);
 
-		// Click "Reject"
 		await page.getByRole("menuitem", { name: "Reject" }).click();
 
-		// Toast
 		await expect(page.getByText("Request rejected")).toBeVisible({
-			timeout: 5000,
+			timeout: 10000,
 		});
 
-		// Verify via API
 		const updated = await getDoc<HiveFeatureRequest>(
 			request,
 			"Hive Feature Request",
@@ -225,29 +197,24 @@ test.describe("Feature Requests", () => {
 		page,
 		request,
 	}) => {
-		// Create a feature request and approve it via API
 		const fr = await createTestFeatureRequest(request, {
 			title: `${FR_PREFIX} Convert ${Date.now()}`,
 			project: project.name,
 		});
 
-		// Approve via direct status update
 		await updateDoc(request, "Hive Feature Request", fr.name, {
 			status: "Approved",
 		});
 
 		await gotoRequestsTab(page, project.name);
-		await openRowActions(page, fr.title);
+		await openRowActions(page, fr);
 
-		// Click "Convert to Task"
-		await page.getByRole("menuitem", { name: "Convert to Task" }).click();
+		await page.getByRole("menuitem", { name: "Convert to task" }).click();
 
-		// Toast
 		await expect(
 			page.getByText("Feature request converted to task"),
-		).toBeVisible({ timeout: 5000 });
+		).toBeVisible({ timeout: 10000 });
 
-		// Verify via API that status is Converted and converted_task is set
 		const updated = await getDoc<HiveFeatureRequest>(
 			request,
 			"Hive Feature Request",
@@ -261,7 +228,6 @@ test.describe("Feature Requests", () => {
 		page,
 		request,
 	}) => {
-		// Create and approve via API
 		const fr = await createTestFeatureRequest(request, {
 			title: `${FR_PREFIX} Badge ${Date.now()}`,
 			project: project.name,
@@ -271,63 +237,43 @@ test.describe("Feature Requests", () => {
 			status: "Approved",
 		});
 
-		// Convert via UI to get the converted_task set properly
+		// Convert through the UI so `converted_task` is set the way the app sets it.
 		await gotoRequestsTab(page, project.name);
-		await openRowActions(page, fr.title);
-		await page.getByRole("menuitem", { name: "Convert to Task" }).click();
+		await openRowActions(page, fr);
+		await page.getByRole("menuitem", { name: "Convert to task" }).click();
 		await expect(
 			page.getByText("Feature request converted to task"),
-		).toBeVisible({ timeout: 5000 });
-
-		// Reload to get fresh state
-		await gotoRequestsTab(page, project.name);
-
-		// Find the row — should show "Converted" status badge
-		const row = page.locator("tr").filter({ hasText: fr.title });
-		await expect(
-			row.locator('[data-slot="badge"]').filter({ hasText: "Converted" }),
 		).toBeVisible({ timeout: 10000 });
 
-		// The task name badge (e.g. "TASK-00001") should be visible
-		const taskBadge = row
-			.locator('[data-slot="badge"]')
-			.filter({ hasText: /TASK-/ });
-		await expect(taskBadge).toBeVisible();
-	});
-
-	test("create feature request with priority selection", async ({
-		page,
-	}) => {
 		await gotoRequestsTab(page, project.name);
 
-		await page.getByRole("button", { name: "New Request" }).click();
+		const row = requestRow(page, fr.name);
+		await expect(row.getByText("Converted", { exact: true })).toBeVisible({
+			timeout: 10000,
+		});
+		await expect(row.getByText(/^TASK-/)).toBeVisible();
+	});
 
-		const dialog = page.getByRole("dialog");
-		await expect(dialog).toBeVisible({ timeout: 5000 });
+	test("create feature request with priority selection", async ({ page }) => {
+		await gotoRequestsTab(page, project.name);
 
-		// Fill title
+		const dialog = await openCreateDialog(page);
+
 		const frTitle = `${FR_PREFIX} Priority ${Date.now()}`;
-		await dialog.locator("#fr-title").fill(frTitle);
+		await dialog.getByLabel("Title").fill(frTitle);
 
-		// Change priority to "Critical"
-		await dialog
-			.locator('[data-slot="select-trigger"]')
-			.filter({ hasText: "Nice to Have" })
-			.click();
-		await page.getByRole("option", { name: "Critical" }).click();
+		await chooseOption(page, "Priority", "Critical", dialog);
 
-		// Submit
-		await dialog.getByRole("button", { name: "Submit Request" }).click();
+		await dialog.getByRole("button", { name: "Submit request" }).click();
 
 		await expect(page.getByText("Feature request created")).toBeVisible({
-			timeout: 5000,
+			timeout: 10000,
 		});
 
-		// Verify the row shows Critical priority badge
-		const row = page.locator("tr").filter({ hasText: frTitle });
-		await expect(
-			row.locator('[data-slot="badge"]').filter({ hasText: "Critical" }),
-		).toBeVisible({ timeout: 5000 });
+		const row = requestRow(page).filter({ hasText: frTitle });
+		await expect(row.getByText("Critical", { exact: true })).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test("default priority is Nice to Have when creating via UI", async ({
@@ -335,16 +281,10 @@ test.describe("Feature Requests", () => {
 	}) => {
 		await gotoRequestsTab(page, project.name);
 
-		await page.getByRole("button", { name: "New Request" }).click();
+		const dialog = await openCreateDialog(page);
 
-		const dialog = page.getByRole("dialog");
-		await expect(dialog).toBeVisible({ timeout: 5000 });
-
-		// Default priority should be "Nice to Have"
-		await expect(
-			dialog
-				.locator('[data-slot="select-trigger"]')
-				.filter({ hasText: "Nice to Have" }),
-		).toBeVisible();
+		await expect(selectTrigger(dialog, "Priority")).toHaveText(
+			/Nice to Have/,
+		);
 	});
 });

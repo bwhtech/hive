@@ -39,7 +39,6 @@ import { Select, TabList, TabPanel, Tabs, TabTrigger, usePageMeta } from 'frappe
 import AppHeader from '@/components/shell/AppHeader.vue'
 import MyWorkTab from '@/components/dashboard/MyWorkTab.vue'
 import ProjectsTab from '@/components/dashboard/ProjectsTab.vue'
-import TeamTab from '@/components/dashboard/TeamTab.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
 usePageMeta(() => ({ title: 'Dashboard · Hive' }))
@@ -49,20 +48,22 @@ const DEFAULT_TAB = 'my'
 const tabs = [
 	{ value: 'my', label: 'My work', icon: 'lucide-user' },
 	{ value: 'projects', label: 'Projects', icon: 'lucide-folder' },
-	{ value: 'team', label: 'Team', icon: 'lucide-users' },
 ]
 
 const panels: Record<string, Component> = {
 	my: MyWorkTab,
 	projects: ProjectsTab,
-	team: TeamTab,
 }
 
 const route = useRoute()
 const router = useRouter()
 const { isDesktop } = useBreakpoint()
 
-/** `?tab=` is the source of truth, so a shared link opens the same section. */
+/**
+ * `?tab=` is the source of truth, so a shared link opens the same section. A
+ * value no tab answers to — `?tab=team`, from before the Team section moved to
+ * its own page — falls back to the default rather than rendering nothing.
+ */
 const tab = computed(() => {
 	const value = route.query.tab
 	return typeof value === 'string' && tabs.some((item) => item.value === value)

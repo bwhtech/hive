@@ -6,7 +6,7 @@
 		class="flex flex-col gap-2 rounded-4 border border-outline-gray-1 bg-surface-base p-4 transition-colors hover:bg-surface-gray-1"
 	>
 		<div class="flex min-w-0 items-start gap-2">
-			<ProjectAvatar
+			<IdentityAvatar
 				:name="project.name"
 				:title="project.title"
 				:icon="project.icon"
@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Badge, Tooltip } from 'frappe-ui'
-import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
+import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
 import { projectStatusTheme } from '@/lib/status'
 import { stripHtml } from '@/lib/text'
 import type { Bool, ProjectStatus } from '@/types'
@@ -48,7 +48,7 @@ import type { Bool, ProjectStatus } from '@/types'
  * The fields a card needs. A `useList` row carries all of them; anything
  * optional simply does not render its line. `icon`, `color` and `avatar` are
  * optional twice over — a project may also have none of them, and
- * `ProjectAvatar` falls back.
+ * `IdentityAvatar` falls back.
  */
 export interface ProjectCardProject {
 	name: string

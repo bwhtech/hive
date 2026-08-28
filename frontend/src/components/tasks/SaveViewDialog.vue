@@ -8,19 +8,14 @@
 	>
 		<template #default>
 			<div class="space-y-4">
+				<!-- The view's mark first, the way a project's reads in its own
+				     create dialog — same picker, same storage. -->
 				<div class="flex items-end gap-3">
-					<div>
-						<FormLabel label="Emoji" />
-						<EmojiPicker v-model="emoji">
-							<button
-								type="button"
-								class="mt-1.5 grid h-8 w-14 place-items-center rounded-4 border border-outline-gray-2 bg-surface-base text-lg hover:bg-surface-gray-2"
-								aria-label="Pick an emoji for this view"
-							>
-								{{ emoji || '📋' }}
-							</button>
-						</EmojiPicker>
-					</div>
+					<IdentityPicker
+						v-model:icon="icon"
+						v-model:color="color"
+						v-model:avatar="avatar"
+					/>
 					<FormControl
 						v-model="label"
 						class="flex-1"
@@ -57,12 +52,13 @@ import {
 	Dialog,
 	ErrorMessage,
 	FormControl,
-	FormLabel,
 	toast,
 	useDoctype,
 	type DialogAction,
 } from 'frappe-ui'
-import EmojiPicker from '@/components/common/EmojiPicker.vue'
+import IdentityPicker from '@/components/common/IdentityPicker.vue'
+import type { ProjectAvatarValue } from '@/lib/dicebear'
+import { identityPatch, type ProjectColor } from '@/lib/project'
 import type { HiveView } from '@/types'
 
 /** `list` | `kanban` | `calendar`, as stored on the view. */
@@ -94,7 +90,9 @@ const FILTER_LABEL: Record<string, string> = {
 const views = useDoctype<HiveView>('Hive View')
 
 const label = ref('')
-const emoji = ref('')
+const icon = ref('')
+const color = ref<ProjectColor | ''>('')
+const avatar = ref<ProjectAvatarValue | null>(null)
 const isPublic = ref(false)
 
 // A dialog that keeps the last attempt's text would silently re-save it.
@@ -103,7 +101,9 @@ watch(
 	(open) => {
 		if (open) return
 		label.value = ''
-		emoji.value = ''
+		icon.value = ''
+		color.value = ''
+		avatar.value = null
 		isPublic.value = false
 	},
 )
@@ -128,7 +128,7 @@ async function save() {
 	try {
 		const view = await views.insert.submit({
 			label: trimmed,
-			emoji: emoji.value || '',
+			...identityPatch(icon.value, color.value, avatar.value),
 			view_type: props.viewType,
 			filters_json: JSON.stringify(props.filters),
 			is_public: isPublic.value ? 1 : 0,

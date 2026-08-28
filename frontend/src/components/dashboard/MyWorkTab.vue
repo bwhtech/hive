@@ -115,7 +115,7 @@
 						     "which project is this from", and the author's name is
 						     already the first thing in the text. -->
 						<ListCell class="self-start">
-							<ProjectAvatar
+							<IdentityAvatar
 								:name="update.project"
 								:title="update.project_title"
 								:icon="update.project_icon"
@@ -180,7 +180,7 @@ import { List, ListCell, ListGroup, ListRow } from 'frappe-ui/list'
 import { NumberCard } from 'frappe-ui/charts'
 import DashboardSection from '@/components/dashboard/DashboardSection.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
+import IdentityAvatar from '@/components/common/IdentityAvatar.vue'
 import { dueLabel, fromNow, isOverdue } from '@/lib/dates'
 import { statusDotClass } from '@/lib/status'
 import { stripHtml, truncate } from '@/lib/text'

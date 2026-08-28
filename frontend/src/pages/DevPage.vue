@@ -25,7 +25,7 @@
 			<div class="flex flex-wrap items-center gap-2">
 				<StatusBadge v-for="s in TASK_STATUSES" :key="s" :status="s" />
 				<PriorityBadge v-for="p in TASK_PRIORITIES" :key="p" :priority="p" />
-				<EmojiPicker v-model="emoji" />
+				<IdentityPicker v-model:icon="icon" v-model:color="color" v-model:avatar="avatar" />
 				<AvatarStack :members="stackMembers" />
 			</div>
 		</section>
@@ -37,11 +37,13 @@ import { ref } from 'vue'
 import { usePageMeta } from 'frappe-ui'
 import AppHeader from '@/components/shell/AppHeader.vue'
 import AvatarStack from '@/components/common/AvatarStack.vue'
-import EmojiPicker from '@/components/common/EmojiPicker.vue'
+import IdentityPicker from '@/components/common/IdentityPicker.vue'
 import LinkPicker from '@/components/common/LinkPicker.vue'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
 import RichEditor from '@/components/common/RichEditor.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import type { ProjectAvatarValue } from '@/lib/dicebear'
+import type { ProjectColor } from '@/lib/project'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@/types'
 
 usePageMeta(() => ({ title: 'Dev · Hive' }))
@@ -49,7 +51,9 @@ usePageMeta(() => ({ title: 'Dev · Hive' }))
 const project = ref<string | null>(null)
 const members = ref<string[]>([])
 const comment = ref('')
-const emoji = ref('🎉')
+const icon = ref('')
+const color = ref<ProjectColor | ''>('')
+const avatar = ref<ProjectAvatarValue | null>(null)
 const stackMembers = [
 	{ user: 'a@example.com', name: 'Ada Lovelace' },
 	{ user: 'b@example.com', name: 'Grace Hopper' },

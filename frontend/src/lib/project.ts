@@ -1,14 +1,17 @@
 import type { AvatarProps } from 'frappe-ui'
+import type { ProjectAvatarValue } from '@/lib/dicebear'
 
 /**
- * A project's visual identity: a lucide icon on a tinted square, the way Linear
- * and Notion do it, or a generated DiceBear avatar in its place. `Hive
- * Project.icon`, `.color` and `.avatar` are all optional, so every helper here
- * has to answer for a project that has never been given one.
+ * The visual identity a `Hive Project` and a `Hive View` share: a lucide icon
+ * on a tinted square, the way Linear and Notion do it, or a generated DiceBear
+ * avatar in its place. `icon`, `color` and `avatar` are all optional on both
+ * doctypes, so every helper here has to answer for a row that has never been
+ * given one.
  *
  * The DiceBear half — styles, generation, shuffle — lives in `lib/dicebear.ts`,
  * which loads a megabyte of style definitions and so must stay out of the path
- * that merely *draws* a project. Only the guard below belongs here.
+ * that merely *draws* a row; the import above is type-only for that reason.
+ * Only the guard below belongs here.
  */
 
 /**
@@ -124,4 +127,82 @@ function hash(seed: string): number {
 		value = (value * 31 + seed.charCodeAt(index)) | 0
 	}
 	return Math.abs(value)
+}
+
+/**
+ * The identity fields as a row stores them. `Hive Project` and `Hive View`
+ * name and type them identically on purpose — one picker writes both — so the
+ * two helpers below work on either without knowing which they were handed.
+ */
+export interface StoredIdentity {
+	icon?: string | null
+	color?: string | null
+	avatar?: string | null
+	avatar_style?: string | null
+	avatar_seed?: string | null
+	avatar_options?: string | null
+}
+
+/**
+ * Rebuild the picker's avatar model from a row, so an edit dialog opens on the
+ * avatar that is already stored and can shuffle on from it. `null` means the
+ * row uses its icon — which is also the answer for an `avatar` that fails the
+ * data-URI check, since such a value would never be drawn either.
+ */
+export function storedAvatarValue(doc: StoredIdentity): ProjectAvatarValue | null {
+	const svg = projectAvatarSrc(doc.avatar)
+	if (!svg) return null
+	return {
+		svg,
+		style: doc.avatar_style || '',
+		seed: doc.avatar_seed || '',
+		options: parseAvatarOptions(doc.avatar_options),
+	}
+}
+
+/**
+ * What `identityPatch` writes: the same six fields, none of them optional, and
+ * `color` still narrowed to the palette so a caller cannot widen a document's
+ * field to `string` by spreading this into it.
+ */
+export interface IdentityPatch {
+	icon: string
+	color: ProjectColor | ''
+	avatar: string
+	avatar_style: string
+	avatar_seed: string
+	avatar_options: string
+}
+
+/**
+ * The fields to write for a chosen identity. Every key is always present, and
+ * empty rather than absent, because an update has to be able to *clear* one:
+ * going back from an avatar to an icon means writing four empty strings, and
+ * an omitted key would leave the old avatar in the row.
+ */
+export function identityPatch(
+	icon: string,
+	color: ProjectColor | '',
+	avatar: ProjectAvatarValue | null,
+): IdentityPatch {
+	return {
+		icon,
+		color,
+		// The SVG is what gets drawn; the style, seed and options are what let
+		// the avatar be rolled again, or rebuilt, later.
+		avatar: avatar?.svg ?? '',
+		avatar_style: avatar?.style ?? '',
+		avatar_seed: avatar?.seed ?? '',
+		avatar_options: avatar ? JSON.stringify(avatar.options) : '',
+	}
+}
+
+/** A row written before the field existed, or by hand, must not break a dialog. */
+function parseAvatarOptions(json?: string | null): Record<string, string> {
+	try {
+		const parsed: unknown = JSON.parse(json || '{}')
+		return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {}
+	} catch {
+		return {}
+	}
 }

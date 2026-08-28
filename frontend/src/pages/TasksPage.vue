@@ -24,8 +24,8 @@
 		</template>
 	</AppHeader>
 
-	<div class="flex items-stretch">
-		<div class="min-w-0 flex-1 space-y-4 px-3 py-5 pb-10 sm:px-5">
+	<div class="flex min-h-0 flex-1 items-stretch">
+		<component :is="Scroller" v-bind="scrollerProps">
 			<TaskFilters
 				:q="q"
 				:status="statusFilter"
@@ -103,7 +103,7 @@
 				:readonly="isClient"
 				@select="openTask"
 			/>
-		</div>
+		</component>
 
 		<TaskPanel
 			v-if="activeTaskName"
@@ -128,6 +128,7 @@ import {
 	Breadcrumbs,
 	Button,
 	Dropdown,
+	ScrollArea,
 	TabButtons,
 	toast,
 	useCall,
@@ -467,4 +468,18 @@ function onViewCreated(view: HiveView) {
 usePageMeta(() => ({
 	title: activeView.value ? `${activeView.value.label} · Hive` : 'Tasks · Hive',
 }))
+
+// On desktop the page owns its scrolling (see `AppShell`), so the content
+// column is its own scroll region and the task panel is another. On mobile the
+// shell still page-scrolls and the panel is a bottom sheet, so a nested scroll
+// region here would collapse to nothing.
+const Scroller = computed(() => (isDesktop.value ? ScrollArea : 'div'))
+const scrollerProps = computed(() =>
+	isDesktop.value
+		? {
+				class: 'min-h-0 min-w-0 flex-1',
+				viewportClass: 'space-y-4 px-3 py-5 pb-10 sm:px-5',
+			}
+		: { class: 'min-w-0 flex-1 space-y-4 px-3 py-5 pb-10 sm:px-5' },
+)
 </script>

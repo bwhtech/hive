@@ -10,7 +10,10 @@
 		</template>
 	</MobileShell>
 
-	<DesktopShell v-else>
+	<!-- A route with a side panel owns its own scrolling: the shell's page
+	     scroll would leave the panel unbounded and scroll the whole page
+	     instead of the pane the pointer is over. -->
+	<DesktopShell v-else :scroll="!splitView">
 		<template #sidebar>
 			<AppSidebar />
 		</template>
@@ -33,8 +36,8 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
 	DesktopShell,
 	KeyboardShortcutsDialog,
@@ -64,7 +67,12 @@ import type { Bool, HiveProject } from '@/types'
 useColorScheme()
 usePageMeta(() => ({ title: 'Hive' }))
 
+const route = useRoute()
 const router = useRouter()
+
+/** The routes that render a task panel beside their content. */
+const SPLIT_VIEW_ROUTES = ['Tasks', 'ProjectDetail']
+const splitView = computed(() => SPLIT_VIEW_ROUTES.includes(String(route.name ?? '')))
 const { isDesktop } = useBreakpoint()
 const { ready, isClient } = useSession()
 const { celebrate } = useCelebrate()

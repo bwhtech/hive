@@ -99,65 +99,71 @@
 					description="Updates from your projects show up here."
 					icon="lucide-megaphone"
 				/>
-				<!-- Two-line rows, so the height comes from the content; the tracks
-				     still keep the unread dot and the timestamp off the text. -->
-				<List v-else :columns="UPDATE_COLUMNS">
+				<!-- No `columns`: the default feed template is leading media,
+				     content, trailing, and it is also what makes the divider inset to
+				     the text edge. Passing explicit tracks opts the whole list into a
+				     full-width divider that cuts straight through the avatar. -->
+				<List v-else>
 					<ListRow
 						v-for="update in updates"
 						:key="update.name"
 						:value="update.name"
+						class="h-auto py-2"
 						:to="{ path: `/projects/${update.project}`, query: { tab: 'updates' } }"
 					>
-						<ListCell>
-							<span
-								v-if="update.is_unread"
-								class="size-2 rounded-full bg-surface-blue-3"
-								:aria-label="`Unread update in ${update.project_title}`"
-							/>
-							<span v-else class="size-2" aria-hidden="true" />
-						</ListCell>
-						<!-- The project's avatar, not the author's: the row is read
-						     as "which project is this from", and the author's name
-						     is already the first thing in the text. -->
-						<ListCell>
+						<!-- The project's avatar, not the author's: the row is read as
+						     "which project is this from", and the author's name is
+						     already the first thing in the text. -->
+						<ListCell class="self-start">
 							<ProjectAvatar
 								:name="update.project"
 								:title="update.project_title"
 								:icon="update.project_icon"
 								:color="update.project_color"
-								size="lg"
+								size="xl"
 								hide-tooltip
 							/>
 						</ListCell>
+
 						<ListCell>
-							<div class="min-w-0 py-2">
-								<p
-									class="flex items-center gap-1.5 truncate text-sm text-ink-gray-5"
-								>
+							<div class="min-w-0 flex-1">
+								<!-- Each span truncates on its own; `truncate` on the flex
+								     parent alone lets a long author name push the project
+								     name out of the row entirely. -->
+								<div class="flex min-w-0 items-center gap-1.5 text-sm">
 									<span
-										:class="[
-											'truncate',
+										class="truncate"
+										:class="
 											update.is_unread
 												? 'font-semibold text-ink-gray-9'
-												: 'font-medium text-ink-gray-8',
-										]"
+												: 'font-medium text-ink-gray-8'
+										"
 									>
 										{{ update.posted_by_name }}
 									</span>
-									<span>in</span>
+									<span class="shrink-0 text-ink-gray-5">in</span>
 									<span class="truncate font-medium text-ink-gray-7">
 										{{ update.project_title }}
 									</span>
-								</p>
-								<p class="mt-1 line-clamp-2 text-p-sm text-ink-gray-6">
+								</div>
+								<p class="mt-0.5 line-clamp-2 text-p-sm text-ink-gray-6">
 									{{ preview(update.content) }}
 								</p>
 							</div>
 						</ListCell>
-						<ListCell class="justify-end">
-							<span class="shrink-0 text-sm text-ink-gray-5">
+
+						<!-- The unread dot rides with the timestamp. As a leading cell it
+						     cost an always-there empty track and pushed the avatar out of
+						     the media slot the divider insets past. -->
+						<ListCell class="items-start justify-end gap-1.5 self-start pt-0.5">
+							<span class="shrink-0 whitespace-nowrap text-sm text-ink-gray-5">
 								{{ fromNow(update.creation) }}
 							</span>
+							<span
+								v-if="update.is_unread"
+								class="mt-1.5 size-2 shrink-0 rounded-full bg-surface-blue-3"
+								:aria-label="`Unread update in ${update.project_title}`"
+							/>
 						</ListCell>
 					</ListRow>
 				</List>
@@ -221,7 +227,6 @@ interface MyDashboard {
 const TASK_COLUMNS = ['1rem', 'minmax(0, 1fr)', 'auto']
 
 /** Unread dot, project avatar, the update itself, then its age. */
-const UPDATE_COLUMNS = ['1rem', 'auto', 'minmax(0, 1fr)', 'auto']
 
 /** Characters of stripped update text shown in the feed. */
 const PREVIEW_LENGTH = 120

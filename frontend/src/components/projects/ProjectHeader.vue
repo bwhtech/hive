@@ -1,31 +1,199 @@
 <template>
-	<!-- The bar drops its own bottom border so it and the meta line below read as
-	     one header block instead of two stacked bars. -->
-	<AppHeader class="border-b-0">
+	<AppHeader>
 		<template #left>
-			<!-- `Breadcrumbs` renders every crumb as plain text, so the rename
-			     editor takes the last crumb's place rather than living inside it:
-			     the trail keeps the Projects crumb and the input follows it. -->
-			<div v-if="editingTitle" class="flex min-w-0 flex-1 items-center">
-				<Breadcrumbs :items="[PROJECTS_CRUMB]" />
-				<span class="mx-0.5 text-base text-ink-gray-4" aria-hidden="true">/</span>
-				<TextInput
-					v-model="titleDraft"
-					class="min-w-0 flex-1"
-					aria-label="Project title"
-					autofocus
-					@keydown.enter.prevent="commitTitle"
-					@keydown.esc.prevent="editingTitle = false"
-					@blur="commitTitle"
-				/>
-			</div>
-			<Breadcrumbs v-else :items="crumbs" />
+			<!-- The sidebar already says which project this is, so the header drops
+			     the breadcrumb trail and leads with the project's own mark. For the
+			     team the mark is the icon picker's trigger; a client just sees it. -->
+			<ProjectIconPicker
+				v-if="canEdit"
+				:icon="project.icon"
+				:color="project.color"
+				@update:icon="emit('save', { icon: $event })"
+				@update:color="emit('save', { color: $event })"
+			>
+				<button
+					type="button"
+					class="shrink-0 rounded-2 ring-outline-gray-3 hover:ring-2"
+					aria-label="Project icon and color"
+					data-testid="project-icon-trigger"
+				>
+					<ProjectAvatar
+						:name="project.name"
+						:icon="project.icon"
+						:color="project.color"
+						size="lg"
+						hide-tooltip
+					/>
+				</button>
+			</ProjectIconPicker>
+			<ProjectAvatar
+				v-else
+				class="shrink-0"
+				:name="project.name"
+				:icon="project.icon"
+				:color="project.color"
+				size="lg"
+				hide-tooltip
+			/>
+
+			<TextInput
+				v-if="editingTitle"
+				v-model="titleDraft"
+				class="min-w-0 flex-1"
+				aria-label="Project title"
+				autofocus
+				@keydown.enter.prevent="commitTitle"
+				@keydown.esc.prevent="editingTitle = false"
+				@blur="commitTitle"
+			/>
+			<button
+				v-else-if="canEdit"
+				type="button"
+				class="min-w-0 truncate rounded-2 px-1 text-lg font-semibold text-ink-gray-9 hover:bg-surface-gray-2"
+				title="Rename project"
+				@click="startTitleEdit"
+			>
+				{{ project.title }}
+			</button>
+			<h1 v-else class="min-w-0 truncate text-lg font-semibold text-ink-gray-9">
+				{{ project.title }}
+			</h1>
+
+			<!-- Status is the one attribute worth reading at a glance; type, client,
+			     repo and links all moved behind the actions menu. -->
+			<Dropdown v-if="canEdit" :options="statusOptions" align="start">
+				<button type="button" class="shrink-0 rounded-full">
+					<Badge
+						:label="project.status"
+						:theme="projectStatusTheme(project.status)"
+						variant="subtle"
+					/>
+				</button>
+			</Dropdown>
+			<Badge
+				v-else
+				class="shrink-0"
+				:label="project.status"
+				:theme="projectStatusTheme(project.status)"
+				variant="subtle"
+			/>
 		</template>
 
 		<template #actions>
-			<Dropdown v-if="canEdit" :options="menu" align="end">
-				<Button variant="ghost" icon="lucide-ellipsis" aria-label="Project actions" />
-			</Dropdown>
+			<!-- One overlay for everything secondary. A plain Dropdown could not
+			     hold the repo Combobox or the link list, so the actions menu is a
+			     Popover panel of label/control rows. -->
+			<Popover
+				v-if="canEdit || links.length"
+				v-model:open="detailsOpen"
+				align="end"
+				:offset="4"
+			>
+				<template #trigger>
+					<Button variant="ghost" icon="lucide-ellipsis" aria-label="Project actions" />
+				</template>
+				<template #default>
+					<div class="w-72 divide-y divide-outline-gray-1">
+						<div v-if="canEdit" class="space-y-2 p-3">
+							<div class="flex items-center justify-between gap-2">
+								<p class="text-xs font-medium text-ink-gray-5">Type</p>
+								<Dropdown :options="typeOptions" align="end">
+									<button type="button" class="rounded-full">
+										<Badge
+											:label="typeLabel || 'Set type'"
+											theme="gray"
+											:variant="typeLabel ? 'outline' : 'ghost'"
+										/>
+									</button>
+								</Dropdown>
+							</div>
+							<div class="flex items-center justify-between gap-2">
+								<p class="text-xs font-medium text-ink-gray-5">Client</p>
+								<Dropdown :options="clientOptions" align="end">
+									<button type="button" class="rounded-full">
+										<Badge
+											:label="clientLabel || 'Set client'"
+											theme="gray"
+											:variant="clientLabel ? 'outline' : 'ghost'"
+										/>
+									</button>
+								</Dropdown>
+							</div>
+						</div>
+
+						<!-- Clients never see the repo: it is internal, like the
+						     board's UAT column. -->
+						<div v-if="canEdit" class="space-y-1.5 p-3">
+							<p class="text-xs font-medium text-ink-gray-5">GitHub</p>
+							<Combobox
+								v-if="githubConnected"
+								class="w-full"
+								:model-value="project.github_repo"
+								:options="repoOptions"
+								:loading="repos.loading"
+								placeholder="Link repo"
+								empty-text="No repositories found"
+								trigger="button"
+								size="sm"
+								aria-label="GitHub repository"
+								@update:model-value="setRepo($event as string | null)"
+							/>
+							<a
+								v-else-if="project.github_repo"
+								class="inline-flex items-center gap-1 text-sm text-ink-gray-6 hover:text-ink-gray-8"
+								:href="`https://github.com/${project.github_repo}`"
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<span class="lucide-git-branch size-3.5" aria-hidden="true" />
+								{{ project.github_repo }}
+							</a>
+							<p v-else class="text-sm text-ink-gray-5">Not connected</p>
+						</div>
+
+						<div class="space-y-1.5 p-3">
+							<p class="text-xs font-medium text-ink-gray-5">Links</p>
+							<div v-if="links.length" class="space-y-1">
+								<a
+									v-for="link in links"
+									:key="link.name ?? link.url"
+									class="flex items-center gap-1.5 text-sm text-ink-gray-6 hover:text-ink-gray-8"
+									:href="link.url"
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									<span
+										class="lucide-arrow-up-right size-3 shrink-0"
+										aria-hidden="true"
+									/>
+									<span class="min-w-0 truncate">{{ link.title }}</span>
+								</a>
+							</div>
+							<p v-else class="text-sm text-ink-gray-5">No links yet</p>
+							<Button
+								v-if="canEdit"
+								variant="ghost"
+								size="sm"
+								:icon-left="links.length ? 'lucide-pencil' : 'lucide-link'"
+								:label="links.length ? 'Manage links' : 'Add link'"
+								@click="openLinks"
+							/>
+						</div>
+
+						<div v-if="canEdit" class="p-1">
+							<Button
+								class="w-full justify-start"
+								variant="ghost"
+								theme="red"
+								icon-left="lucide-archive"
+								label="Archive project"
+								@click="openArchive"
+							/>
+						</div>
+					</div>
+				</template>
+			</Popover>
+
 			<Button
 				v-if="canEdit"
 				variant="solid"
@@ -40,156 +208,6 @@
 			</Button>
 		</template>
 	</AppHeader>
-
-	<!-- Meta line: the three attributes that describe the project, each editable
-	     in place. Everything else lives behind Details. -->
-	<div class="flex flex-wrap items-center gap-2 border-b border-outline-gray-1 px-3 py-2 sm:px-5">
-		<!-- The project's own identity leads the line. For a client it is just
-		     the mark; for the team the same mark is the picker's trigger. -->
-		<ProjectIconPicker
-			v-if="canEdit"
-			:icon="project.icon"
-			:color="project.color"
-			@update:icon="emit('save', { icon: $event })"
-			@update:color="emit('save', { color: $event })"
-		>
-			<button
-				type="button"
-				class="rounded-2 ring-outline-gray-3 hover:ring-2"
-				aria-label="Project icon and color"
-				data-testid="project-icon-trigger"
-			>
-				<ProjectAvatar
-					:name="project.name"
-					:icon="project.icon"
-					:color="project.color"
-					size="lg"
-					hide-tooltip
-				/>
-			</button>
-		</ProjectIconPicker>
-		<ProjectAvatar
-			v-else
-			:name="project.name"
-			:icon="project.icon"
-			:color="project.color"
-			size="lg"
-			hide-tooltip
-		/>
-
-		<Dropdown v-if="canEdit" :options="statusOptions" align="start">
-			<button type="button" class="rounded-full">
-				<Badge
-					:label="project.status"
-					:theme="projectStatusTheme(project.status)"
-					variant="subtle"
-				/>
-			</button>
-		</Dropdown>
-		<Badge
-			v-else
-			:label="project.status"
-			:theme="projectStatusTheme(project.status)"
-			variant="subtle"
-		/>
-
-		<Dropdown v-if="canEdit" :options="typeOptions" align="start">
-			<button type="button" class="rounded-full">
-				<Badge
-					:label="typeLabel || 'Set type'"
-					theme="gray"
-					:variant="typeLabel ? 'outline' : 'ghost'"
-				/>
-			</button>
-		</Dropdown>
-		<Badge v-else-if="typeLabel" :label="typeLabel" theme="gray" variant="outline" />
-
-		<Dropdown v-if="canEdit" :options="clientOptions" align="start">
-			<button type="button" class="rounded-full">
-				<Badge
-					:label="clientLabel || 'Set client'"
-					theme="gray"
-					:variant="clientLabel ? 'outline' : 'ghost'"
-				/>
-			</button>
-		</Dropdown>
-		<Badge v-else-if="clientLabel" :label="clientLabel" theme="gray" variant="outline" />
-
-		<!-- The repo and the related links are reference material, not chrome:
-		     they sit one click away so the line stays down to three pills. -->
-		<Popover
-			v-if="canEdit || links.length"
-			v-model:open="detailsOpen"
-			align="start"
-			:offset="4"
-		>
-			<template #trigger>
-				<Button variant="ghost" size="sm" icon-left="lucide-info" label="Details" />
-			</template>
-			<template #default>
-				<div class="w-72 space-y-4 p-3">
-					<!-- Clients never see the repo: it is internal, like the
-					     board's UAT column. -->
-					<div v-if="canEdit" class="space-y-1.5">
-						<p class="text-xs font-medium text-ink-gray-5">GitHub</p>
-						<Combobox
-							v-if="githubConnected"
-							class="w-full"
-							:model-value="project.github_repo"
-							:options="repoOptions"
-							:loading="repos.loading"
-							placeholder="Link repo"
-							empty-text="No repositories found"
-							trigger="button"
-							size="sm"
-							aria-label="GitHub repository"
-							@update:model-value="setRepo($event as string | null)"
-						/>
-						<a
-							v-else-if="project.github_repo"
-							class="inline-flex items-center gap-1 text-sm text-ink-gray-6 hover:text-ink-gray-8"
-							:href="`https://github.com/${project.github_repo}`"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							<span class="lucide-git-branch size-3.5" aria-hidden="true" />
-							{{ project.github_repo }}
-						</a>
-						<p v-else class="text-sm text-ink-gray-5">Not connected</p>
-					</div>
-
-					<div class="space-y-1.5">
-						<p class="text-xs font-medium text-ink-gray-5">Links</p>
-						<div v-if="links.length" class="space-y-1">
-							<a
-								v-for="link in links"
-								:key="link.name ?? link.url"
-								class="flex items-center gap-1.5 text-sm text-ink-gray-6 hover:text-ink-gray-8"
-								:href="link.url"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<span
-									class="lucide-arrow-up-right size-3 shrink-0"
-									aria-hidden="true"
-								/>
-								<span class="min-w-0 truncate">{{ link.title }}</span>
-							</a>
-						</div>
-						<p v-else class="text-sm text-ink-gray-5">No links yet</p>
-						<Button
-							v-if="canEdit"
-							variant="ghost"
-							size="sm"
-							:icon-left="links.length ? 'lucide-pencil' : 'lucide-link'"
-							:label="links.length ? 'Manage links' : 'Add link'"
-							@click="openLinks"
-						/>
-					</div>
-				</div>
-			</template>
-		</Popover>
-	</div>
 
 	<NewClientDialog v-model:open="newClientOpen" @created="selectNewClient" />
 
@@ -229,7 +247,6 @@
 import { computed, ref, watch } from 'vue'
 import {
 	Badge,
-	Breadcrumbs,
 	Button,
 	Combobox,
 	Dialog,
@@ -240,7 +257,6 @@ import {
 	toast,
 	useCall,
 	useList,
-	type BreadcrumbsProps,
 	type DropdownOptions,
 } from 'frappe-ui'
 import ProjectAvatar from '@/components/common/ProjectAvatar.vue'
@@ -278,20 +294,8 @@ const links = computed<HiveProjectLink[]>(() => props.project.links ?? [])
 // -- breadcrumbs and inline title ----------------------------------------
 
 /** The crumb that replaces the old back button. */
-const PROJECTS_CRUMB = { label: 'Projects', route: '/projects' }
-
 const editingTitle = ref(false)
 const titleDraft = ref('')
-
-// A crumb with `onClick` and no route renders as a button, so the title keeps
-// its click-to-rename affordance without any markup of our own.
-const crumbs = computed<BreadcrumbsProps['items']>(() => [
-	PROJECTS_CRUMB,
-	{
-		label: props.project.title,
-		onClick: canEdit.value ? startTitleEdit : undefined,
-	},
-])
 
 function startTitleEdit() {
 	titleDraft.value = props.project.title
@@ -445,6 +449,11 @@ function saveLinks(next: HiveProjectLink[]) {
 
 // -- archive -------------------------------------------------------------
 
+function openArchive() {
+	detailsOpen.value = false
+	archiveOpen.value = true
+}
+
 const archiveOpen = ref(false)
 const archiveConfirm = ref('')
 
@@ -456,13 +465,4 @@ function confirmArchive() {
 	archiveOpen.value = false
 	emit('archive')
 }
-
-const menu = computed<DropdownOptions>(() => [
-	{
-		label: 'Archive project',
-		icon: 'lucide-archive',
-		theme: 'red',
-		onClick: () => (archiveOpen.value = true),
-	},
-])
 </script>

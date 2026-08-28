@@ -7,8 +7,8 @@
 			@add-task="addTask"
 		/>
 
-		<div class="flex items-stretch">
-			<div class="min-w-0 flex-1 px-3 py-5 pb-10 sm:px-5">
+		<div class="flex min-h-0 flex-1 items-stretch">
+			<component :is="Scroller" v-bind="scrollerProps">
 				<Tabs v-if="isDesktop" :model-value="tab" @update:model-value="setTab">
 					<TabList variant="underline">
 						<TabTrigger
@@ -49,7 +49,7 @@
 						<component :is="panel" v-bind="panelProps" v-on="panelHandlers" />
 					</div>
 				</template>
-			</div>
+			</component>
 
 			<TaskPanel
 				v-if="activeTaskName"
@@ -82,6 +82,7 @@ import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import {
 	Badge,
 	Button,
+	ScrollArea,
 	Select,
 	TabList,
 	TabPanel,
@@ -452,4 +453,14 @@ useKeyboardShortcut([
 ])
 
 usePageMeta(() => ({ title: `${project.doc?.title ?? 'Project'} · Hive` }))
+
+// The panel beside this content scrolls on its own, so this column does too —
+// see the `scroll` prop on `DesktopShell` in `AppShell`. Mobile still page
+// scrolls, where a nested region would have no height to work with.
+const Scroller = computed(() => (isDesktop.value ? ScrollArea : 'div'))
+const scrollerProps = computed(() =>
+	isDesktop.value
+		? { class: 'min-h-0 min-w-0 flex-1', viewportClass: 'px-3 py-5 pb-10 sm:px-5' }
+		: { class: 'min-w-0 flex-1 px-3 py-5 pb-10 sm:px-5' },
+)
 </script>

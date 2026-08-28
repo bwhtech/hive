@@ -536,7 +536,7 @@ def get_team_stats(period: str = "week"):
 		period: "week" (last 7 days) or "month" (last 30 days)
 	"""
 	if _is_hive_client():
-		frappe.throw("Not permitted", frappe.PermissionError)
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 	days = 7 if period == "week" else 30
 	cutoff = getdate(nowdate()) - timedelta(days=days)

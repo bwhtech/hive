@@ -3,6 +3,7 @@ import time
 import frappe
 import jwt
 import requests
+from frappe import _
 
 
 def _get_app_jwt(settings) -> str:
@@ -39,7 +40,7 @@ def _get_installation_token(settings) -> str:
 	installations = resp.json()
 	if not installations:
 		frappe.throw(
-			"GitHub App is not installed on any account. Install it from the GitHub App settings page."
+			_("GitHub App is not installed on any account. Install it from the GitHub App settings page.")
 		)
 
 	installation_id = installations[0]["id"]

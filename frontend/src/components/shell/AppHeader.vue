@@ -35,8 +35,8 @@
 
 <script setup lang="ts">
 import { Button, PageHeader, PageHeaderTitle } from 'frappe-ui'
-import { useUnreadCount } from '@/components/shell/useUnreadCount'
 import { useOverlays } from '@/composables/useOverlays'
+import { useUnreadCount } from '@/composables/useUnreadCount'
 
 defineProps<{
 	/** Plain-text title. Ignored when the `left` slot is used. */

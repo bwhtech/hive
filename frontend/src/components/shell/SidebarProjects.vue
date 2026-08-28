@@ -1,6 +1,18 @@
 <template>
 	<div class="mt-4 flex h-7 items-center justify-between">
-		<SidebarLabel>Projects</SidebarLabel>
+		<SidebarLabel>
+			<!-- The label doubles as the link to the full grid: with Projects out
+			     of the nav block, this is the sidebar's only route to /projects. -->
+			<RouterLink
+				to="/projects"
+				accesskey="p"
+				class="rounded-3 focus-visible:focus-ring"
+				:class="isProjectsRoute ? 'text-ink-gray-7' : 'hover:text-ink-gray-7'"
+				:aria-current="isProjectsRoute ? 'page' : undefined"
+			>
+				Projects
+			</RouterLink>
+		</SidebarLabel>
 		<Button
 			v-if="!isClient"
 			variant="ghost"
@@ -35,7 +47,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { Badge, Button, SidebarItem, SidebarLabel, useCall, useList } from 'frappe-ui'
 import { useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
@@ -88,6 +100,8 @@ const countByProject = computed(() => {
 function openCount(project: string): number {
 	return countByProject.value.get(project) ?? 0
 }
+
+const isProjectsRoute = computed(() => route.path === '/projects')
 
 /** `/projects/:id` takes a slug or a name, so the active row matches either. */
 const activeProjectId = computed(() =>

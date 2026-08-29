@@ -17,20 +17,54 @@ export function useTaskMutations(list?: TaskListHandle) {
 	const tasks = useDoctype<HiveTask>('Hive Task')
 	const { celebrate } = useCelebrate()
 
-	async function setStatus(task: HiveTask, status: TaskStatus) {
-		if (task.status === status) return
+	/** Writes one row optimistically. Reports success rather than toasting, so
+	 *  a batch can speak once for the whole batch. */
+	async function writeStatus(task: HiveTask, status: TaskStatus): Promise<boolean> {
 		const previous = { status: task.status, completed_on: task.completed_on }
 		const completed_on = status === 'Done' ? (task.completed_on ?? today()) : null
 
 		list?.updateRow({ name: task.name, status, completed_on })
 		try {
 			await tasks.setValue.submit({ name: task.name, status, completed_on })
-			if (status === 'Done' && previous.status !== 'Done') celebrate()
+			return true
 		} catch {
 			list?.updateRow({ name: task.name, ...previous })
+			return false
+		}
+	}
+
+	async function setStatus(task: HiveTask, status: TaskStatus) {
+		if (task.status === status) return
+		const completing = status === 'Done' && task.status !== 'Done'
+		if (!(await writeStatus(task, status))) {
 			toast.error('Could not update status')
 			throw new Error('setStatus failed')
 		}
+		if (completing) celebrate()
+	}
+
+	/**
+	 * Move a multi-card board selection into one column. The writes run in
+	 * sequence — they share a single `setValue` resource — and a row that fails
+	 * rolls back on its own, so a partial move still shows what landed.
+	 */
+	async function setStatusMany(items: HiveTask[], status: TaskStatus) {
+		const moving = items.filter((task) => task.status !== status)
+		if (!moving.length) return
+		if (moving.length === 1) return setStatus(moving[0], status)
+
+		const completing = status === 'Done' && moving.some((task) => task.status !== 'Done')
+		let failed = 0
+		for (const task of moving) {
+			if (!(await writeStatus(task, status))) failed += 1
+		}
+
+		if (failed === moving.length) {
+			toast.error('Could not move these tasks')
+			throw new Error('setStatusMany failed')
+		}
+		if (failed) toast.error(`Could not move ${failed} of ${moving.length} tasks`)
+		if (completing) celebrate()
 	}
 
 	/**
@@ -75,5 +109,5 @@ export function useTaskMutations(list?: TaskListHandle) {
 		})
 	}
 
-	return { setStatus, createTask, assign, unassign, tasks }
+	return { setStatus, setStatusMany, createTask, assign, unassign, tasks }
 }

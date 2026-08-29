@@ -2,14 +2,24 @@
 	<div
 		class="group/card rounded-4 border bg-surface-elevation-1 p-3 transition-colors"
 		:class="[
-			pinned ? 'border-outline-gray-3' : 'border-outline-gray-1',
-			draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+			selected
+				? 'border-outline-gray-4 ring-2 ring-outline-gray-3'
+				: pinned
+					? 'border-outline-gray-3'
+					: 'border-outline-gray-1',
+			dragging ? 'opacity-40' : '',
+			preview
+				? 'shadow-2xl'
+				: draggable
+					? 'cursor-grab active:cursor-grabbing'
+					: 'cursor-pointer',
 		]"
-		role="button"
-		tabindex="0"
+		:role="preview ? undefined : 'button'"
+		:tabindex="preview ? undefined : 0"
+		draggable="false"
 		data-testid="task-card"
 		:data-task="task.name"
-		@click="emit('select', task)"
+		:data-selected="selected ? 'true' : undefined"
 		@keydown.enter.prevent="emit('select', task)"
 		@keydown.space.prevent="emit('select', task)"
 	>
@@ -100,10 +110,23 @@ const props = withDefaults(
 		assignees?: HiveTaskAssignee[]
 		/** The task this one waits on, when it is on the board too. */
 		dependsOn?: HiveTask | null
-		/** Cursor affordance only — the column owns the drag handle. */
+		/** Cursor affordance only — the board owns the drag handle. */
 		draggable?: boolean
+		/** Part of a Cmd/Ctrl-click multi-selection. */
+		selected?: boolean
+		/** Being dragged right now, so the card left behind is dimmed. */
+		dragging?: boolean
+		/** Rendered inside the drag preview: no cursor, no focus, no hit area. */
+		preview?: boolean
 	}>(),
-	{ assignees: () => [], dependsOn: null, draggable: true },
+	{
+		assignees: () => [],
+		dependsOn: null,
+		draggable: true,
+		selected: false,
+		dragging: false,
+		preview: false,
+	},
 )
 
 const emit = defineEmits<{ select: [task: HiveTask] }>()

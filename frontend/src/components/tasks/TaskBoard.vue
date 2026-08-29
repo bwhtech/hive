@@ -1,57 +1,90 @@
 <template>
-	<ScrollArea
-		ref="scroller"
-		orientation="horizontal"
-		viewport-class="pb-3"
-		:style="{ maskImage: mask, WebkitMaskImage: mask }"
-	>
-		<div class="flex items-start gap-3">
-			<section
-				v-for="status in TASK_STATUSES"
-				:key="status"
-				class="flex min-w-56 flex-1 basis-72 flex-col rounded-4 bg-surface-gray-1 p-2"
-				data-testid="board-column"
-				:data-status="status"
-			>
-				<header class="flex items-center justify-between px-1 pb-2">
-					<span class="text-sm font-medium text-ink-gray-7">{{ status }}</span>
-					<Badge variant="subtle" theme="gray" :label="String(columns[status].length)" />
-				</header>
-
-				<draggable
-					v-model="columns[status]"
-					v-bind="dragOptions"
-					item-key="name"
-					class="flex min-h-16 flex-col gap-2"
-					@change="onChange($event, status)"
+	<div ref="root" class="relative flex min-h-0 flex-col" :style="{ height }">
+		<ScrollArea
+			ref="scroller"
+			orientation="horizontal"
+			class="min-h-0 flex-1"
+			viewport-class="h-full pb-3 [&>div]:!block [&>div]:h-full"
+			:style="{ maskImage: mask, WebkitMaskImage: mask }"
+		>
+			<div class="flex h-full items-stretch gap-3">
+				<section
+					v-for="status in TASK_STATUSES"
+					:key="status"
+					:ref="(el) => setColumn(status, el)"
+					class="flex h-full min-h-0 min-w-56 flex-1 basis-72 flex-col rounded-4 border p-2 transition-colors"
+					:class="
+						over === status
+							? 'border-outline-gray-3 bg-surface-gray-2'
+							: 'border-transparent bg-surface-gray-1'
+					"
+					data-testid="board-column"
+					:data-status="status"
 				>
-					<template #item="{ element }: { element: HiveTask }">
-						<TaskBoardCard
-							:task="element"
-							:assignees="assigneesByTask[element.name]"
-							:depends-on="dependency(element)"
-							:draggable="!readonly"
-							@select="emit('select', element)"
+					<header class="flex shrink-0 items-center justify-between px-1 pb-2">
+						<span class="text-sm font-medium text-ink-gray-7">{{ status }}</span>
+						<Badge
+							variant="subtle"
+							theme="gray"
+							:label="String(columns[status].length)"
 						/>
-					</template>
-				</draggable>
+					</header>
 
-				<p
-					v-if="!columns[status].length"
-					class="px-1 py-6 text-center text-xs text-ink-gray-5"
-				>
-					{{ status === 'Done' ? 'Nothing done in the last 7 days' : 'No tasks' }}
-				</p>
-			</section>
-		</div>
-	</ScrollArea>
+					<!-- Each column scrolls on its own, so the board never grows
+					     taller than the screen and the five headers stay in line. -->
+					<div class="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+						<div class="flex flex-col gap-2 pb-1">
+							<TaskBoardCard
+								v-for="task in columns[status]"
+								:key="task.name"
+								:task="task"
+								:assignees="assigneesByTask[task.name]"
+								:depends-on="dependency(task)"
+								:draggable="!readonly"
+								:selected="isSelected(task.name)"
+								:dragging="isDragging(task.name)"
+								@pointerdown="press($event, task)"
+								@click="open($event, task)"
+								@select="emit('select', task)"
+							/>
+						</div>
+
+						<p
+							v-if="!columns[status].length"
+							class="px-1 py-6 text-center text-xs text-ink-gray-5"
+						>
+							{{ status === 'Done' ? 'Nothing done in the last 7 days' : 'No tasks' }}
+						</p>
+					</div>
+				</section>
+			</div>
+		</ScrollArea>
+
+		<p
+			v-if="selection.size > 1 && !dragging"
+			class="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-surface-gray-7 px-3 py-1 text-xs text-white shadow-lg"
+		>
+			{{ selection.size }} selected — drag them together, or press Esc
+		</p>
+
+		<TaskBoardDragPreview
+			v-if="dragging"
+			:tasks="dragging"
+			:assignees="assigneesByTask[dragging[0].name] ?? []"
+			:point="point"
+			:offset="offset"
+			:width="cardWidth"
+		/>
+	</div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import draggable from 'vuedraggable'
+import { computed, onMounted, ref, watch, type ComponentPublicInstance } from 'vue'
 import { Badge, ScrollArea } from 'frappe-ui'
 import TaskBoardCard from '@/components/tasks/TaskBoardCard.vue'
+import TaskBoardDragPreview from '@/components/tasks/TaskBoardDragPreview.vue'
+import { useBoardDrag } from '@/composables/useBoardDrag'
+import { useFillViewport } from '@/composables/useFillViewport'
 import { usePinnedTasks } from '@/composables/usePinnedTasks'
 import { useScrollFade } from '@/composables/useScrollFade'
 import { useTaskMutations, type TaskListHandle } from '@/composables/useTaskMutations'
@@ -83,8 +116,11 @@ const DONE_WINDOW_DAYS = 7
 /** Sorts undated cards after dated ones without a branch per comparison. */
 const NO_DATE = '9999-12-31'
 
-const { setStatus } = useTaskMutations(props.list)
+const { setStatusMany } = useTaskMutations(props.list)
 const { pinned } = usePinnedTasks()
+
+const root = ref<HTMLElement | null>(null)
+const { height } = useFillViewport(root)
 
 /** `ScrollArea` hands out its viewport through a plain getter, so read it once
  *  the component is mounted rather than expecting a reactive value. */
@@ -95,18 +131,17 @@ onMounted(() => {
 	viewport.value = scroller.value?.viewportElement ?? null
 })
 
-const dragOptions = computed(() => ({
-	group: 'tasks',
-	animation: 150,
-	disabled: props.readonly,
-	ghostClass: 'opacity-40',
-}))
-
 function emptyColumns(): Record<BoardStatus, HiveTask[]> {
 	return { Someday: [], Backlog: [], 'To Do': [], 'In Progress': [], Done: [] }
 }
 
 const columns = ref<Record<BoardStatus, HiveTask[]>>(emptyColumns())
+
+const columnEls = ref<Record<string, HTMLElement | null>>({})
+
+function setColumn(status: BoardStatus, el: Element | ComponentPublicInstance | null) {
+	columnEls.value[status] = (el as HTMLElement | null) ?? null
+}
 
 const taskMap = computed(() => {
 	const map: Record<string, HiveTask> = {}
@@ -141,19 +176,42 @@ function rebuild() {
 
 watch([() => props.tasks, pinned], rebuild, { immediate: true })
 
-interface DragChange {
-	added?: { element: HiveTask; newIndex: number }
+/** Board order, so a multi-card drag stacks in the order the columns read. */
+const ordered = computed(() => TASK_STATUSES.flatMap((status) => columns.value[status]))
+
+const {
+	selection,
+	dragging,
+	over,
+	point,
+	offset,
+	width: cardWidth,
+	isSelected,
+	isDragging,
+	press,
+	click,
+} = useBoardDrag({
+	columns: () => columnEls.value,
+	scroller: () => viewport.value,
+	tasks: () => ordered.value,
+	disabled: () => props.readonly,
+	onDrop: (picked, status) => move(picked, status as BoardStatus),
+})
+
+/** A plain click opens the card; a modifier-click only changes the selection. */
+function open(event: MouseEvent, task: HiveTask) {
+	if (click(event, task)) emit('select', task)
 }
 
-async function onChange(event: DragChange, status: BoardStatus) {
-	const task = event?.added?.element
-	if (!task || task.status === status) return
+async function move(picked: HiveTask[], status: BoardStatus) {
 	try {
-		await setStatus(task, status)
+		await setStatusMany(picked, status)
 		emit('changed')
 	} catch {
-		// `setStatus` already rolled the row back and toasted; re-derive the
-		// columns so the card returns to where it came from.
+		// `setStatusMany` already rolled the failed rows back and toasted.
+	} finally {
+		// Nothing moved in the DOM, so the columns have to be re-derived either
+		// way: from the new statuses on success, from the old ones on failure.
 		rebuild()
 	}
 }

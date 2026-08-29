@@ -14,6 +14,8 @@ ACCEPT_HEADER = "application/vnd.github.v3+json"
 # Installation tokens live for an hour; expire ours a little early so a cached
 # token is never handed out moments before GitHub rejects it.
 TOKEN_CACHE_TTL = 50 * 60
+# GitHub's per-page ceiling for the issues endpoint.
+ISSUE_PAGE_SIZE = 100
 # Stamped into the body of every issue Hive opens, so the webhook that comes
 # straight back can tell "we made this" from "someone made this on GitHub".
 HIVE_ISSUE_MARKER = "Created from Hive task"
@@ -389,40 +391,127 @@ def webhook() -> dict:
 	return {"queued": True}
 
 
-def create_tasks_for_issue(repo: str, issue: dict) -> None:
-	"""Open a Hive task in every project that syncs issues from `repo`."""
-	# An issue Hive itself just created would otherwise bounce back as a
-	# duplicate task moments after the conversion.
-	if HIVE_ISSUE_MARKER in (issue.get("body") or ""):
-		return
-
-	projects = frappe.get_all(
+def _projects_syncing(repo: str) -> list[str]:
+	return frappe.get_all(
 		"Hive Project",
 		filters={"github_repo": repo, "sync_github_issues": 1, "is_archived": 0},
 		pluck="name",
 	)
-	if not projects:
+
+
+def _open_task_for_issue(project: str, issue: dict) -> bool:
+	"""Open one Backlog task for `issue`. False if the project already has it."""
+	issue_url = issue["html_url"]
+	if frappe.db.exists("Hive Task", {"project": project, "github_issue_url": issue_url}):
+		return False
+
+	task = frappe.new_doc("Hive Task")
+	task.update(
+		{
+			"title": issue.get("title") or f"Issue #{issue.get('number')}",
+			"project": project,
+			"status": "Backlog",
+			"description": frappe.utils.md_to_html(issue["body"]) if issue.get("body") else "",
+			"github_issue_url": issue_url,
+		}
+	)
+	task.insert(ignore_permissions=True)
+	return True
+
+
+def _is_hive_issue(issue: dict) -> bool:
+	"""An issue Hive itself opened, which must not bounce back as a task."""
+	return HIVE_ISSUE_MARKER in (issue.get("body") or "")
+
+
+def create_tasks_for_issue(repo: str, issue: dict) -> None:
+	"""Open a Hive task in every project that syncs issues from `repo`."""
+	if _is_hive_issue(issue):
 		return
 
-	issue_url = issue["html_url"]
-	description = ""
-	if issue.get("body"):
-		description = frappe.utils.md_to_html(issue["body"])
-
-	for project in projects:
-		if frappe.db.exists("Hive Task", {"project": project, "github_issue_url": issue_url}):
-			continue
-
-		task = frappe.new_doc("Hive Task")
-		task.update(
-			{
-				"title": issue.get("title") or f"Issue #{issue.get('number')}",
-				"project": project,
-				"status": "Backlog",
-				"description": description,
-				"github_issue_url": issue_url,
-			}
-		)
-		task.insert(ignore_permissions=True)
+	for project in _projects_syncing(repo):
+		_open_task_for_issue(project, issue)
 
 	frappe.db.commit()
+
+
+def _list_open_issues(settings, repo: str) -> list[dict]:
+	"""Every open issue on `repo`, pull requests left out.
+
+	GitHub serves pull requests from the issues endpoint too, and tells them
+	apart only by the presence of a `pull_request` key.
+	"""
+	installation = _installation_for_repo(settings, repo)
+	token = _get_installation_token(settings, installation["id"])
+
+	issues: list[dict] = []
+	page = 1
+	while True:
+		batch = _request(
+			"GET",
+			f"/repos/{repo}/issues?state=open&per_page={ISSUE_PAGE_SIZE}&page={page}",
+			token,
+		).json()
+		if not batch:
+			break
+		issues.extend(issue for issue in batch if "pull_request" not in issue)
+		if len(batch) < ISSUE_PAGE_SIZE:
+			break
+		page += 1
+
+	return issues
+
+
+def pull_issues(repo: str) -> int:
+	"""Open tasks for `repo`'s open issues that no synced project holds yet.
+
+	The webhook only fires on `issues.opened`, so anything raised while the
+	site was unreachable — or before the sync was switched on — is invisible to
+	it. Pulling is what makes the two sides agree in the end, and it is the
+	only path that works at all on a site GitHub cannot reach.
+	"""
+	projects = _projects_syncing(repo)
+	if not projects:
+		return 0
+
+	settings = _get_settings()
+	opened = 0
+	for issue in _list_open_issues(settings, repo):
+		if _is_hive_issue(issue):
+			continue
+		for project in projects:
+			if _open_task_for_issue(project, issue):
+				opened += 1
+
+	frappe.db.commit()
+	return opened
+
+
+@frappe.whitelist()
+def sync_issues_now() -> dict:
+	"""Pull every synced repository at once, from the settings panel."""
+	frappe.has_permission("Hive Settings", "write", throw=True)
+	return {"opened": _pull_every_repo()}
+
+
+def pull_all_issues() -> None:
+	"""Scheduled catch-up for repositories the webhook did not reach."""
+	_pull_every_repo()
+
+
+def _pull_every_repo() -> int:
+	repos = frappe.get_all(
+		"Hive Project",
+		filters={"sync_github_issues": 1, "is_archived": 0, "github_repo": ["is", "set"]},
+		pluck="github_repo",
+		distinct=True,
+	)
+
+	opened = 0
+	for repo in repos:
+		try:
+			opened += pull_issues(repo)
+		except Exception:
+			frappe.log_error(title=f"Hive: could not pull issues from {repo}")
+
+	return opened

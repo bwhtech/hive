@@ -154,6 +154,11 @@ scheduler_events = {
 	"daily": [
 		"bwh_hive.tasks.daily",
 	],
+	"hourly": [
+		# The issue webhook only fires on `issues.opened`, so anything raised
+		# while the site was unreachable needs a catch-up.
+		"bwh_hive.bwh_hive.github.pull_all_issues",
+	],
 }
 
 # Testing

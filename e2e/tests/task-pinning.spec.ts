@@ -7,7 +7,13 @@ import {
 	HiveTask,
 } from "../helpers/hive";
 import { getList, deleteDoc } from "../helpers/frappe";
-import { boardColumn, sidebarPinned, taskCard, taskPanel } from "../helpers/ui";
+import {
+	boardColumn,
+	showTaskBoard,
+	sidebarPinned,
+	taskCard,
+	taskPanel,
+} from "../helpers/ui";
 
 /**
  * Pinning flows, not pinning markup.
@@ -111,6 +117,7 @@ test.describe("Task Pinning", () => {
 		await page.goto(`/hive/projects/${testProject.name}`);
 		await page.waitForLoadState("networkidle");
 		await page.getByRole("tab", { name: /Tasks/ }).click();
+		await showTaskBoard(page);
 	}
 
 	test("pinning a task puts it in the sidebar", async ({ page }) => {

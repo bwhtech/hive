@@ -76,12 +76,6 @@ export const TASK_STATUS_ORDER: TaskStatus[] = [
 	'Done',
 ]
 
-/**
- * Status sections the grouped list collapses until asked for: finished work and
- * parked work are the two nobody scans.
- */
-export const COLLAPSED_STATUSES: TaskStatus[] = ['Done', 'Someday']
-
 const TASK_PRIORITY_THEME: Record<TaskPriority, BadgeTheme> = {
 	Low: 'gray',
 	Medium: 'blue',

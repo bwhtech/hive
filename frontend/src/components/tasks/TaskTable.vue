@@ -9,20 +9,20 @@
 				data-testid="task-group"
 				:data-group="group.key"
 			>
-				<!-- A full-width header button, as the recipe does it: the section
-				     stays quiet until hovered, when it offers the toggle in words. -->
+				<!-- A full-width header button: the chevron is the whole affordance,
+				     so the section stays quiet until it is clicked. -->
 				<button
-					class="group flex w-full items-baseline rounded-sm bg-surface-sidebar px-2.5 py-2 text-base transition hover:bg-surface-gray-2"
+					class="flex w-full items-center gap-1.5 rounded-sm bg-surface-sidebar px-2.5 py-2 text-base transition hover:bg-surface-gray-2"
 					:aria-expanded="isOpen(group.key)"
 					@click="toggleGroup(group.key)"
 				>
-					<span class="truncate font-medium text-ink-gray-8">{{ group.label }}</span>
-					<span class="ml-2 text-sm text-ink-gray-5">{{ group.tasks.length }}</span>
 					<span
-						class="ml-auto hidden shrink-0 text-sm text-ink-gray-5 group-hover:inline"
-					>
-						{{ isOpen(group.key) ? 'Collapse' : 'Expand' }}
-					</span>
+						class="lucide-chevron-right size-4 shrink-0 text-ink-gray-5 transition-transform"
+						:class="isOpen(group.key) ? 'rotate-90' : ''"
+						aria-hidden="true"
+					/>
+					<span class="truncate font-medium text-ink-gray-8">{{ group.label }}</span>
+					<span class="text-sm text-ink-gray-5">{{ group.tasks.length }}</span>
 				</button>
 
 				<List
@@ -149,7 +149,6 @@ import PriorityBadge from '@/components/common/PriorityBadge.vue'
 import { useTaskMutations, type TaskListHandle } from '@/composables/useTaskMutations'
 import { formatDate, today } from '@/lib/dates'
 import {
-	COLLAPSED_STATUSES,
 	priorityRank,
 	sizeWeight,
 	statusIcon,
@@ -325,8 +324,8 @@ const groups = computed<TaskGroup[]>(() => {
 
 /**
  * Explicit user toggles, keyed by field so switching the Group menu does not
- * carry one field's collapsed sections over to another's. Anything absent falls
- * back to `defaultOpen`.
+ * carry one field's collapsed sections over to another's. Every group starts
+ * open; only a section the reader closed is absent from the page.
  */
 const openState = reactive<Record<string, boolean>>({})
 
@@ -334,13 +333,9 @@ function stateKey(key: string) {
 	return `${props.groupBy}:${key}`
 }
 
-function defaultOpen(key: string) {
-	return !(props.groupBy === 'status' && COLLAPSED_STATUSES.includes(key as TaskStatus))
-}
-
 function isOpen(key: string) {
 	const id = stateKey(key)
-	return id in openState ? openState[id] : defaultOpen(key)
+	return id in openState ? openState[id] : true
 }
 
 function toggleGroup(key: string) {

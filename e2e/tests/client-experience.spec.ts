@@ -7,6 +7,7 @@ import {
 	chooseOption,
 	expectDialog,
 	projectCard,
+	showTaskBoard,
 	taskCard,
 	taskPanel,
 } from "../helpers/ui";
@@ -84,9 +85,7 @@ test.describe("Client Experience", () => {
 		await page.waitForLoadState("networkidle");
 
 		// Should see the kanban board with task columns
-		await expect(page.locator("text=In Progress").first()).toBeVisible({
-			timeout: 5000,
-		});
+		await showTaskBoard(page);
 	});
 
 	test("should not see project metadata dropdowns or manage links", async ({
@@ -140,6 +139,7 @@ test.describe("Client Experience", () => {
 	test("a client can read a task but not edit it", async ({ page }) => {
 		await openClientProject(page);
 		await page.getByRole("tab", { name: /Tasks/ }).click();
+		await showTaskBoard(page);
 
 		const card = taskCard(page).first();
 		await expect(card).toBeVisible({ timeout: 10000 });

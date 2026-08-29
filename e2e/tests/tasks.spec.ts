@@ -12,6 +12,7 @@ import {
 	expectDialog,
 	gotoHive,
 	selectTrigger,
+	showTaskBoard,
 	taskCard,
 	taskPanel,
 } from "../helpers/ui";
@@ -114,6 +115,7 @@ test.describe("Tasks", () => {
 		});
 
 		await gotoProjectTasks(page, testProject.name);
+		await showTaskBoard(page);
 
 		await expect(taskCard(page, task.name)).toBeVisible({ timeout: 10000 });
 		await expect(taskCard(page, task.name)).toContainText(taskTitle);
@@ -131,6 +133,7 @@ test.describe("Tasks", () => {
 		});
 
 		await gotoProjectTasks(page, testProject.name);
+		await showTaskBoard(page);
 
 		await taskCard(page, task.name).click();
 
@@ -167,6 +170,7 @@ test.describe("Tasks", () => {
 		});
 
 		await gotoProjectTasks(page, testProject.name);
+		await showTaskBoard(page);
 
 		await taskCard(page, task.name).click();
 

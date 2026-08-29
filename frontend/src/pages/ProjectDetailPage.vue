@@ -369,6 +369,7 @@ const panelProps = computed<Record<string, unknown>>(() => {
 				list: tasks,
 				milestones: milestones.data ?? [],
 				assigneesByTask: assignees.data ?? {},
+				activeTask: activeTaskName.value,
 				loading: tasks.loading && !tasks.data,
 				readonly: isClient.value,
 			}

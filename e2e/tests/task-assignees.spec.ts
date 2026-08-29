@@ -6,7 +6,7 @@ import {
 	HiveProject,
 	HiveTask,
 } from "../helpers/hive";
-import { taskCard, taskPanel } from "../helpers/ui";
+import { showTaskBoard, taskCard, taskPanel } from "../helpers/ui";
 import { getList, deleteDoc, callMethod } from "../helpers/frappe";
 
 const TEST_PREFIX = "E2E Assign";
@@ -30,6 +30,7 @@ async function goToProjectTasks(page: Page, projectName: string) {
 	const tasksTab = page.getByRole("tab", { name: /Tasks/ });
 	await expect(tasksTab).toBeVisible({ timeout: 15000 });
 	await tasksTab.click();
+	await showTaskBoard(page);
 }
 
 /** Open a task's panel from the board. */

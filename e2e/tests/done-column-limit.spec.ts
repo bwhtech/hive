@@ -6,6 +6,7 @@ import {
 	HiveTask,
 } from "../helpers/hive";
 import { createDoc, deleteDoc, getList, updateDoc } from "../helpers/frappe";
+import { showTaskBoard } from "../helpers/ui";
 
 const PROJECT_PREFIX = "E2E Done Column";
 const TASK_PREFIX = "E2E DoneCol Task";
@@ -20,8 +21,7 @@ function daysFromNow(n: number): string {
 async function goToProjectTasks(page: Page, projectName: string) {
 	await page.goto(`/hive/projects/${projectName}?tab=tasks`);
 	await page.waitForLoadState("domcontentloaded");
-	// Wait for kanban columns to appear
-	await expect(page.getByText("To Do").first()).toBeVisible({ timeout: 15000 });
+	await showTaskBoard(page);
 }
 
 /** Navigate to cross-project tasks page in kanban view, suppressing the overdue dialog. */

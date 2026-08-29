@@ -1,50 +1,49 @@
 <template>
-	<div class="space-y-3">
-		<div v-if="milestones.length" class="flex items-center gap-2">
-			<span class="lucide-filter size-3.5 text-ink-gray-5" aria-hidden="true" />
-			<Select
-				v-model="milestoneFilter"
-				class="w-48"
-				size="sm"
-				:options="milestoneOptions"
-				aria-label="Filter by milestone"
-			/>
-			<span v-if="milestoneFilter !== 'all'" class="text-xs text-ink-gray-5">
-				{{ filtered.length }} of {{ tasks.length }} tasks
-			</span>
+	<div class="flex min-h-0 flex-col gap-3">
+		<div v-if="tasks.length" class="flex items-center justify-end">
+			<TabButtons v-model="view" :options="VIEWS" />
 		</div>
 
 		<PageSkeleton v-if="loading" :rows="5" />
 
 		<EmptyState
-			v-else-if="!filtered.length"
+			v-else-if="!tasks.length"
 			icon="lucide-square-check-big"
-			:title="milestoneFilter === 'all' ? 'No tasks yet' : 'No tasks in this milestone'"
-			:description="
-				milestoneFilter === 'all'
-					? 'Add the first task to get this project moving.'
-					: 'Pick another milestone, or move a task into this one.'
-			"
+			title="No tasks yet"
+			description="Add the first task to get this project moving."
 		/>
 
 		<TaskBoard
-			v-else
-			:tasks="filtered"
+			v-else-if="view === 'kanban'"
+			:tasks="tasks"
 			:assignees-by-task="assigneesByTask"
 			:list="list"
 			:readonly="readonly"
 			@select="emit('select', $event)"
 			@changed="emit('changed')"
 		/>
+
+		<TaskTable
+			v-else
+			:tasks="tasks"
+			:milestone-titles="milestoneTitles"
+			:assignees-by-task="assigneesByTask"
+			:active-task="activeTask"
+			:list="list"
+			:readonly="readonly"
+			hide-project
+			@select="emit('select', $event)"
+		/>
 	</div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Select } from 'frappe-ui'
+import { TabButtons } from 'frappe-ui'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PageSkeleton from '@/components/common/PageSkeleton.vue'
 import TaskBoard from '@/components/tasks/TaskBoard.vue'
+import TaskTable from '@/components/tasks/TaskTable.vue'
 import type { TaskListHandle } from '@/composables/useTaskMutations'
 import type { HiveMilestone, HiveTask, HiveTaskAssignee } from '@/types'
 
@@ -55,29 +54,27 @@ const props = withDefaults(
 		/** The `useList` result the tasks came from, so a drop can be optimistic. */
 		list?: TaskListHandle
 		assigneesByTask?: Record<string, HiveTaskAssignee[]>
+		/** Highlights the row whose task panel is open. */
+		activeTask?: string | null
 		loading?: boolean
 		readonly?: boolean
 	}>(),
-	{ assigneesByTask: () => ({}), loading: false, readonly: false },
+	{ assigneesByTask: () => ({}), activeTask: null, loading: false, readonly: false },
 )
 
 const emit = defineEmits<{ select: [task: HiveTask]; changed: [] }>()
 
-/** Sentinel filter values; a milestone docname can never collide with these. */
-const ALL = 'all'
-const NONE = 'none'
+const VIEWS = [
+	{ value: 'list', label: 'List', icon: 'lucide-list', tooltip: 'List' },
+	{ value: 'kanban', label: 'Board', icon: 'lucide-columns-3', tooltip: 'Board' },
+]
 
-const milestoneFilter = ref<string>(ALL)
+// Not URL state: the project page's query already carries the tab and the
+// open task, and which shape the same task list is drawn in is a per-visit
+// preference, not something a shared link should pin down.
+const view = ref('list')
 
-const milestoneOptions = computed(() => [
-	{ label: 'All tasks', value: ALL },
-	{ label: 'No milestone', value: NONE },
-	...props.milestones.map((milestone) => ({ label: milestone.title, value: milestone.name })),
-])
-
-const filtered = computed(() => {
-	if (milestoneFilter.value === ALL) return props.tasks
-	if (milestoneFilter.value === NONE) return props.tasks.filter((task) => !task.milestone)
-	return props.tasks.filter((task) => task.milestone === milestoneFilter.value)
-})
+const milestoneTitles = computed(() =>
+	Object.fromEntries(props.milestones.map((milestone) => [milestone.name, milestone.title])),
+)
 </script>

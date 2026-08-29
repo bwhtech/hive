@@ -165,6 +165,17 @@ export function boardColumn(page: Page, status: string): Locator {
 	return page.locator(`[data-testid="board-column"][data-status="${status}"]`);
 }
 
+/**
+ * Switch a task view toggle over to the board.
+ *
+ * A project's Tasks tab opens as the grouped list, so any assertion about
+ * columns, cards or the Done window has to ask for the board first.
+ */
+export async function showTaskBoard(page: Page): Promise<void> {
+	await page.getByRole("radio", { name: "Board" }).click();
+	await expect(boardColumn(page, "To Do")).toBeVisible({ timeout: 10000 });
+}
+
 /** A kanban card. Pass a task docname to pick one out. */
 export function taskCard(page: Page, name?: string): Locator {
 	return name

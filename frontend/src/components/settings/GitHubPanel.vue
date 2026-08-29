@@ -123,6 +123,71 @@
 				/>
 			</div>
 		</section>
+
+		<!-- Apps created before issue sync existed have no webhook pointing here,
+		     and GitHub only exposes the URL and secret to the API — the event
+		     subscription itself has to be ticked on github.com. -->
+		<section v-if="configured && installations.length" class="flex flex-col gap-3 pt-8">
+			<div class="flex items-start justify-between gap-4">
+				<div class="min-w-0">
+					<h3 class="text-base font-semibold text-ink-gray-8">Issue sync</h3>
+					<p class="text-sm text-ink-gray-5">
+						Lets GitHub tell Hive when an issue is opened. Turn it on per project from
+						the project's actions menu.
+					</p>
+				</div>
+				<Badge
+					v-if="issueSyncReady"
+					class="shrink-0"
+					label="Active"
+					theme="green"
+					variant="subtle"
+				/>
+			</div>
+
+			<div v-if="syncStatus.loading && !syncStatus.data">
+				<Skeleton class="h-9 w-40 rounded-4" />
+			</div>
+
+			<div v-else-if="!syncStatus.data?.webhook_ready">
+				<Button
+					variant="solid"
+					theme="gray"
+					icon-left="lucide-webhook"
+					label="Set up webhook"
+					:loading="settingUpSync"
+					@click="enableIssueSync"
+				/>
+			</div>
+
+			<div
+				v-else-if="!syncStatus.data?.issue_events_subscribed"
+				class="space-y-2 rounded-4 border border-dashed border-outline-gray-2 p-4"
+			>
+				<p class="text-sm text-ink-gray-6">
+					The webhook is set up, but the app is not subscribed to issue events yet. GitHub
+					only allows that to be changed on its own settings page: tick
+					<span class="font-medium text-ink-gray-8">Issues</span> under
+					<span class="font-medium text-ink-gray-8">Subscribe to events</span>, then come
+					back and refresh.
+				</p>
+				<div class="flex gap-2">
+					<Button
+						v-if="syncStatus.data?.app_settings_url"
+						label="Subscribe on GitHub"
+						icon-right="lucide-external-link"
+						:link="syncStatus.data.app_settings_url"
+					/>
+					<Button
+						variant="ghost"
+						label="Refresh"
+						icon-left="lucide-refresh-cw"
+						:loading="syncStatus.loading"
+						@click="syncStatus.reload()"
+					/>
+				</div>
+			</div>
+		</section>
 	</SettingsBody>
 
 	<Dialog v-model:open="uninstallOpen" title="Uninstall from GitHub" size="sm">
@@ -170,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
 	Avatar,
 	Badge,
@@ -203,6 +268,12 @@ interface GithubInstallation {
 	avatar_url: string | null
 	repository_selection: 'all' | 'selected' | null
 	html_url: string | null
+}
+
+interface IssueSyncState {
+	webhook_ready?: boolean
+	issue_events_subscribed?: boolean
+	app_settings_url?: string | null
 }
 
 interface GithubStatus {
@@ -241,9 +312,52 @@ const disconnectCall = useCall<{ disconnected: boolean }>({
 	immediate: false,
 })
 
+const syncStatus = useCall<IssueSyncState>({
+	url: '/api/v2/method/bwh_hive.bwh_hive.github.issue_sync_status',
+	method: 'GET',
+	cacheKey: 'github-issue-sync-status',
+	immediate: false,
+})
+
+const setupSyncCall = useCall<IssueSyncState>({
+	url: '/api/v2/method/bwh_hive.bwh_hive.github.setup_issue_sync',
+	method: 'POST',
+	immediate: false,
+})
+
+const settingUpSync = ref(false)
+
+const issueSyncReady = computed(
+	() =>
+		Boolean(syncStatus.data?.webhook_ready) &&
+		Boolean(syncStatus.data?.issue_events_subscribed),
+)
+
+async function enableIssueSync() {
+	settingUpSync.value = true
+	try {
+		const state = await setupSyncCall.submit()
+		await syncStatus.reload()
+		if (state?.issue_events_subscribed) toast.success('Issue sync is on')
+		else toast.success('Webhook set up — one step left on GitHub')
+	} catch (error) {
+		toast.error((error as Error).message || 'Could not set up the webhook')
+	} finally {
+		settingUpSync.value = false
+	}
+}
+
 const configured = computed(() => Boolean(settings.doc?.github_app_id))
 const publicLink = computed(() => settings.doc?.github_app_public_link || '')
 const installations = computed(() => status.data?.installations ?? [])
+
+// Asking GitHub about the webhook is only meaningful once the app is installed
+// somewhere, and it costs two round-trips, so it waits for that.
+watch(
+	() => installations.value.length > 0,
+	(installed) => installed && syncStatus.reload(),
+	{ immediate: true },
+)
 
 /**
  * Report the round-trip to github.com. `AppShell` reopens this panel from

@@ -2,9 +2,6 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:PROJ-{#####}",
- "search_fields": "title",
- "show_title_field_in_link": 1,
- "title_field": "title",
  "creation": "2026-02-21 11:21:25.164031",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -27,7 +24,8 @@
   "links_section",
   "links",
   "is_archived",
-  "github_repo"
+  "github_repo",
+  "sync_github_issues"
  ],
  "fields": [
   {
@@ -78,11 +76,11 @@
   {
    "fieldname": "slug",
    "fieldtype": "Data",
-   "label": "Slug",
-   "unique": 1,
-   "read_only": 1,
    "hidden": 1,
-   "no_copy": 1
+   "label": "Slug",
+   "no_copy": 1,
+   "read_only": 1,
+   "unique": 1
   },
   {
    "default": "0",
@@ -152,10 +150,17 @@
    "label": "Archived"
   },
   {
+   "description": "GitHub repository in owner/repo format (e.g. BuildWithHussain/hive)",
    "fieldname": "github_repo",
    "fieldtype": "Data",
-   "label": "GitHub Repository",
-   "description": "GitHub repository in owner/repo format (e.g. BuildWithHussain/hive)"
+   "label": "GitHub Repository"
+  },
+  {
+   "default": "0",
+   "depends_on": "github_repo",
+   "fieldname": "sync_github_issues",
+   "fieldtype": "Check",
+   "label": "Sync Issues from GitHub"
   }
  ],
  "grid_page_length": 50,
@@ -199,8 +204,11 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
+ "search_fields": "title",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
+ "title_field": "title",
  "track_changes": 1
 }

@@ -1,15 +1,22 @@
+import hashlib
+import hmac
 import time
 
 import frappe
 import jwt
 import requests
 from frappe import _
+from frappe.utils import get_url
+from frappe.utils.password import get_decrypted_password
 
 GITHUB_API = "https://api.github.com"
 ACCEPT_HEADER = "application/vnd.github.v3+json"
 # Installation tokens live for an hour; expire ours a little early so a cached
 # token is never handed out moments before GitHub rejects it.
 TOKEN_CACHE_TTL = 50 * 60
+# Stamped into the body of every issue Hive opens, so the webhook that comes
+# straight back can tell "we made this" from "someone made this on GitHub".
+HIVE_ISSUE_MARKER = "Created from Hive task"
 
 
 def _get_app_jwt(settings) -> str:
@@ -194,6 +201,7 @@ def disconnect_app() -> dict:
 		"github_app_client_secret",
 		"github_app_public_link",
 		"github_app_private_key",
+		"github_webhook_secret",
 		"github_access_token",
 		"github_username",
 		"github_authorized_at",
@@ -240,7 +248,7 @@ def create_issue(task_name: str) -> dict:
 		body = strip_html_tags(task.description)
 
 	task_url = f"{frappe.utils.get_url()}/hive/projects/{task.project}?task={task.name}"
-	body += f"\n\n---\n*Created from Hive task [{task.name}]({task_url})*"
+	body += f"\n\n---\n*{HIVE_ISSUE_MARKER} [{task.name}]({task_url})*"
 
 	issue_data = _request(
 		"POST",
@@ -256,3 +264,165 @@ def create_issue(task_name: str) -> dict:
 		"issue_url": issue_url,
 		"issue_number": issue_data["number"],
 	}
+
+
+# -- issue sync ----------------------------------------------------------
+
+
+def webhook_url() -> str:
+	return get_url("/api/method/bwh_hive.bwh_hive.github.webhook")
+
+
+def _app_details(settings) -> dict:
+	"""The GitHub App as GitHub sees it: slug, owner and event subscriptions."""
+	return _request("GET", "/app", _get_app_jwt(settings)).json()
+
+
+def _app_settings_url(app: dict) -> str:
+	"""Where a human edits this app's event subscriptions."""
+	owner = app.get("owner") or {}
+	slug = app.get("slug")
+	if (owner.get("type") or "").lower() == "organization":
+		return f"https://github.com/organizations/{owner.get('login')}/settings/apps/{slug}/permissions"
+	return f"https://github.com/settings/apps/{slug}/permissions"
+
+
+def _issue_sync_state(settings) -> dict:
+	"""Whether GitHub will actually deliver issue events to this site."""
+	state = {
+		"webhook_ready": False,
+		"issue_events_subscribed": False,
+		"app_settings_url": None,
+	}
+	try:
+		app = _app_details(settings)
+	except Exception:
+		return state
+
+	state["app_settings_url"] = _app_settings_url(app)
+	state["issue_events_subscribed"] = "issues" in (app.get("events") or [])
+
+	try:
+		config = _request("GET", "/app/hook/config", _get_app_jwt(settings)).json()
+	except Exception:
+		return state
+
+	state["webhook_ready"] = config.get("url") == webhook_url() and bool(
+		settings.get_password("github_webhook_secret", raise_exception=False)
+	)
+	return state
+
+
+@frappe.whitelist()
+def issue_sync_status() -> dict:
+	"""Read-only counterpart of `setup_issue_sync`, for the settings panel.
+
+	Kept out of `status()` because that runs on every project page and this
+	costs two more round-trips to GitHub.
+	"""
+	return _issue_sync_state(_get_settings())
+
+
+@frappe.whitelist()
+def setup_issue_sync() -> dict:
+	"""Point the GitHub App's webhook at this site, in one click.
+
+	Apps created before issue sync existed have no webhook URL, and GitHub only
+	lets the URL and secret be changed through the API - the list of subscribed
+	events has to be ticked by a human. So this does everything it can and
+	reports back whether that last step is still outstanding.
+	"""
+	frappe.has_permission("Hive Settings", "write", throw=True)
+
+	settings = _get_settings()
+	secret = frappe.generate_hash(length=40)
+
+	_request(
+		"PATCH",
+		"/app/hook/config",
+		_get_app_jwt(settings),
+		json={"url": webhook_url(), "content_type": "json", "secret": secret},
+	)
+
+	settings.db_set("github_webhook_secret", secret)
+	frappe.db.commit()
+
+	return _issue_sync_state(frappe.get_single("Hive Settings"))
+
+
+def _verify_signature(body: bytes, signature: str | None) -> bool:
+	secret = get_decrypted_password(
+		"Hive Settings", "Hive Settings", "github_webhook_secret", raise_exception=False
+	)
+	if not secret or not signature:
+		return False
+
+	expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+	return hmac.compare_digest(expected, signature)
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+def webhook() -> dict:
+	"""Receive GitHub App events. Only `issues.opened` does anything today."""
+	body = frappe.request.get_data()
+	if not _verify_signature(body, frappe.get_request_header("X-Hub-Signature-256")):
+		frappe.throw(_("Invalid webhook signature."), frappe.AuthenticationError)
+
+	if frappe.get_request_header("X-GitHub-Event") != "issues":
+		return {"ignored": True}
+
+	payload = frappe.parse_json(body.decode())
+	if payload.get("action") != "opened":
+		return {"ignored": True}
+
+	repo = (payload.get("repository") or {}).get("full_name")
+	issue = payload.get("issue") or {}
+	if not repo or not issue.get("html_url"):
+		return {"ignored": True}
+
+	frappe.enqueue(
+		"bwh_hive.bwh_hive.github.create_tasks_for_issue",
+		queue="short",
+		repo=repo,
+		issue=issue,
+	)
+	return {"queued": True}
+
+
+def create_tasks_for_issue(repo: str, issue: dict) -> None:
+	"""Open a Hive task in every project that syncs issues from `repo`."""
+	# An issue Hive itself just created would otherwise bounce back as a
+	# duplicate task moments after the conversion.
+	if HIVE_ISSUE_MARKER in (issue.get("body") or ""):
+		return
+
+	projects = frappe.get_all(
+		"Hive Project",
+		filters={"github_repo": repo, "sync_github_issues": 1, "is_archived": 0},
+		pluck="name",
+	)
+	if not projects:
+		return
+
+	issue_url = issue["html_url"]
+	description = ""
+	if issue.get("body"):
+		description = frappe.utils.md_to_html(issue["body"])
+
+	for project in projects:
+		if frappe.db.exists("Hive Task", {"project": project, "github_issue_url": issue_url}):
+			continue
+
+		task = frappe.new_doc("Hive Task")
+		task.update(
+			{
+				"title": issue.get("title") or f"Issue #{issue.get('number')}",
+				"project": project,
+				"status": "Backlog",
+				"description": description,
+				"github_issue_url": issue_url,
+			}
+		)
+		task.insert(ignore_permissions=True)
+
+	frappe.db.commit()

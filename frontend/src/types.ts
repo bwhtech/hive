@@ -78,6 +78,7 @@ export interface HiveProject {
 	is_private: Bool
 	is_archived: Bool
 	github_repo: string | null
+	sync_github_issues: Bool
 	owner: string
 	links?: HiveProjectLink[]
 	members?: HiveProjectMember[]

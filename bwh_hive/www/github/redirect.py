@@ -42,6 +42,8 @@ def get_context(context):
 		settings.github_app_client_secret = response.client_secret
 		settings.github_app_public_link = response.html_url
 		settings.github_app_private_key = response.pem
+		# GitHub mints this during conversion; it is what signs the issue webhooks.
+		settings.github_webhook_secret = response.webhook_secret
 		settings.save()
 		frappe.db.commit()
 		created = True

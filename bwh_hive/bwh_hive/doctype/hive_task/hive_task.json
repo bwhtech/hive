@@ -23,10 +23,6 @@
   "recurring_parent",
   "pr_link",
   "description",
-  "uat_section",
-  "uat_status",
-  "uat_approved_by",
-  "uat_date",
   "github_issue_url"
  ],
  "fields": [
@@ -143,32 +139,6 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"
-  },
-  {
-   "fieldname": "uat_section",
-   "fieldtype": "Section Break",
-   "label": "UAT"
-  },
-  {
-   "default": "Pending",
-   "fieldname": "uat_status",
-   "fieldtype": "Select",
-   "in_standard_filter": 1,
-   "label": "UAT Status",
-   "options": "Pending\nApproved\nRejected"
-  },
-  {
-   "fieldname": "uat_approved_by",
-   "fieldtype": "Link",
-   "label": "UAT Approved By",
-   "options": "User",
-   "read_only": 1
-  },
-  {
-   "fieldname": "uat_date",
-   "fieldtype": "Date",
-   "label": "UAT Date",
-   "read_only": 1
   },
   {
    "fieldname": "github_issue_url",

@@ -50,12 +50,6 @@
 				<Badge variant="outline" theme="gray" label="PR" />
 			</a>
 			<Badge
-				v-if="showUat && task.uat_status && task.uat_status !== 'Pending'"
-				:theme="uatStatusTheme(task.uat_status)"
-				:label="`UAT ${task.uat_status}`"
-				variant="subtle"
-			/>
-			<Badge
 				v-if="task.recurrence_frequency"
 				variant="outline"
 				theme="gray"
@@ -97,7 +91,7 @@ import AvatarStack from '@/components/common/AvatarStack.vue'
 import PriorityBadge from '@/components/common/PriorityBadge.vue'
 import { usePinnedTasks } from '@/composables/usePinnedTasks'
 import { formatDate, today } from '@/lib/dates'
-import { sizeTheme, uatStatusTheme } from '@/lib/status'
+import { sizeTheme } from '@/lib/status'
 import type { HiveTask, HiveTaskAssignee } from '@/types'
 
 const props = withDefaults(
@@ -106,12 +100,10 @@ const props = withDefaults(
 		assignees?: HiveTaskAssignee[]
 		/** The task this one waits on, when it is on the board too. */
 		dependsOn?: HiveTask | null
-		/** Hidden on internal-only boards, where UAT means nothing. */
-		showUat?: boolean
 		/** Cursor affordance only — the column owns the drag handle. */
 		draggable?: boolean
 	}>(),
-	{ assignees: () => [], dependsOn: null, showUat: true, draggable: true },
+	{ assignees: () => [], dependsOn: null, draggable: true },
 )
 
 const emit = defineEmits<{ select: [task: HiveTask] }>()

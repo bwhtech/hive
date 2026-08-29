@@ -246,7 +246,6 @@ const tasks = useList<HiveTask>({
 		'due_date',
 		'completed_on',
 		'pr_link',
-		'uat_status',
 		'recurrence_frequency',
 		'recurrence_end_date',
 		'creation',

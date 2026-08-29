@@ -153,11 +153,6 @@ test.describe("Client Experience", () => {
 		await expect(panel.getByLabel("Title")).toBeVisible();
 		await expect(panel.getByLabel("Title")).toBeDisabled();
 		await expect(panel.getByLabel("Assignees")).toBeDisabled();
-
-		// UAT is the one thing a client is meant to act on.
-		await expect(
-			panel.getByRole("button", { name: /Approve/ }).first(),
-		).toBeVisible();
 	});
 
 	test("a client can raise a feature request", async ({ page, request }) => {

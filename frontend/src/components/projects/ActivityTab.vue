@@ -122,7 +122,6 @@ const FIELD_LABELS: Record<string, string> = {
 	status: 'status',
 	target_date: 'target date',
 	title: 'title',
-	uat_status: 'UAT status',
 }
 
 const DOC_LABELS: Record<string, string> = {

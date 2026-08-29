@@ -43,9 +43,6 @@ export type FeatureRequestStatus = (typeof FEATURE_REQUEST_STATUSES)[number]
 export const FEATURE_REQUEST_PRIORITIES = ['Nice to Have', 'Important', 'Critical'] as const
 export type FeatureRequestPriority = (typeof FEATURE_REQUEST_PRIORITIES)[number]
 
-export const UAT_STATUSES = ['Pending', 'Approved', 'Rejected'] as const
-export type UATStatus = (typeof UAT_STATUSES)[number]
-
 export type Bool = 0 | 1
 
 export interface HiveProjectLink {
@@ -105,9 +102,6 @@ export interface HiveTask {
 	completed_on: string | null
 	pr_link: string | null
 	github_issue_url: string | null
-	uat_status: UATStatus
-	uat_approved_by: string | null
-	uat_date: string | null
 	recurrence_frequency: TaskRecurrenceFrequency | '' | null
 	recurrence_end_date: string | null
 	recurring_parent: string | null

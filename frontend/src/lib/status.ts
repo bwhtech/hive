@@ -8,7 +8,6 @@ import type {
 	TaskPriority,
 	TaskSize,
 	TaskStatus,
-	UATStatus,
 } from '@/types'
 
 export type BadgeTheme = NonNullable<BadgeProps['theme']>
@@ -178,16 +177,6 @@ export function featureRequestPriorityTheme(
 	priority: FeatureRequestPriority | null | undefined,
 ): BadgeTheme {
 	return (priority && FEATURE_REQUEST_PRIORITY_THEME[priority]) || 'gray'
-}
-
-const UAT_STATUS_THEME: Record<UATStatus, BadgeTheme> = {
-	Pending: 'amber',
-	Approved: 'green',
-	Rejected: 'red',
-}
-
-export function uatStatusTheme(status: UATStatus | null | undefined): BadgeTheme {
-	return (status && UAT_STATUS_THEME[status]) || 'gray'
 }
 
 /** Position in a fixed vocabulary; unknown values sort last, not first. */

@@ -18,7 +18,7 @@ test.describe("App switcher", () => {
 
 		await gotoHive(page, "/");
 
-		await page.locator('[data-slot="sidebar-header"] button').click();
+		await page.getByRole("button", { name: "Hive" }).first().click();
 		await page.getByRole("menuitem", { name: "Switch app" }).hover();
 
 		const desk = page.getByRole("menuitem", { name: "Desk" });

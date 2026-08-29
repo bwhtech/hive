@@ -33,6 +33,7 @@ class HiveProject(Document):
 		project_type: DF.Link | None
 		slug: DF.Data | None
 		status: DF.Literal["Open", "Completed", "On Hold"]
+		sync_github_issues: DF.Check
 		title: DF.Data
 	# end: auto-generated types
 

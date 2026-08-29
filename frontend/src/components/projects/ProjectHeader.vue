@@ -163,6 +163,24 @@
 								{{ project.github_repo }}
 							</a>
 							<p v-else class="text-sm text-ink-gray-5">Not connected</p>
+
+							<!-- Only worth offering once there is a repo to sync from. -->
+							<div
+								v-if="project.github_repo"
+								class="flex items-center justify-between gap-2 pt-1"
+							>
+								<p class="text-sm text-ink-gray-6">Sync issues</p>
+								<Switch
+									:model-value="Boolean(project.sync_github_issues)"
+									@update:model-value="setIssueSync"
+								/>
+							</div>
+							<p
+								v-if="project.github_repo && project.sync_github_issues"
+								class="text-xs text-ink-gray-5"
+							>
+								New issues opened on GitHub land in the backlog.
+							</p>
 						</div>
 
 						<div class="space-y-1.5 p-3">
@@ -272,6 +290,7 @@ import {
 	Dialog,
 	Dropdown,
 	Popover,
+	Switch,
 	TextInput,
 	toast,
 	useCall,
@@ -491,8 +510,14 @@ const repoOptions = computed(() =>
 
 function setRepo(value: string | null) {
 	const repo = value ? String(value) : null
-	emit('save', { github_repo: repo })
+	// Nothing to sync from once the repo is gone.
+	emit('save', repo ? { github_repo: repo } : { github_repo: null, sync_github_issues: 0 })
 	toast.success(repo ? 'GitHub repo linked' : 'GitHub repo unlinked')
+}
+
+function setIssueSync(enabled: boolean) {
+	emit('save', { sync_github_issues: enabled ? 1 : 0 })
+	toast.success(enabled ? 'Syncing issues from GitHub' : 'Issue sync off')
 }
 
 const linksOpen = ref(false)

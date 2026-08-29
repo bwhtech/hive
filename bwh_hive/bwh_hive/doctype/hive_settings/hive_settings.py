@@ -5,6 +5,8 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import get_url
 
+from bwh_hive.bwh_hive import github
+
 
 class HiveSettings(Document):
 	# begin: auto-generated types
@@ -20,6 +22,7 @@ class HiveSettings(Document):
 		github_app_client_secret: DF.Password | None
 		github_app_id: DF.Data | None
 		github_app_public_link: DF.Data | None
+		github_webhook_secret: DF.Password | None
 		lock_due_date_on_or_after: DF.Check
 		onboarding_completed: DF.Check
 	# end: auto-generated types
@@ -32,7 +35,17 @@ class HiveSettings(Document):
 			"url": get_url(),
 			"redirect_url": get_url("/github/redirect"),
 			"callback_url": get_url("/github/authorize"),
-			"public": False,
+			# A private app can only ever be installed on the single account that
+			# owns it, which caps Hive at one organisation. Public makes GitHub's
+			# install page offer an account picker, so one app can serve every org
+			# the user belongs to. Public is not listed anywhere: publishing to
+			# Marketplace is a separate opt-in.
+			"public": True,
 			"default_permissions": {"issues": "write", "metadata": "read"},
+			# Subscribing here is the only way to get issue events without the
+			# user editing the app on GitHub afterwards. GitHub generates the
+			# webhook secret during conversion and hands it back with the app.
+			"hook_attributes": {"url": github.webhook_url(), "active": True},
+			"default_events": ["issues"],
 			"request_oauth_on_install": True,
 		}

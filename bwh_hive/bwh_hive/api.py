@@ -851,7 +851,6 @@ def get_project_activity(project: str, limit: int = 100):
 						"start_date",
 						"completed_on",
 						"size",
-						"uat_status",
 					):
 						activities.append(
 							{

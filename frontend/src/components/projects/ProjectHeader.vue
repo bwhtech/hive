@@ -136,8 +136,7 @@
 							</div>
 						</div>
 
-						<!-- Clients never see the repo: it is internal, like the
-						     board's UAT column. -->
+						<!-- Clients never see the repo: it is internal. -->
 						<div v-if="canEdit" class="space-y-1.5 p-3">
 							<p class="text-xs font-medium text-ink-gray-5">GitHub</p>
 							<Combobox

@@ -62,9 +62,6 @@ class HiveTask(Document):
 		start_date: DF.Date | None
 		status: DF.Literal["Someday", "Backlog", "To Do", "In Progress", "Done", "Blocked"]
 		title: DF.Data
-		uat_approved_by: DF.Link | None
-		uat_date: DF.Date | None
-		uat_status: DF.Literal["Pending", "Approved", "Rejected"]
 	# end: auto-generated types
 
 	def validate(self):
@@ -178,17 +175,3 @@ class HiveTask(Document):
 					title="recurring task: assign failed",
 					message=f"Failed to assign {assignees} to {new_task.name}",
 				)
-
-	@frappe.whitelist()
-	def approve_uat(self):
-		self.uat_status = "Approved"
-		self.uat_approved_by = frappe.session.user
-		self.uat_date = today()
-		self.save()
-
-	@frappe.whitelist()
-	def reject_uat(self):
-		self.uat_status = "Rejected"
-		self.uat_approved_by = frappe.session.user
-		self.uat_date = today()
-		self.save()

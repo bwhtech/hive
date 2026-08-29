@@ -30,7 +30,6 @@
 							:task="element"
 							:assignees="assigneesByTask[element.name]"
 							:depends-on="dependency(element)"
-							:show-uat="showUat"
 							:draggable="!readonly"
 							@select="emit('select', element)"
 						/>
@@ -73,9 +72,8 @@ const props = withDefaults(
 		list?: TaskListHandle
 		/** Clients see the board but cannot move cards. */
 		readonly?: boolean
-		showUat?: boolean
 	}>(),
-	{ assigneesByTask: () => ({}), readonly: false, showUat: true },
+	{ assigneesByTask: () => ({}), readonly: false },
 )
 
 const emit = defineEmits<{ select: [task: HiveTask]; changed: [] }>()

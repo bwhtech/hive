@@ -267,7 +267,6 @@ const tasks = useList<HiveTask>({
 		'due_date',
 		'completed_on',
 		'pr_link',
-		'uat_status',
 		'recurrence_frequency',
 		'recurrence_end_date',
 		'creation',
@@ -372,7 +371,6 @@ const panelProps = computed<Record<string, unknown>>(() => {
 				assigneesByTask: assignees.data ?? {},
 				loading: tasks.loading && !tasks.data,
 				readonly: isClient.value,
-				hasClient: Boolean(project.doc?.client),
 			}
 	}
 })

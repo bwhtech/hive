@@ -33,7 +33,6 @@
 			:assignees-by-task="assigneesByTask"
 			:list="list"
 			:readonly="readonly"
-			:show-uat="hasClient"
 			@select="emit('select', $event)"
 			@changed="emit('changed')"
 		/>
@@ -58,10 +57,8 @@ const props = withDefaults(
 		assigneesByTask?: Record<string, HiveTaskAssignee[]>
 		loading?: boolean
 		readonly?: boolean
-		/** UAT badges only mean something on a project that has a client. */
-		hasClient?: boolean
 	}>(),
-	{ assigneesByTask: () => ({}), loading: false, readonly: false, hasClient: true },
+	{ assigneesByTask: () => ({}), loading: false, readonly: false },
 )
 
 const emit = defineEmits<{ select: [task: HiveTask]; changed: [] }>()

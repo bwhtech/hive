@@ -209,49 +209,6 @@
 						<TaskAttachments :task-name="task.doc.name" :read-only="!canEdit" />
 					</div>
 
-					<section
-						v-if="hasClient"
-						class="space-y-3 rounded-5 border border-outline-gray-2 p-3"
-					>
-						<div class="flex items-center justify-between gap-2">
-							<span class="text-sm font-medium text-ink-gray-6">UAT status</span>
-							<Badge
-								:label="task.doc.uat_status || 'Pending'"
-								:theme="uatStatusTheme(task.doc.uat_status)"
-								variant="subtle"
-							/>
-						</div>
-						<p v-if="task.doc.uat_approved_by" class="text-sm text-ink-gray-5">
-							{{ task.doc.uat_status === 'Approved' ? 'Approved' : 'Rejected' }} by
-							{{ task.doc.uat_approved_by }}
-							<template v-if="task.doc.uat_date">
-								on {{ formatDate(task.doc.uat_date) }}
-							</template>
-						</p>
-						<div class="flex gap-2">
-							<Button
-								class="flex-1"
-								variant="solid"
-								theme="green"
-								label="Approve"
-								icon-left="lucide-circle-check"
-								:loading="task.approveUat.loading"
-								:disabled="task.doc.uat_status === 'Approved'"
-								@click="reviewUat('approve')"
-							/>
-							<Button
-								class="flex-1"
-								variant="outline"
-								theme="red"
-								label="Reject"
-								icon-left="lucide-circle-x"
-								:loading="task.rejectUat.loading"
-								:disabled="task.doc.uat_status === 'Rejected'"
-								@click="reviewUat('reject')"
-							/>
-						</div>
-					</section>
-
 					<!-- Clients comment too; only their own comment can be deleted. -->
 					<TaskComments :task-name="task.doc.name" :members="members.data ?? []" />
 				</div>
@@ -293,7 +250,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import {
-	Badge,
 	BottomSheet,
 	Button,
 	DatePicker,
@@ -320,8 +276,7 @@ import { useCelebrate } from '@/composables/useCelebrate'
 import { usePinnedTasks } from '@/composables/usePinnedTasks'
 import { useSession } from '@/composables/useSession'
 import { useTaskMutations } from '@/composables/useTaskMutations'
-import { formatDate, today } from '@/lib/dates'
-import { uatStatusTheme } from '@/lib/status'
+import { today } from '@/lib/dates'
 import {
 	TASK_PRIORITIES,
 	TASK_RECURRENCE_FREQUENCIES,
@@ -351,15 +306,9 @@ const { isPinned, toggle: togglePinned } = usePinnedTasks()
 const { assign, unassign } = useTaskMutations()
 const archive = useArchiveWithUndo('Hive Task')
 
-interface TaskDocMethods {
-	approveUat: () => void
-	rejectUat: () => void
-}
-
-const task = useDoc<HiveTask, TaskDocMethods>({
+const task = useDoc<HiveTask>({
 	doctype: 'Hive Task',
 	name: () => props.name ?? '',
-	methods: { approveUat: 'approve_uat', rejectUat: 'reject_uat' },
 })
 
 const project = useDoc<Pick<HiveProject, 'name' | 'client' | 'github_repo'>>({
@@ -410,7 +359,6 @@ const createIssue = useCall<{ issue_url: string }, { task_name: string }>({
 
 const canEdit = computed(() => !isClient.value)
 const pinned = computed(() => Boolean(props.name && isPinned(props.name)))
-const hasClient = computed(() => Boolean(project.doc?.client))
 
 const form = reactive({
 	title: '',
@@ -677,18 +625,6 @@ async function onAssigneesChange(next: unknown) {
 		toast.error('Failed to update assignees')
 	} finally {
 		assignRow.reload()
-	}
-}
-
-async function reviewUat(action: 'approve' | 'reject') {
-	try {
-		if (action === 'approve') await task.approveUat.submit()
-		else await task.rejectUat.submit()
-		task.reload()
-		emit('changed')
-		toast.success(action === 'approve' ? 'UAT approved' : 'UAT rejected')
-	} catch {
-		toast.error(action === 'approve' ? 'Failed to approve UAT' : 'Failed to reject UAT')
 	}
 }
 

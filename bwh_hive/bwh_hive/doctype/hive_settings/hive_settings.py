@@ -32,7 +32,12 @@ class HiveSettings(Document):
 			"url": get_url(),
 			"redirect_url": get_url("/github/redirect"),
 			"callback_url": get_url("/github/authorize"),
-			"public": False,
+			# A private app can only ever be installed on the single account that
+			# owns it, which caps Hive at one organisation. Public makes GitHub's
+			# install page offer an account picker, so one app can serve every org
+			# the user belongs to. Public is not listed anywhere: publishing to
+			# Marketplace is a separate opt-in.
+			"public": True,
 			"default_permissions": {"issues": "write", "metadata": "read"},
 			"request_oauth_on_install": True,
 		}

@@ -75,7 +75,7 @@ import AppSidebar from '@/components/shell/AppSidebar.vue'
 import MobileShellNav from '@/components/shell/MobileShellNav.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useCelebrate } from '@/composables/useCelebrate'
-import { useOverlays } from '@/composables/useOverlays'
+import { isSettingsTab, useOverlays } from '@/composables/useOverlays'
 import { useSession } from '@/composables/useSession'
 import type { Bool, HiveProject } from '@/types'
 
@@ -99,8 +99,28 @@ const {
 	createTaskOpen,
 	onboardingOpen,
 	shortcutsOpen,
+	settingsResult,
 	openSettings,
 } = useOverlays()
+
+// `?settings=<tab>` reopens a settings panel on load. GitHub's app-creation
+// and install flows leave the app entirely and come back through a fresh page
+// load, which would otherwise drop the user on the dashboard with no sign of
+// what just happened.
+watch(
+	() => route.query.settings,
+	(tab) => {
+		if (!isSettingsTab(tab)) return
+		openSettings(tab)
+		// Both keys come out in one replace, with the outcome handed to the panel
+		// rather than left for it to read back out of the URL.
+		const { settings, github, ...rest } = route.query
+		void settings
+		settingsResult.value = typeof github === 'string' ? github : null
+		router.replace({ query: rest })
+	},
+	{ immediate: true },
+)
 
 // Creating a project always lands on it, wherever the dialog was opened from.
 function openProject(project: HiveProject) {

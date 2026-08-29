@@ -6,13 +6,21 @@ import requests
 from frappe.utils import now_datetime
 
 
+def _back_to_settings(result: str):
+	"""Reopen the GitHub settings panel the install flow navigated away from."""
+	frappe.flags.redirect_location = f"/hive?settings=github&github={result}"
+	raise frappe.Redirect
+
+
 def get_context(context):
 	code = frappe.form_dict.get("code")
 	state = frappe.form_dict.get("state")
 
+	# GitHub sends the user here after an install too, without the state we set
+	# for an OAuth round-trip. There is no token to exchange, but the install
+	# did happen, so the panel should reflect it.
 	if not code or not state:
-		frappe.flags.redirect_location = "/hive"
-		raise frappe.Redirect
+		_back_to_settings("installed")
 
 	# Validate state
 	try:
@@ -60,5 +68,4 @@ def get_context(context):
 	settings.db_set("github_authorized_at", now_datetime())
 	frappe.db.commit()
 
-	frappe.flags.redirect_location = "/hive"
-	raise frappe.Redirect
+	_back_to_settings("installed")

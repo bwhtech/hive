@@ -230,6 +230,10 @@ const hideProject = computed(() => Boolean(projectFilter.value) || groupBy.value
 
 // -- data ----------------------------------------------------------------
 
+const taskFilters = computed(() =>
+	projectFilter.value ? { is_archived: 0, project: projectFilter.value } : { is_archived: 0 },
+)
+
 const tasks = useList<HiveTask>({
 	doctype: 'Hive Task',
 	fields: [
@@ -251,9 +255,9 @@ const tasks = useList<HiveTask>({
 		'creation',
 		'modified',
 	],
-	filters: { is_archived: 0 },
-	orderBy: 'due_date asc',
-	limit: 500,
+	filters: taskFilters,
+	orderBy: 'due_date asc, modified desc',
+	limit: 2000,
 	cacheKey: 'tasks-page',
 })
 

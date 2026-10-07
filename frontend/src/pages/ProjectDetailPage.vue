@@ -273,8 +273,8 @@ const tasks = useList<HiveTask>({
 		'modified',
 	],
 	filters: () => ({ project: projectName.value, is_archived: 0 }),
-	orderBy: 'due_date asc',
-	limit: 500,
+	orderBy: 'due_date asc, modified desc',
+	limit: 2000,
 	immediate: false,
 })
 

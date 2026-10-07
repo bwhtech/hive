@@ -39,7 +39,7 @@ import type { HiveProject, HiveTask } from '@/types'
 
 /** Enough projects and tasks for an overview; the Projects page paginates. */
 const PROJECT_LIMIT = 100
-const TASK_LIMIT = 500
+const TASK_LIMIT = 2000
 
 interface TaskCounts {
 	total: number
@@ -75,6 +75,7 @@ const tasks = useList<HiveTask>({
 	doctype: 'Hive Task',
 	fields: ['name', 'project', 'status', 'is_internal'],
 	filters: { is_archived: 0 },
+	orderBy: 'modified desc',
 	limit: TASK_LIMIT,
 	cacheKey: 'dashboard-project-tasks',
 })

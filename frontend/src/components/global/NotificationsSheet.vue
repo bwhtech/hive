@@ -54,7 +54,7 @@
 						/>
 						<div class="min-w-0 flex-1">
 							<p
-								class="text-sm leading-snug"
+								class="break-words text-sm leading-snug"
 								:class="
 									row.read ? 'text-ink-gray-6' : 'font-medium text-ink-gray-8'
 								"

@@ -127,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import {
 	Breadcrumbs,
@@ -230,6 +230,15 @@ const hideProject = computed(() => Boolean(projectFilter.value) || groupBy.value
 
 // -- data ----------------------------------------------------------------
 
+const serverFilters = computed(() => {
+	const filters: Record<string, number | string | [string, string]> = { is_archived: 0 }
+	if (statusFilter.value) filters.status = statusFilter.value
+	if (priorityFilter.value) filters.priority = priorityFilter.value
+	if (projectFilter.value) filters.project = projectFilter.value
+	if (assigneeFilter.value) filters._assign = ['like', `%"${assigneeFilter.value}"%`]
+	return filters
+})
+
 const tasks = useList<HiveTask>({
 	doctype: 'Hive Task',
 	fields: [
@@ -251,11 +260,13 @@ const tasks = useList<HiveTask>({
 		'creation',
 		'modified',
 	],
-	filters: { is_archived: 0 },
+	filters: () => serverFilters.value,
 	orderBy: 'due_date asc',
 	limit: 500,
 	cacheKey: 'tasks-page',
 })
+
+watch(serverFilters, () => tasks.reload())
 
 const projects = useList<Pick<HiveProject, 'name' | 'title' | 'is_archived'>>({
 	doctype: 'Hive Project',

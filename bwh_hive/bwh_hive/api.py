@@ -256,7 +256,6 @@ def get_task_assignees(project: str | None = None):
 		"Hive Task",
 		filters=filters,
 		fields=["name", "_assign"],
-		limit=500,
 	)
 
 	# Resolve names from Hive Member
